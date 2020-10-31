@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from typing import Union, List, TypeVar
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 class HTMLToken:
 
@@ -24,7 +24,7 @@ class HTMLToken:
 	class __Tag:
 		name: Union[str, None] = None
 		selfClosing: bool = False
-		attributes: List[TypeVar("HTMLToken.__Attribute")] = []
+		attributes: List[TypeVar("HTMLToken.__Attribute")] = field(default_factory=list)
 		
 
 	def __init__(self):
