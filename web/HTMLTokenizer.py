@@ -132,7 +132,6 @@ class HTMLTokenizer:
         self.__cursor += len(characters)
 
 
-
     def __nextCodePoint(self) -> Union[str, None]:
         if (self.__cursor >= len(self.__html)):
             return
@@ -157,11 +156,11 @@ class HTMLTokenizer:
             elif (self.__currentInputChar == "<"):
                 self.__switchTo(self.__State.TagOpen)
             elif (self.__currentInputChar == None):
-                self.__currentToken = HTMLToken(HTMLToken.TokenType.EOF)
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
                 return
             else:
-                self.__currentToken = HTMLToken(HTMLToken.TokenType.Character)
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Character)
                 self.__currentToken.commentOrCharacter.data = self.__currentInputChar
                 self.__emitCurrentToken()
                 self.__continueIn(self.__State.Data)
@@ -185,11 +184,11 @@ class HTMLTokenizer:
             elif (self.__currentInputChar == "/"):
                 self.__switchTo(self.__State.EndTagOpen)
             elif (self.__currentInputChar.isalpha()):
-                self.__currentToken = HTMLToken(HTMLToken.TokenType.StartTag)
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.StartTag)
                 self.__reconsumeIn(self.__State.TagName)
 
         def handleEndTagOpen() -> None:
-            self.__currentToken = HTMLToken(HTMLToken.TokenType.EndTag)
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
             self.__reconsumeIn(self.__State.TagName)
             return
 
