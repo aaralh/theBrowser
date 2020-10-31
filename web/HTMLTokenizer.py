@@ -3,7 +3,16 @@ from enum import Enum, auto
 
 class HTMLTokenizer:
 
-    class State(Enum):
+    def run(self) -> None:
+        return
+
+    def __nextCodePoint(self) -> int:
+        return 1
+
+    def __init__(self):
+        self.state = self.__State.Data
+
+    class __State(Enum):
         Data = auto()
         RCDATA = auto()
         RAWTEXT = auto()
@@ -84,7 +93,3 @@ class HTMLTokenizer:
         HexadecimalCharacterReference = auto()
         DecimalCharacterReference = auto()
         NumericCharacterReferenceEnd = auto()
-
-
-def __init__(self):
-    return
