@@ -1,17 +1,9 @@
 from enum import Enum, auto
+from typing import Union, Callable, Any
 
 
 class HTMLTokenizer:
-
-    def run(self) -> None:
-        return
-
-    def __nextCodePoint(self) -> int:
-        return 1
-
-    def __init__(self):
-        self.state = self.__State.Data
-
+    
     class __State(Enum):
         Data = auto()
         RCDATA = auto()
@@ -93,3 +85,443 @@ class HTMLTokenizer:
         HexadecimalCharacterReference = auto()
         DecimalCharacterReference = auto()
         NumericCharacterReferenceEnd = auto()
+
+    def __switchTo(self, newState: __State) -> None:
+        self.__state = newState
+        self.__currentInputChar = self.__nextCodePoint()
+        switcher = self.__getStateSwitcher()
+        if (switcher != None):
+            switcher()
+
+
+    def __nextCodePoint(self) -> Union[str, None]:
+        if (self.__cursor >= len(self.__html)):
+            return
+        char = self.__html[self.__cursor]
+        self.__cursor =+ 1
+        return char
+
+    def __init__(self, html: str):
+        self.__state = self.__State.Data
+        self.__html = html
+        self.__cursor = 0
+        self.__currentInputChar: Union[str, None] = None
+        self.__returnState: Union[Any, None] = None
+
+    def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
+
+        def handleData() -> None:
+            if (self.__currentInputChar == "&"):
+                self.__returnState = self.__State.Data
+                self.__switchTo(self.__State.CharacterReference)
+
+
+        def handleRCDATA() -> None:
+            return
+
+        def handleRAWTEXT() -> None:
+            return
+
+        def handleScriptData() -> None:
+            return
+
+        
+        def handlePLAINTEXT() -> None:
+            return
+
+        
+        def handleTagOpen() -> None:
+            return
+
+        
+        def handleEndTagOpen() -> None:
+            return
+
+        
+        def handleTagName() -> None:
+            return
+
+        
+        def handleRCDATALessThanSign() -> None:
+            return
+
+        
+        def handleRCDATAEndTagOpen() -> None:
+            return
+
+        
+        def handleRCDATAEndTagName() -> None:
+            return
+
+        
+        def handleRAWTEXTLessThanSign() -> None:
+            return
+
+        
+        def handleRAWTEXTEndTagOpen() -> None:
+            return
+
+        
+        def handleRAWTEXTEndTagName() -> None:
+            return
+
+        
+        def handleScriptDataLessThanSign() -> None:
+            return
+
+        
+        def handleScriptDataEndTagOpen() -> None:
+            return
+
+        
+        def handleScriptDataEndTagName() -> None:
+            return
+
+        
+        def handleScriptDataEscapeStart() -> None:
+            return
+
+        
+        def handleScriptDataEscapeStartDash() -> None:
+            return
+
+        
+        def handleScriptDataEscaped() -> None:
+            return
+
+        
+        def handleScriptDataEscapedDash() -> None:
+            return
+
+        
+        def handleScriptDataEscapedDashDash() -> None:
+            return
+
+        
+        def handleScriptDataEscapedLessThanSign() -> None:
+            return
+
+        
+        def handleScriptDataEscapedEndTagOpen() -> None:
+            return
+
+        
+        def handleScriptDataEscapedEndTagName() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscapeStart() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscaped() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscapedDash() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscapedDashDash() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscapedLessThanSign() -> None:
+            return
+
+        
+        def handleScriptDataDoubleEscapeEnd() -> None:
+            return
+
+        
+        def handleBeforeAttributeName() -> None:
+            return
+
+        
+        def handleAttributeName() -> None:
+            return
+
+        
+        def handleAfterAttributeName() -> None:
+            return
+
+        
+        def handleBeforeAttributeValue() -> None:
+            return
+
+        
+        def handleAttributeValueDoubleQuoted() -> None:
+            return
+
+        
+        def handleAttributeValueSingleQuoted() -> None:
+            return
+
+        
+        def handleAttributeValueUnquoted() -> None:
+            return
+
+        
+        def handleAfterAttributeValueQuoted() -> None:
+            return
+
+        
+        def handleSelfClosingStartTag() -> None:
+            return
+
+        
+        def handleBogusComment() -> None:
+            return
+
+        
+        def handleMarkupDeclarationOpen() -> None:
+            return
+
+        
+        def handleCommentStart() -> None:
+            return
+
+        
+        def handleCommentStartDash() -> None:
+            return
+
+        
+        def handleComment() -> None:
+            return
+
+        
+        def handleCommentLessThanSign() -> None:
+            return
+
+        
+        def handleCommentLessThanSignBang() -> None:
+            return
+
+        
+        def handleCommentLessThanSignBangDash() -> None:
+            return
+
+        
+        def handleCommentLessThanSignBangDashDash() -> None:
+            return
+
+        
+        def handleCommentEndDash() -> None:
+            return
+
+        
+        def handleCommentEnd() -> None:
+            return
+
+        
+        def handleCommentEndBang() -> None:
+            return
+
+        
+        def handleDOCTYPE() -> None:
+            return
+
+        
+        def handleBeforeDOCTYPEName() -> None:
+            return
+
+        
+        def handleDOCTYPEName() -> None:
+            return
+
+        
+        def handleAfterDOCTYPEName() -> None:
+            return
+
+        
+        def handleAfterDOCTYPEPublicKeyword() -> None:
+            return
+
+        
+        def handleBeforeDOCTYPEPublicIdentifier() -> None:
+            return
+
+        
+        def handleDOCTYPEPublicIdentifierDoubleQuoted() -> None:
+            return
+
+        
+        def handleDOCTYPEPublicIdentifierSingleQuoted() -> None:
+            return
+
+        
+        def handleAfterDOCTYPEPublicIdentifier() -> None:
+            return
+
+        
+        def handleBetweenDOCTYPEPublicAndSystemIdentifiers() -> None:
+            return
+
+        
+        def handleAfterDOCTYPESystemKeyword() -> None:
+            return
+
+        
+        def handleBeforeDOCTYPESystemIdentifier() -> None:
+            return
+
+        
+        def handleDOCTYPESystemIdentifierDoubleQuoted() -> None:
+            return
+
+        
+        def handleDOCTYPESystemIdentifierSingleQuoted() -> None:
+            return
+
+        
+        def handleAfterDOCTYPESystemIdentifier() -> None:
+            return
+
+        
+        def handleBogusDOCTYPE() -> None:
+            return
+
+        
+        def handleCDATASection() -> None:
+            return
+
+        
+        def handleCDATASectionBracket() -> None:
+            return
+
+        
+        def handleCDATASectionEnd() -> None:
+            return
+
+        
+        def handleCharacterReference() -> None:
+            return
+
+        
+        def handleNamedCharacterReference() -> None:
+            return
+
+        
+        def handleAmbiguousAmpersand() -> None:
+            return
+
+        
+        def handleNumericCharacterReference() -> None:
+            return
+
+        
+        def handleHexadecimalCharacterReferenceStart() -> None:
+            return
+
+        
+        def handleDecimalCharacterReferenceStart() -> None:
+            return
+
+        
+        def handleHexadecimalCharacterReference() -> None:
+            return
+
+        
+        def handleDecimalCharacterReference() -> None:
+            return
+
+        
+        def handleNumericCharacterReferenceEnd() -> None:
+            return
+
+        
+
+
+        if (self.__currentInputChar != None):
+            return None
+
+        switcher = {
+            self.__State.Data: handleData,
+            self.__State.RCDATA: handleRCDATA,
+            self.__State.RAWTEXT: handleRAWTEXT,
+            self.__State.ScriptData: handleScriptData,
+            self.__State.PLAINTEXT: handlePLAINTEXT,
+            self.__State.TagOpen: handleTagOpen,
+            self.__State.EndTagOpen: handleEndTagOpen,
+            self.__State.TagName: handleTagName,
+            self.__State.RCDATALessThanSign: handleRCDATALessThanSign,
+            self.__State.RCDATAEndTagOpen: handleRCDATAEndTagOpen,
+            self.__State.RCDATAEndTagName: handleRCDATAEndTagName,
+            self.__State.RAWTEXTLessThanSign: handleRAWTEXTLessThanSign,
+            self.__State.RAWTEXTEndTagOpen: handleRAWTEXTEndTagOpen,
+            self.__State.RAWTEXTEndTagName: handleRAWTEXTEndTagName,
+            self.__State.ScriptDataLessThanSign: handleScriptDataLessThanSign,
+            self.__State.ScriptDataEndTagOpen: handleScriptDataEndTagOpen,
+            self.__State.ScriptDataEndTagName: handleScriptDataEndTagName,
+            self.__State.ScriptDataEscapeStart: handleScriptDataEscapeStart,
+            self.__State.ScriptDataEscapeStartDash: handleScriptDataEscapeStartDash,
+            self.__State.ScriptDataEscaped: handleScriptDataEscaped,
+            self.__State.ScriptDataEscapedDash: handleScriptDataEscapedDash,
+            self.__State.ScriptDataEscapedDashDash: handleScriptDataEscapedDashDash,
+            self.__State.ScriptDataEscapedLessThanSign: handleScriptDataEscapedLessThanSign,
+            self.__State.ScriptDataEscapedEndTagOpen: handleScriptDataEscapedEndTagOpen,
+            self.__State.ScriptDataEscapedEndTagName: handleScriptDataEscapedEndTagName,
+            self.__State.ScriptDataDoubleEscapeStart: handleScriptDataDoubleEscapeStart,
+            self.__State.ScriptDataDoubleEscaped: handleScriptDataDoubleEscaped,
+            self.__State.ScriptDataDoubleEscapedDash: handleScriptDataDoubleEscapedDash,
+            self.__State.ScriptDataDoubleEscapedDashDash: handleScriptDataDoubleEscapedDashDash,
+            self.__State.ScriptDataDoubleEscapedLessThanSign: handleScriptDataDoubleEscapedLessThanSign,
+            self.__State.ScriptDataDoubleEscapeEnd: handleScriptDataDoubleEscapeEnd,
+            self.__State.BeforeAttributeName: handleBeforeAttributeName,
+            self.__State.AttributeName: handleAttributeName,
+            self.__State.AfterAttributeName: handleAfterAttributeName,
+            self.__State.BeforeAttributeValue: handleBeforeAttributeValue,
+            self.__State.AttributeValueDoubleQuoted: handleAttributeValueDoubleQuoted,
+            self.__State.AttributeValueSingleQuoted: handleAttributeValueSingleQuoted,
+            self.__State.AttributeValueUnquoted: handleAttributeValueUnquoted,
+            self.__State.AfterAttributeValueQuoted: handleAfterAttributeValueQuoted,
+            self.__State.SelfClosingStartTag: handleSelfClosingStartTag,
+            self.__State.BogusComment: handleBogusComment,
+            self.__State.MarkupDeclarationOpen: handleMarkupDeclarationOpen,
+            self.__State.CommentStart: handleCommentStart,
+            self.__State.CommentStartDash: handleCommentStartDash,
+            self.__State.Comment: handleComment,
+            self.__State.CommentLessThanSign: handleCommentLessThanSign,
+            self.__State.CommentLessThanSignBang: handleCommentLessThanSignBang,
+            self.__State.CommentLessThanSignBangDash: handleCommentLessThanSignBangDash,
+            self.__State.CommentLessThanSignBangDashDash: handleCommentLessThanSignBangDashDash,
+            self.__State.CommentEndDash: handleCommentEndDash,
+            self.__State.CommentEnd: handleCommentEnd,
+            self.__State.CommentEndBang: handleCommentEndBang,
+            self.__State.DOCTYPE: handleDOCTYPE,
+            self.__State.BeforeDOCTYPEName: handleBeforeDOCTYPEName,
+            self.__State.DOCTYPEName: handleDOCTYPEName,
+            self.__State.AfterDOCTYPEName: handleAfterDOCTYPEName,
+            self.__State.AfterDOCTYPEPublicKeyword: handleAfterDOCTYPEPublicKeyword,
+            self.__State.BeforeDOCTYPEPublicIdentifier: handleBeforeDOCTYPEPublicIdentifier,
+            self.__State.DOCTYPEPublicIdentifierDoubleQuoted: handleDOCTYPEPublicIdentifierDoubleQuoted,
+            self.__State.DOCTYPEPublicIdentifierSingleQuoted: handleDOCTYPEPublicIdentifierSingleQuoted,
+            self.__State.AfterDOCTYPEPublicIdentifier: handleAfterDOCTYPEPublicIdentifier,
+            self.__State.BetweenDOCTYPEPublicAndSystemIdentifiers: handleBetweenDOCTYPEPublicAndSystemIdentifiers,
+            self.__State.AfterDOCTYPESystemKeyword: handleAfterDOCTYPESystemKeyword,
+            self.__State.BeforeDOCTYPESystemIdentifier: handleBeforeDOCTYPESystemIdentifier,
+            self.__State.DOCTYPESystemIdentifierDoubleQuoted: handleDOCTYPESystemIdentifierDoubleQuoted,
+            self.__State.DOCTYPESystemIdentifierSingleQuoted: handleDOCTYPESystemIdentifierSingleQuoted,
+            self.__State.AfterDOCTYPESystemIdentifier: handleAfterDOCTYPESystemIdentifier,
+            self.__State.BogusDOCTYPE: handleBogusDOCTYPE,
+            self.__State.CDATASection: handleCDATASection,
+            self.__State.CDATASectionBracket: handleCDATASectionBracket,
+            self.__State.CDATASectionEnd: handleCDATASectionEnd,
+            self.__State.CharacterReference: handleCharacterReference,
+            self.__State.NamedCharacterReference: handleNamedCharacterReference,
+            self.__State.AmbiguousAmpersand: handleAmbiguousAmpersand,
+            self.__State.NumericCharacterReference: handleNumericCharacterReference,
+            self.__State.HexadecimalCharacterReferenceStart: handleHexadecimalCharacterReferenceStart,
+            self.__State.DecimalCharacterReferenceStart: handleDecimalCharacterReferenceStart,
+            self.__State.HexadecimalCharacterReference: handleHexadecimalCharacterReference,
+            self.__State.DecimalCharacterReference: handleDecimalCharacterReference,
+            self.__State.NumericCharacterReferenceEnd: handleNumericCharacterReferenceEnd,
+        }
+
+        return switcher.get(self.__state, None)
+
+    def run(self) -> None:
+        self.__currentInputChar = self.__nextCodePoint()
+        switcher = self.__getStateSwitcher()
+        if (switcher != None):
+            switcher()
