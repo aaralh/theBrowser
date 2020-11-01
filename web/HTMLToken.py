@@ -13,14 +13,14 @@ class HTMLToken:
         Character = auto()
         EOF = auto()
 
-    @dataclass
-    class __CommentOrCharacter:
-        data: Union[str, None] = None
+    def type(self) -> Union[TokenType, None]:
+        return self.__type
 
-    @dataclass
-    class __Attribute:
-        name: Union[str, None] = None
-        value: Union[str, None] = None
+    def __init__(self, tokenType: Union[TokenType, None]) -> None:
+        self.__type = tokenType
+
+
+class HTMLDoctype(HTMLToken):
 
     @dataclass
     class __Doctype:
@@ -29,22 +29,45 @@ class HTMLToken:
         systemPublicIdentidier: Union[str, None] = None
         forcedQuircks: bool = False
 
+    def __init__(self) -> None:
+        self.__type = HTMLToken.TokenType.DOCTYPE
+        self.doctype = self.__Doctype()
+
+    def __str__(self) -> str:
+        return f"type: {self.__type}, name: {self.doctype.name}"
+
+
+class HTMLCommentOrCharacter(HTMLToken):
+
+    @dataclass
+    class __CommentOrCharacter:
+        data: Union[str, None] = None
+
+    def __init__(self, tokenType: HTMLToken.TokenType) -> None:
+        self.__type = tokenType
+        self.commentOrCharacter = self.__CommentOrCharacter()
+
+    def __str__(self) -> str:
+        return f"type: {self.__type}, name: {self.commentOrCharacter.data}"
+
+
+class HTMLTag(HTMLToken):
+
+    @dataclass
+    class __Attribute:
+        name: Union[str, None] = None
+        value: Union[str, None] = None
+
     @dataclass
     class __Tag():
         name: Union[str, None] = None
         selfClosing: bool = False
-        attributes: List["HTMLToken.__Attribute"] = field(
+        attributes: List["HTMLTag.__Attribute"] = field(
             default_factory=list)
 
-
-    def type(self) -> Union[TokenType, None]:
-        return self.__type
-
-    def __init__(self, tokenType: Union[TokenType, None]) -> None:
+    def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         self.__type = tokenType
-        self.doctype = self.__Doctype()
-        self.commentOrCharacter = self.__CommentOrCharacter()
         self.tag = self.__Tag()
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.commentOrCharacter.data}"
+        return f"type: {self.__type}, name: {self.tag.name}, attributes: {self.tag.attributes}"

@@ -1,6 +1,6 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast
-from .HTMLToken import HTMLToken
+from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 
 
 class HTMLTokenizer:
@@ -9,8 +9,17 @@ class HTMLTokenizer:
         print(self.__currentToken)
         self.__currentToken = None
 
-    def __createNewToken(self, tokenType: HTMLToken.TokenType) -> HTMLToken:
-        return HTMLToken(tokenType)
+    def __createNewToken(self, tokenType: HTMLToken.TokenType) -> Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]:
+        token = None
+        if (tokenType == HTMLToken.TokenType.DOCTYPE):
+            token = HTMLDoctype()
+        elif (tokenType == HTMLToken.TokenType.Comment or tokenType == HTMLToken.TokenType.Character):
+            token = HTMLCommentOrCharacter(tokenType)
+        elif (tokenType == HTMLToken.TokenType.StartTag or tokenType == HTMLToken.TokenType.EndTag):
+            token = HTMLTag(tokenType)
+        else:
+            token = HTMLToken(tokenType)
+        return token
 
     class __State(Enum):
         Data = auto()
@@ -151,7 +160,7 @@ class HTMLTokenizer:
         self.__cursor = 0
         self.__currentInputChar: Union[str, None] = None
         self.__returnState: Union[Any, None] = None
-        self.__currentToken: Union[HTMLToken, None] = None
+        self.__currentToken: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter, None] = None
 
     def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
 
