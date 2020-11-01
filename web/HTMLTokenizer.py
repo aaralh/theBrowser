@@ -175,7 +175,7 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
                 return
             else:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Character)
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.commentOrCharacter.data = self.__currentInputChar
                 self.__emitCurrentToken()
                 self.__continueIn(self.__State.Data)
@@ -199,7 +199,7 @@ class HTMLTokenizer:
             elif (self.__currentInputChar == "/"):
                 self.__switchTo(self.__State.EndTagOpen)
             elif (self.__currentInputChar.isalpha()):
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.StartTag)
+                self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.StartTag))
                 self.__reconsumeIn(self.__State.TagName)
 
         def handleEndTagOpen() -> None:
@@ -207,11 +207,13 @@ class HTMLTokenizer:
             self.__reconsumeIn(self.__State.TagName)
             return
 
+
         def handleTagName() -> None:
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
                 self.__switchTo(self.__State.Data)
             else:
+                self.__currentToken = cast(HTMLTag, self.__currentToken)
                 if (self.__currentToken.tag.name != None and self.__currentInputChar != None):
                     self.__currentToken.tag.name += self.__currentInputChar
                 else:
@@ -339,6 +341,7 @@ class HTMLTokenizer:
 
 
         def handleCommentStartDash() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
                 self.__switchTo(self.__State.CommentEnd)
             elif(self.__currentInputChar == ">"):
@@ -356,6 +359,7 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.__State.Comment)
 
         def handleComment() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
                 self.__switchTo(self.__State.CommentEndDash)
             elif(self.__currentInputChar == None):
@@ -382,6 +386,7 @@ class HTMLTokenizer:
             return
 
         def handleCommentEndDash() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
                 self.__switchTo(self.__State.CommentEnd)
             elif(self.__currentInputChar == None):
@@ -396,6 +401,7 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.__State.Comment)
 
         def handleCommentEnd() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
                 self.__switchTo(self.__State.Data)
@@ -428,7 +434,7 @@ class HTMLTokenizer:
             if (self.__charIsWhitespace(cast(str,self.__currentInputChar))):
                 self.__ignoreCharacterAndContinueTo(self.__State.BeforeDOCTYPEName)
             else:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.DOCTYPE)
+                self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))
                 if (self.__currentToken.doctype.name != None and self.__currentInputChar != None):
                     self.__currentToken.doctype.name += self.__currentInputChar
                 else:
@@ -438,6 +444,7 @@ class HTMLTokenizer:
             return
 
         def handleDOCTYPEName() -> None:
+            self.__currentToken = cast(HTMLDoctype, self.__currentToken)
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
                 self.__switchTo(self.__State.Data)
