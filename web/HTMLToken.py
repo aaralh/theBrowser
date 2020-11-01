@@ -30,10 +30,10 @@ class HTMLToken:
         forcedQuircks: bool = False
 
     @dataclass
-    class __Tag:
+    class __Tag():
         name: Union[str, None] = None
         selfClosing: bool = False
-        attributes: List[TypeVar("HTMLToken.__Attribute")] = field(
+        attributes: List["HTMLToken.__Attribute"] = field(
             default_factory=list)
 
 
@@ -47,4 +47,4 @@ class HTMLToken:
         self.tag = self.__Tag()
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.tag.name}"
+        return f"type: {self.__type}, name: {self.commentOrCharacter.data}"

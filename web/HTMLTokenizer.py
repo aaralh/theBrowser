@@ -102,6 +102,9 @@ class HTMLTokenizer:
         self.__switchTo(newState)
 
     def __switchTo(self, newState: __State) -> None:
+        '''
+        Switch state and consume next character.
+        '''
         self.__state = newState
         self.__currentInputChar = self.__nextCodePoint()
         switcher = self.__getStateSwitcher()
@@ -109,6 +112,9 @@ class HTMLTokenizer:
             switcher()
 
     def __reconsumeIn(self, newState: __State) -> None:
+        '''
+        Switch state without consuming next character.
+        '''
         self.__state = newState
         switcher = self.__getStateSwitcher()
         if (switcher != None):
@@ -304,18 +310,55 @@ class HTMLTokenizer:
             return
 
         def handleMarkupDeclarationOpen() -> None:
-            if (self.__nextCharactersAre("DOCTYPE")):
+            if(self.__nextCharactersAre("--")):
+                self.__consumeCharacters("--")
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Comment)
+                self.__switchTo(self.__State.CommentStart)
+            elif (self.__nextCharactersAre("DOCTYPE")):
                 self.__consumeCharacters("DOCTYPE")
                 self.__switchTo(self.__State.DOCTYPE)
 
         def handleCommentStart() -> None:
-            return
+
+            if (self.__currentInputChar == "-"):
+                self.__switchTo(self.__State.CommentStartDash)
+            elif(self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            else:
+                self.__reconsumeIn(self.__State.Comment)
+
 
         def handleCommentStartDash() -> None:
-            return
+            if (self.__currentInputChar == "-"):
+                self.__switchTo(self.__State.CommentEnd)
+            elif(self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            elif(self.__currentInputChar == None):
+                self.__emitCurrentToken()
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                if (self.__currentToken.commentOrCharacter.data != None):
+                    self.__currentToken.commentOrCharacter.data += "-"
+                else:
+                    self.__currentToken.commentOrCharacter.data = "-"
+                self.__reconsumeIn(self.__State.Comment)
 
         def handleComment() -> None:
-            return
+            if (self.__currentInputChar == "-"):
+                self.__switchTo(self.__State.CommentEndDash)
+            elif(self.__currentInputChar == None):
+                self.__emitCurrentToken()
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                if (self.__currentToken.commentOrCharacter.data != None):
+                    self.__currentToken.commentOrCharacter.data += self.__currentInputChar
+                else:
+                    self.__currentToken.commentOrCharacter.data = self.__currentInputChar
+                self.__continueIn(self.__State.Comment)
 
         def handleCommentLessThanSign() -> None:
             return
@@ -330,10 +373,39 @@ class HTMLTokenizer:
             return
 
         def handleCommentEndDash() -> None:
-            return
+            if (self.__currentInputChar == "-"):
+                self.__switchTo(self.__State.CommentEnd)
+            elif(self.__currentInputChar == None):
+                self.__emitCurrentToken()
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                if (self.__currentToken.commentOrCharacter.data != None):
+                    self.__currentToken.commentOrCharacter.data += "-"
+                else:
+                    self.__currentToken.commentOrCharacter.data = "-"
+                self.__reconsumeIn(self.__State.Comment)
 
         def handleCommentEnd() -> None:
-            return
+            if (self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            elif(self.__currentInputChar == "-"):
+                if (self.__currentToken.commentOrCharacter.data != None):
+                    self.__currentToken.commentOrCharacter.data += "-"
+                else:
+                    self.__currentToken.commentOrCharacter.data = "-"
+                self.__continueIn(self.__State.CommentEnd)
+            elif(self.__currentInputChar == None):
+                self.__emitCurrentToken()
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                if (self.__currentToken.commentOrCharacter.data != None):
+                    self.__currentToken.commentOrCharacter.data += "-"
+                else:
+                    self.__currentToken.commentOrCharacter.data = "-"
+                self.__reconsumeIn(self.__State.Comment)
 
         def handleCommentEndBang() -> None:
             return
@@ -354,11 +426,9 @@ class HTMLTokenizer:
                     self.__currentToken.doctype.name = self.__currentInputChar
                 
                 self.__switchTo(self.__State.DOCTYPEName)
-            
             return
 
         def handleDOCTYPEName() -> None:
-            
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
                 self.__switchTo(self.__State.Data)
