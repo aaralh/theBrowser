@@ -209,7 +209,12 @@ class HTMLTokenizer:
 
 
         def handleTagName() -> None:
-            if (self.__currentInputChar == ">"):
+            if (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            elif (self.__charIsWhitespace(self.__currentInputChar)):
+                self.__switchTo(self.__State.BeforeAttributeName)
+            elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
                 self.__switchTo(self.__State.Data)
             else:
@@ -291,28 +296,105 @@ class HTMLTokenizer:
             return
 
         def handleBeforeAttributeName() -> None:
-            return
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+            if (self.__currentInputChar == None):
+                self.__reconsumeIn(self.__State.AfterAttributeName)
+            elif (self.__charIsWhitespace(self.__currentInputChar)):
+                self.__continueIn(self.__State.BeforeAttributeName)
+            else:
+                self.__currentToken.createNewAttribute()
+                self.__reconsumeIn(self.__State.AttributeName)
+            
 
         def handleAttributeName() -> None:
-            return
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+            if(
+                self.__currentInputChar == None or 
+                self.__charIsWhitespace(self.__currentInputChar) or
+                self.__currentInputChar == "/" or
+                self.__currentInputChar == ">"
+            ):
+                self.__reconsumeIn(self.__State.AfterAttributeName)
+            elif(self.__currentInputChar == "="):
+                self.__switchTo(self.__State.BeforeAttributeValue)
+            elif(self.__currentInputChar.isupper() and self.__currentInputChar.isalpha()):
+                self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
+            else:
+                self.__currentToken.addCharToAttributeName(self.__currentInputChar)
+                self.__continueIn(self.__State.AttributeName)
+            
 
         def handleAfterAttributeName() -> None:
             return
 
         def handleBeforeAttributeValue() -> None:
-            return
+            if (self.__charIsWhitespace(self.__currentInputChar)):
+                self.__continueIn(self.__State.BeforeAttributeValue)
+            elif (self.__currentInputChar == '"'):
+                self.__switchTo(self.__State.AttributeValueDoubleQuoted)
+            elif (self.__currentInputChar == "'"):
+                self.__switchTo(self.__State.AttributeValueSingleQuoted)
+            elif (self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            else:
+                self.__reconsumeIn(self.__State.AttributeValueUnquoted)
+
 
         def handleAttributeValueDoubleQuoted() -> None:
-            return
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+            if (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            elif (self.__currentInputChar == '"'):
+                self.__switchTo(self.__State.AfterAttributeValueQuoted)
+            else:
+                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+                self.__continueIn(self.__State.AttributeValueDoubleQuoted)
+
 
         def handleAttributeValueSingleQuoted() -> None:
-            return
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+            if (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            elif (self.__currentInputChar == "'"):
+                self.__switchTo(self.__State.AfterAttributeValueQuoted)
+            else:
+                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+                self.__continueIn(self.__State.AttributeValueSingleQuoted)
+
 
         def handleAttributeValueUnquoted() -> None:
-            return
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+            if (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            elif (self.__charIsWhitespace(self.__currentInputChar)):
+                self.__switchTo(self.__State.BeforeAttributeName)
+            elif (self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            else:
+                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+                self.__continueIn(self.__State.AttributeValueUnquoted)
+
 
         def handleAfterAttributeValueQuoted() -> None:
-            return
+            if (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            elif (self.__charIsWhitespace(self.__currentInputChar)):
+                self.__switchTo(self.__State.BeforeAttributeName)
+            elif (self.__currentInputChar == "/"):
+                self.__switchTo(self.__State.SelfClosingStartTag)
+            elif (self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.__switchTo(self.__State.Data)
+            else:
+                self.__reconsumeIn(self.__State.BeforeAttributeName)
 
         def handleSelfClosingStartTag() -> None:
             return

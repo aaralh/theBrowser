@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Union, List, TypeVar
+from typing import Union, Dict
 from dataclasses import dataclass, field
 
 
@@ -54,20 +54,33 @@ class HTMLCommentOrCharacter(HTMLToken):
 class HTMLTag(HTMLToken):
 
     @dataclass
-    class __Attribute:
-        name: Union[str, None] = None
-        value: Union[str, None] = None
-
-    @dataclass
     class __Tag():
         name: Union[str, None] = None
         selfClosing: bool = False
-        attributes: List["HTMLTag.__Attribute"] = field(
-            default_factory=list)
+        attributes: Dict[str, str] = field(default_factory=dict)
 
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         self.__type = tokenType
         self.tag = self.__Tag()
+        self.activeAttributeName: Union[str, None] = None
 
     def __str__(self) -> str:
         return f"type: {self.__type}, name: {self.tag.name}, attributes: {self.tag.attributes}"
+
+
+    def createNewAttribute(self) -> None:
+        self.tag.attributes[""] = ""
+        self.activeAttributeName = ""
+    
+    def addCharToAttributeName(self, char: str) -> None:
+        if (self.activeAttributeName == None):
+            return
+        self.tag.attributes[self.activeAttributeName + char] = self.tag.attributes[self.activeAttributeName]
+        del self.tag.attributes[self.activeAttributeName]
+        self.activeAttributeName += char
+    
+    def addCharToAttributeValue(self, char: str) -> None:
+        if (self.activeAttributeName == None):
+            return
+            
+        self.tag.attributes[self.activeAttributeName] = self.tag.attributes[self.activeAttributeName] + char
