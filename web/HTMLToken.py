@@ -18,6 +18,9 @@ class HTMLToken:
 
     def __init__(self, tokenType: Union[TokenType, None]) -> None:
         self.__type = tokenType
+    
+    def __str__(self) -> str:
+        return f"type: {self.__type}"
 
 
 class HTMLDoctype(HTMLToken):

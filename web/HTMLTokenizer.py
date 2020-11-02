@@ -6,7 +6,7 @@ from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 class HTMLTokenizer:
 
     def __emitCurrentToken(self) -> None:
-        print(self.__currentToken)
+        self.__tokenHandlerCb(self.__currentToken)
         self.__currentToken = None
 
     def __createNewToken(self, tokenType: HTMLToken.TokenType) -> Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]:
@@ -154,13 +154,14 @@ class HTMLTokenizer:
         self.__cursor += 1
         return char
 
-    def __init__(self, html: str):
+    def __init__(self, html: str, tokenHandlerCb: Callable):
         self.__state = self.__State.Data
         self.__html = html
         self.__cursor = 0
         self.__currentInputChar: Union[str, None] = None
         self.__returnState: Union[Any, None] = None
         self.__currentToken: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter, None] = None
+        self.__tokenHandlerCb = tokenHandlerCb
 
     def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
 
