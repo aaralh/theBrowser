@@ -25,65 +25,59 @@ class HTMLToken:
 
 class HTMLDoctype(HTMLToken):
 
-    @dataclass
-    class __Doctype:
-        name: Union[str, None] = None
-        publicIdentifier: Union[str, None] = None
-        systemPublicIdentidier: Union[str, None] = None
-        forcedQuircks: bool = False
-
     def __init__(self) -> None:
         self.__type = HTMLToken.TokenType.DOCTYPE
-        self.doctype = self.__Doctype()
+        self.name: Union[str, None] = None
+        self.publicIdentifier: Union[str, None] = None
+        self.systemPublicIdentidier: Union[str, None] = None
+        self.forcedQuircks: bool = False
+
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.doctype.name}"
+        return f"type: {self.__type}, name: {self.name}"
+
+
+    def setName(self, newName: str) -> None:
+        self.name = newName
+
 
 
 class HTMLCommentOrCharacter(HTMLToken):
 
-    @dataclass
-    class __CommentOrCharacter:
-        data: Union[str, None] = None
-
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         self.__type = tokenType
-        self.commentOrCharacter = self.__CommentOrCharacter()
+        self.data: Union[str, None] = None
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.commentOrCharacter.data}"
+        return f"type: {self.__type}, name: {self.data}"
 
 
 class HTMLTag(HTMLToken):
 
-    @dataclass
-    class __Tag():
-        name: Union[str, None] = None
-        selfClosing: bool = False
-        attributes: Dict[str, str] = field(default_factory=dict)
-
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         self.__type = tokenType
-        self.tag = self.__Tag()
         self.activeAttributeName: Union[str, None] = None
+        self.name: Union[str, None] = None
+        self.selfClosing: bool = False
+        self.attributes: Dict[str, str] = field(default_factory=dict)
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.tag.name}, attributes: {self.tag.attributes}"
+        return f"type: {self.__type}, name: {self.name}, attributes: {self.attributes}"
 
 
     def createNewAttribute(self) -> None:
-        self.tag.attributes[""] = ""
+        self.attributes[""] = ""
         self.activeAttributeName = ""
     
     def addCharToAttributeName(self, char: str) -> None:
         if (self.activeAttributeName == None):
             return
-        self.tag.attributes[self.activeAttributeName + char] = self.tag.attributes[self.activeAttributeName]
-        del self.tag.attributes[self.activeAttributeName]
+        self.attributes[self.activeAttributeName + char] = self.attributes[self.activeAttributeName]
+        del self.attributes[self.activeAttributeName]
         self.activeAttributeName += char
     
     def addCharToAttributeValue(self, char: str) -> None:
         if (self.activeAttributeName == None):
             return
             
-        self.tag.attributes[self.activeAttributeName] = self.tag.attributes[self.activeAttributeName] + char
+        self.attributes[self.activeAttributeName] = self.attributes[self.activeAttributeName] + char
