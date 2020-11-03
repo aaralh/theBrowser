@@ -23,7 +23,7 @@ class Node:
 		return self.__parentNode
 	
 	@parentNode.setter
-	def name(self, parent: Node) -> None:
+	def parentNode(self, parent: Node) -> None:
 		self.__parentNode = parent
 
 

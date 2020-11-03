@@ -63,8 +63,7 @@ class HTMLDocumentParser:
                 if (token.name == "html"):
                     documentNode = HTMLType(token)
                     self.__document.appendChild(documentNode)
-                    #TODO: Handle quircks mode.
-                    self.__switchTo(self.__Mode.BeforeHTML)
+                    self.__switchTo(self.__Mode.BeforeHead)
 
 
         def handleBeforeHead() -> None:
