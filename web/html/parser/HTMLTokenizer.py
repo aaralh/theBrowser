@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
+from .utils import charIsWhitespace
 
 
 class HTMLTokenizer:
@@ -128,10 +129,7 @@ class HTMLTokenizer:
         switcher = self.__getStateSwitcher()
         if (switcher != None):
             switcher()
-    
-    def __charIsWhitespace(self, char: str) -> bool:
-        whitespaces = ["\t", "\a", "\f", " "]
-        return char in whitespaces
+
     
     def __nextCharactersAre(self, characters: str) -> bool:
         for index in range(len(characters)):
@@ -213,7 +211,7 @@ class HTMLTokenizer:
             if (self.__currentInputChar == None):
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (self.__charIsWhitespace(self.__currentInputChar)):
+            elif (charIsWhitespace(self.__currentInputChar)):
                 self.__switchTo(self.__State.BeforeAttributeName)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
@@ -301,7 +299,7 @@ class HTMLTokenizer:
 
             if (self.__currentInputChar == None):
                 self.__reconsumeIn(self.__State.AfterAttributeName)
-            elif (self.__charIsWhitespace(self.__currentInputChar)):
+            elif (charIsWhitespace(self.__currentInputChar)):
                 self.__continueIn(self.__State.BeforeAttributeName)
             else:
                 self.__currentToken.createNewAttribute()
@@ -313,7 +311,7 @@ class HTMLTokenizer:
 
             if(
                 self.__currentInputChar == None or 
-                self.__charIsWhitespace(self.__currentInputChar) or
+                charIsWhitespace(self.__currentInputChar) or
                 self.__currentInputChar == "/" or
                 self.__currentInputChar == ">"
             ):
@@ -331,7 +329,7 @@ class HTMLTokenizer:
             return
 
         def handleBeforeAttributeValue() -> None:
-            if (self.__charIsWhitespace(self.__currentInputChar)):
+            if (charIsWhitespace(self.__currentInputChar)):
                 self.__continueIn(self.__State.BeforeAttributeValue)
             elif (self.__currentInputChar == '"'):
                 self.__switchTo(self.__State.AttributeValueDoubleQuoted)
@@ -373,7 +371,7 @@ class HTMLTokenizer:
             if (self.__currentInputChar == None):
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (self.__charIsWhitespace(self.__currentInputChar)):
+            elif (charIsWhitespace(self.__currentInputChar)):
                 self.__switchTo(self.__State.BeforeAttributeName)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
@@ -387,7 +385,7 @@ class HTMLTokenizer:
             if (self.__currentInputChar == None):
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (self.__charIsWhitespace(self.__currentInputChar)):
+            elif (charIsWhitespace(self.__currentInputChar)):
                 self.__switchTo(self.__State.BeforeAttributeName)
             elif (self.__currentInputChar == "/"):
                 self.__switchTo(self.__State.SelfClosingStartTag)
@@ -509,12 +507,12 @@ class HTMLTokenizer:
             return
 
         def handleDOCTYPE() -> None:
-            if (self.__charIsWhitespace(cast(str, self.__currentInputChar))):
+            if (charIsWhitespace(cast(str, self.__currentInputChar))):
                 self.__switchTo(self.__State.BeforeDOCTYPEName)
             return
 
         def handleBeforeDOCTYPEName() -> None:
-            if (self.__charIsWhitespace(cast(str,self.__currentInputChar))):
+            if (charIsWhitespace(cast(str,self.__currentInputChar))):
                 self.__ignoreCharacterAndContinueTo(self.__State.BeforeDOCTYPEName)
             else:
                 self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))

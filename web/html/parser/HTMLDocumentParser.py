@@ -1,5 +1,8 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
+from web.dom.Comment import Comment
+from web.html.parser.utils import charIsWhitespace
+from web.dom.Element import Element
 from web.dom.Document import Document
 from web.dom.Node import Node
 from web.dom.DocumentType import DocumentType
@@ -41,9 +44,30 @@ class HTMLDocumentParser:
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
 
+    def __getOpenElement(self) -> Node:
+        return self.__document if (len(self.__openElements) == 0) else self.__openElements[-1]
 
     def __tokenHandler(self, token: Any) -> None:
         print(token)
+
+
+    def __continueIn(self, mode: __Mode) -> None:
+        self.__switchTo(mode)
+
+
+    def __switchTo(self, newMode: __Mode) -> None:
+        '''
+        Switch state and consume next character.
+        '''
+        self.__currentInsertionMode = newMode
+        switcher = self.__getModeSwitcher()
+        if (switcher != None):
+            switcher()
+    
+
+    def __createElement(self, token: HTMLTag) -> Element:
+        parent = self.__getOpenElement()
+        return Element(token, parent)
 
 
     def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
@@ -61,13 +85,31 @@ class HTMLDocumentParser:
             if (token.type == HTMLToken.TokenType.StartTag):
                 token = cast(HTMLTag, token)
                 if (token.name == "html"):
-                    documentNode = HTMLType(token)
-                    self.__document.appendChild(documentNode)
+                    element = self.__createElement(token)
+                    self.__openElements.append(element)
+                    element.parentNode.appendChild(element)
+                    self.__switchTo(self.__Mode.BeforeHead)
+                else:
+                    token = HTMLTag(HTMLToken.TokenType.StartTag)
+                    token.name = "html"
+                    element = self.__createElement(token)
+                    self.__openElements.append(element)
+                    element.parentNode.appendChild(element)
                     self.__switchTo(self.__Mode.BeforeHead)
 
 
-        def handleBeforeHead() -> None:
-            return
+        def handleBeforeHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            if (token.type == HTMLToken.TokenType.Character):
+                if (charIsWhitespace(token.data)):
+                    self.__continueIn(self.__Mode.BeforeHead)
+            elif (token.type == HTMLToken.TokenType.Comment):
+                token = cast(HTMLCommentOrCharacter, token)
+                comment = Comment(token.data)
+                self.__getOpenElement().appendChild(comment)
+                self.__continueIn(self.__Mode.BeforeHead)
+            elif (token.type == HTMLToken.TokenType.DOCTYPE):
+                self.__continueIn(self.__Mode.BeforeHead)
+
 
         def handleInHead() -> None:
             return
@@ -156,14 +198,7 @@ class HTMLDocumentParser:
             self.__Mode.AfterAfterFrameset: handleAfterAfterFrameset,
         }
 
-    def __switchTo(self, newMode: __Mode) -> None:
-        '''
-        Switch state and consume next character.
-        '''
-        self.__currentInsertionMode = newMode
-        switcher = self.__getModeSwitcher()
-        if (switcher != None):
-            switcher()
+
 
     def currentInsertionMode(self) -> __Mode:
         return self.__currentInsertionMode
