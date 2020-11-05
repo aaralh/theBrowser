@@ -8,7 +8,7 @@ class Element(Node):
 		self.__localName = token.name
 		self.__is = token.attributes["id"] if (token.attributes["id"] != None) else ""
 		self.__attributes = token.attributes
-		self.parentNode = parent
+		self.parentNode: Node = parent
 	""" 	self.__tagName
 		self.__id
 		self.__className

@@ -109,10 +109,25 @@ class HTMLDocumentParser:
                 self.__continueIn(self.__Mode.BeforeHead)
             elif (token.type == HTMLToken.TokenType.DOCTYPE):
                 self.__continueIn(self.__Mode.BeforeHead)
+            elif (token.type == HTMLToken.TokenType.StartTag):
+                token = cast(HTMLTag, token)
+                if (token.name == "head"):
+                    element = self.__createElement(token)
+                    self.__openElements.append(element)
+                    element.parentNode.appendChild(element)
+                    self.__switchTo(self.__Mode.InHead)
+            else:
+                token = HTMLTag(HTMLToken.TokenType.StartTag)
+                token.name = "head"
+                element = self.__createElement(token)
+                self.__openElements.append(element)
+                element.parentNode.appendChild(element)
+                self.__switchTo(self.__Mode.InHead)
 
-
-        def handleInHead() -> None:
-            return
+        def handleInHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            if (token.type == HTMLToken.TokenType.Character):
+                if (charIsWhitespace(token.data)):
+                    pass
 
         def handleInHeadNoscript() -> None:
             return
