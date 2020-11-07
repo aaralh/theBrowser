@@ -144,6 +144,10 @@ class HTMLDocumentParser:
                 if (charIsWhitespace(token.data)):
                     #TODO:Insert the character
                     pass
+            elif (token.type == HTMLToken.TokenType.Comment):
+                token = cast(HTMLCommentOrCharacter, token)
+                comment = Comment(token.data)
+                self.__currentElement.appendChild(comment)
             elif (token.type == HTMLToken.TokenType.DOCTYPE):
                 pass
             elif (token.type == HTMLToken.TokenType.StartTag):
@@ -157,7 +161,7 @@ class HTMLDocumentParser:
                 elif (token.name == "meta"):
                     #This kind of elements are not added to open stack.
                     _ = self.__createElement(token)
-                    #TODO: Handle charset attribute
+                    #TODO: Handle charset attribute.
                 elif (token.name == "title"):   
                     #TODO: Handle title.
                     pass
@@ -174,12 +178,34 @@ class HTMLDocumentParser:
             elif (token.type == HTMLToken.TokenType.StartTag):
                 token = cast(HTMLTag, token)
                 if (token.name == "html"):
-                    #TODO: Handle using the "in body"
+                    #TODO: Handle using the "in body".
                     pass
             elif (token.type == HTMLToken.TokenType.EndTag):
                 token = cast(HTMLTag, token)
                 if (token.name == "noscript"):
                     self.__removeCurrentFromOpenStack()
+                    self.__switchTo(self.__Mode.InHead)
+                elif (token.name == "br"):
+                    self.__removeCurrentFromOpenStack()
+                else:
+                    pass
+            elif (token.type == HTMLToken.TokenType.Character):
+                if (charIsWhitespace(token.data)):
+                    #TODO:Insert the character
+                    pass
+            elif (token.type == HTMLToken.TokenType.Comment):
+                token = cast(HTMLCommentOrCharacter, token)
+                comment = Comment(token.data)
+                self.__currentElement.appendChild(comment)
+            elif (token.type == HTMLToken.TokenType.StartTag):
+                if (token.name in ["basefont", "bgsound", "link", "meta", "noframes", "style"]):
+                    #TODO: Implement handling.
+                    pass
+                elif (token.name in ["head", "noscrip"]):
+                    pass
+            else:
+                self.__removeCurrentFromOpenStack()
+
 
         def handleAfterHead() -> None:
             return
