@@ -57,10 +57,10 @@ class HTMLDocumentParser:
 
 
     def __continueIn(self, mode: __Mode) -> None:
-        self.__switchTo(mode)
+        self.__switchModeTo(mode)
 
 
-    def __switchTo(self, newMode: __Mode) -> None:
+    def __switchModeTo(self, newMode: __Mode) -> None:
         '''
         Switch state and consume next character.
         '''
@@ -97,7 +97,7 @@ class HTMLDocumentParser:
                 documentNode = DocumentType(token)
                 self.__document.appendChild(documentNode)
                 #TODO: Handle quircks mode.
-                self.__switchTo(self.__Mode.BeforeHTML)
+                self.__switchModeTo(self.__Mode.BeforeHTML)
                 
                 
         def handleBeforeHTML(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -106,13 +106,13 @@ class HTMLDocumentParser:
                 if (token.name == "html"):
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
-                    self.__switchTo(self.__Mode.BeforeHead)
+                    self.__switchModeTo(self.__Mode.BeforeHead)
                 else:
                     token = HTMLTag(HTMLToken.TokenType.StartTag)
                     token.name = "html"
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
-                    self.__switchTo(self.__Mode.BeforeHead)
+                    self.__switchModeTo(self.__Mode.BeforeHead)
 
 
         def handleBeforeHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -131,13 +131,13 @@ class HTMLDocumentParser:
                 if (token.name == "head"):
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
-                    self.__switchTo(self.__Mode.InHead)
+                    self.__switchModeTo(self.__Mode.InHead)
             else:
                 token = HTMLTag(HTMLToken.TokenType.StartTag)
                 token.name = "head"
                 element = self.__createElement(token)
                 self.__addToOpenStack(element)
-                self.__switchTo(self.__Mode.InHead)
+                self.__switchModeTo(self.__Mode.InHead)
 
         def handleInHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.Character):
@@ -164,14 +164,14 @@ class HTMLDocumentParser:
                     #TODO: Handle charset attribute.
                 elif (token.name == "title"):   
                     _ = self.__createElement(token)
-                    self.__tokenizer.switchTo(self.__tokenizer.State.RCDATA)
+                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
                 elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
                     _ = self.__createElement(token)
-                    self.__tokenizer.switchTo(self.__tokenizer.State.RAWTEXT)
+                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RAWTEXT)
                     pass
                 elif (token.name == "noscript" and not self.__scripting):
                     _ = self.__createElement(token)
-                    self.__switchTo(self.__Mode.InHeadNoscript)
+                    self.__switchModeTo(self.__Mode.InHeadNoscript)
 
         def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.DOCTYPE):
@@ -185,7 +185,7 @@ class HTMLDocumentParser:
                 token = cast(HTMLTag, token)
                 if (token.name == "noscript"):
                     self.__removeCurrentFromOpenStack()
-                    self.__switchTo(self.__Mode.InHead)
+                    self.__switchModeTo(self.__Mode.InHead)
                 elif (token.name == "br"):
                     self.__removeCurrentFromOpenStack()
                 else:
