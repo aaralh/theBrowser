@@ -163,10 +163,11 @@ class HTMLDocumentParser:
                     _ = self.__createElement(token)
                     #TODO: Handle charset attribute.
                 elif (token.name == "title"):   
-                    #TODO: Handle title.
-                    pass
-                elif (token.name in ["noscript", "noframes"] and self.__scripting):
-                    #TODO: Handle case.
+                    _ = self.__createElement(token)
+                    self.__tokenizer.switchTo(self.__tokenizer.State.RCDATA)
+                elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
+                    _ = self.__createElement(token)
+                    self.__tokenizer.switchTo(self.__tokenizer.State.RAWTEXT)
                     pass
                 elif (token.name == "noscript" and not self.__scripting):
                     _ = self.__createElement(token)

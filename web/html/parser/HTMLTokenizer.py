@@ -22,7 +22,7 @@ class HTMLTokenizer:
             token = HTMLToken(tokenType)
         return token
 
-    class __State(Enum):
+    class State(Enum):
         Data = auto()
         RCDATA = auto()
         RAWTEXT = auto()
@@ -104,28 +104,28 @@ class HTMLTokenizer:
         DecimalCharacterReference = auto()
         NumericCharacterReferenceEnd = auto()
 
-    def __continueIn(self, state: __State) -> None:
-        self.__switchTo(state)
+    def __continueIn(self, state: State) -> None:
+        self.switchTo(state)
 
 
-    def __ignoreCharacterAndContinueTo(self, newState: __State) -> None:
-        self.__switchTo(newState)
+    def __ignoreCharacterAndContinueTo(self, newState: State) -> None:
+        self.switchTo(newState)
 
-    def __switchTo(self, newState: __State) -> None:
+    def switchTo(self, newState: State) -> None:
         '''
         Switch state and consume next character.
         '''
-        self.__state = newState
+        self.State = newState
         self.__currentInputChar = self.__nextCodePoint()
         switcher = self.__getStateSwitcher()
         if (switcher != None):
             switcher()
 
-    def __reconsumeIn(self, newState: __State) -> None:
+    def __reconsumeIn(self, newState: State) -> None:
         '''
         Switch state without consuming next character.
         '''
-        self.__state = newState
+        self.State = newState
         switcher = self.__getStateSwitcher()
         if (switcher != None):
             switcher()
@@ -153,7 +153,7 @@ class HTMLTokenizer:
         return char
 
     def __init__(self, html: str, tokenHandlerCb: Callable):
-        self.__state = self.__State.Data
+        self.State = self.State.Data
         self.__html = html
         self.__cursor = 0
         self.__currentInputChar: Union[str, None] = None
@@ -165,10 +165,10 @@ class HTMLTokenizer:
 
         def handleData() -> None:
             if (self.__currentInputChar == "&"):
-                self.__returnState = self.__State.Data
-                self.__switchTo(self.__State.CharacterReference)
+                self.__returnState = self.State.Data
+                self.switchTo(self.State.CharacterReference)
             elif (self.__currentInputChar == "<"):
-                self.__switchTo(self.__State.TagOpen)
+                self.switchTo(self.State.TagOpen)
             elif (self.__currentInputChar == None):
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
@@ -177,7 +177,7 @@ class HTMLTokenizer:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.data = self.__currentInputChar
                 self.__emitCurrentToken()
-                self.__continueIn(self.__State.Data)
+                self.__continueIn(self.State.Data)
 
 
         def handleRCDATA() -> None:
@@ -194,16 +194,16 @@ class HTMLTokenizer:
 
         def handleTagOpen() -> None:
             if (self.__currentInputChar == "!"):
-                self.__reconsumeIn(self.__State.MarkupDeclarationOpen)
+                self.__reconsumeIn(self.State.MarkupDeclarationOpen)
             elif (self.__currentInputChar == "/"):
-                self.__switchTo(self.__State.EndTagOpen)
+                self.switchTo(self.State.EndTagOpen)
             elif (self.__currentInputChar.isalpha()):
                 self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.StartTag))
-                self.__reconsumeIn(self.__State.TagName)
+                self.__reconsumeIn(self.State.TagName)
 
         def handleEndTagOpen() -> None:
             self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
-            self.__reconsumeIn(self.__State.TagName)
+            self.__reconsumeIn(self.State.TagName)
             return
 
 
@@ -212,17 +212,17 @@ class HTMLTokenizer:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             elif (charIsWhitespace(self.__currentInputChar)):
-                self.__switchTo(self.__State.BeforeAttributeName)
+                self.switchTo(self.State.BeforeAttributeName)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
                 self.__currentToken = cast(HTMLTag, self.__currentToken)
                 if (self.__currentToken.name != None and self.__currentInputChar != None):
                     self.__currentToken.name += self.__currentInputChar
                 else:
                     self.__currentToken.name = self.__currentInputChar
-                self.__continueIn(self.__State.TagName)
+                self.__continueIn(self.State.TagName)
             
 
         def handleRCDATALessThanSign() -> None:
@@ -298,12 +298,12 @@ class HTMLTokenizer:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
 
             if (self.__currentInputChar == None):
-                self.__reconsumeIn(self.__State.AfterAttributeName)
+                self.__reconsumeIn(self.State.AfterAttributeName)
             elif (charIsWhitespace(self.__currentInputChar)):
-                self.__continueIn(self.__State.BeforeAttributeName)
+                self.__continueIn(self.State.BeforeAttributeName)
             else:
                 self.__currentToken.createNewAttribute()
-                self.__reconsumeIn(self.__State.AttributeName)
+                self.__reconsumeIn(self.State.AttributeName)
             
 
         def handleAttributeName() -> None:
@@ -315,14 +315,14 @@ class HTMLTokenizer:
                 self.__currentInputChar == "/" or
                 self.__currentInputChar == ">"
             ):
-                self.__reconsumeIn(self.__State.AfterAttributeName)
+                self.__reconsumeIn(self.State.AfterAttributeName)
             elif(self.__currentInputChar == "="):
-                self.__switchTo(self.__State.BeforeAttributeValue)
+                self.switchTo(self.State.BeforeAttributeValue)
             elif(self.__currentInputChar.isupper() and self.__currentInputChar.isalpha()):
                 self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
             else:
                 self.__currentToken.addCharToAttributeName(self.__currentInputChar)
-                self.__continueIn(self.__State.AttributeName)
+                self.__continueIn(self.State.AttributeName)
             
 
         def handleAfterAttributeName() -> None:
@@ -330,16 +330,16 @@ class HTMLTokenizer:
 
         def handleBeforeAttributeValue() -> None:
             if (charIsWhitespace(self.__currentInputChar)):
-                self.__continueIn(self.__State.BeforeAttributeValue)
+                self.__continueIn(self.State.BeforeAttributeValue)
             elif (self.__currentInputChar == '"'):
-                self.__switchTo(self.__State.AttributeValueDoubleQuoted)
+                self.switchTo(self.State.AttributeValueDoubleQuoted)
             elif (self.__currentInputChar == "'"):
-                self.__switchTo(self.__State.AttributeValueSingleQuoted)
+                self.switchTo(self.State.AttributeValueSingleQuoted)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
-                self.__reconsumeIn(self.__State.AttributeValueUnquoted)
+                self.__reconsumeIn(self.State.AttributeValueUnquoted)
 
 
         def handleAttributeValueDoubleQuoted() -> None:
@@ -348,10 +348,10 @@ class HTMLTokenizer:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             elif (self.__currentInputChar == '"'):
-                self.__switchTo(self.__State.AfterAttributeValueQuoted)
+                self.switchTo(self.State.AfterAttributeValueQuoted)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.__State.AttributeValueDoubleQuoted)
+                self.__continueIn(self.State.AttributeValueDoubleQuoted)
 
 
         def handleAttributeValueSingleQuoted() -> None:
@@ -360,10 +360,10 @@ class HTMLTokenizer:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             elif (self.__currentInputChar == "'"):
-                self.__switchTo(self.__State.AfterAttributeValueQuoted)
+                self.switchTo(self.State.AfterAttributeValueQuoted)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.__State.AttributeValueSingleQuoted)
+                self.__continueIn(self.State.AttributeValueSingleQuoted)
 
 
         def handleAttributeValueUnquoted() -> None:
@@ -372,13 +372,13 @@ class HTMLTokenizer:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             elif (charIsWhitespace(self.__currentInputChar)):
-                self.__switchTo(self.__State.BeforeAttributeName)
+                self.switchTo(self.State.BeforeAttributeName)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.__State.AttributeValueUnquoted)
+                self.__continueIn(self.State.AttributeValueUnquoted)
 
 
         def handleAfterAttributeValueQuoted() -> None:
@@ -386,14 +386,14 @@ class HTMLTokenizer:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             elif (charIsWhitespace(self.__currentInputChar)):
-                self.__switchTo(self.__State.BeforeAttributeName)
+                self.switchTo(self.State.BeforeAttributeName)
             elif (self.__currentInputChar == "/"):
-                self.__switchTo(self.__State.SelfClosingStartTag)
+                self.switchTo(self.State.SelfClosingStartTag)
             elif (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
-                self.__reconsumeIn(self.__State.BeforeAttributeName)
+                self.__reconsumeIn(self.State.BeforeAttributeName)
 
         def handleSelfClosingStartTag() -> None:
             return
@@ -405,29 +405,29 @@ class HTMLTokenizer:
             if(self.__nextCharactersAre("--")):
                 self.__consumeCharacters("--")
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Comment)
-                self.__switchTo(self.__State.CommentStart)
+                self.switchTo(self.State.CommentStart)
             elif (self.__nextCharactersAre("DOCTYPE")):
                 self.__consumeCharacters("DOCTYPE")
-                self.__switchTo(self.__State.DOCTYPE)
+                self.switchTo(self.State.DOCTYPE)
 
         def handleCommentStart() -> None:
 
             if (self.__currentInputChar == "-"):
-                self.__switchTo(self.__State.CommentStartDash)
+                self.switchTo(self.State.CommentStartDash)
             elif(self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
-                self.__reconsumeIn(self.__State.Comment)
+                self.__reconsumeIn(self.State.Comment)
 
 
         def handleCommentStartDash() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
-                self.__switchTo(self.__State.CommentEnd)
+                self.switchTo(self.State.CommentEnd)
             elif(self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             elif(self.__currentInputChar == None):
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
@@ -437,12 +437,12 @@ class HTMLTokenizer:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
-                self.__reconsumeIn(self.__State.Comment)
+                self.__reconsumeIn(self.State.Comment)
 
         def handleComment() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
-                self.__switchTo(self.__State.CommentEndDash)
+                self.switchTo(self.State.CommentEndDash)
             elif(self.__currentInputChar == None):
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
@@ -452,7 +452,7 @@ class HTMLTokenizer:
                     self.__currentToken.data += self.__currentInputChar
                 else:
                     self.__currentToken.data = self.__currentInputChar
-                self.__continueIn(self.__State.Comment)
+                self.__continueIn(self.State.Comment)
 
         def handleCommentLessThanSign() -> None:
             return
@@ -469,7 +469,7 @@ class HTMLTokenizer:
         def handleCommentEndDash() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == "-"):
-                self.__switchTo(self.__State.CommentEnd)
+                self.switchTo(self.State.CommentEnd)
             elif(self.__currentInputChar == None):
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
@@ -479,19 +479,19 @@ class HTMLTokenizer:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
-                self.__reconsumeIn(self.__State.Comment)
+                self.__reconsumeIn(self.State.Comment)
 
         def handleCommentEnd() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             elif(self.__currentInputChar == "-"):
                 if (self.__currentToken.data != None):
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
-                self.__continueIn(self.__State.CommentEnd)
+                self.__continueIn(self.State.CommentEnd)
             elif(self.__currentInputChar == None):
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
@@ -501,19 +501,19 @@ class HTMLTokenizer:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
-                self.__reconsumeIn(self.__State.Comment)
+                self.__reconsumeIn(self.State.Comment)
 
         def handleCommentEndBang() -> None:
             return
 
         def handleDOCTYPE() -> None:
             if (charIsWhitespace(cast(str, self.__currentInputChar))):
-                self.__switchTo(self.__State.BeforeDOCTYPEName)
+                self.switchTo(self.State.BeforeDOCTYPEName)
             return
 
         def handleBeforeDOCTYPEName() -> None:
             if (charIsWhitespace(cast(str,self.__currentInputChar))):
-                self.__ignoreCharacterAndContinueTo(self.__State.BeforeDOCTYPEName)
+                self.__ignoreCharacterAndContinueTo(self.State.BeforeDOCTYPEName)
             else:
                 self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))
                 if (self.__currentToken.name != None and self.__currentInputChar != None):
@@ -521,17 +521,17 @@ class HTMLTokenizer:
                 else:
                     self.__currentToken.name = self.__currentInputChar
                 
-                self.__switchTo(self.__State.DOCTYPEName)
+                self.switchTo(self.State.DOCTYPEName)
             return
 
         def handleDOCTYPEName() -> None:
             self.__currentToken = cast(HTMLDoctype, self.__currentToken)
             if (self.__currentInputChar == ">"):
                 self.__emitCurrentToken()
-                self.__switchTo(self.__State.Data)
+                self.switchTo(self.State.Data)
             else:
                 self.__currentToken.name = self.__currentToken.name + str(self.__currentInputChar)
-                self.__continueIn(self.__State.DOCTYPEName)
+                self.__continueIn(self.State.DOCTYPEName)
             return
 
         def handleAfterDOCTYPEName() -> None:
@@ -612,88 +612,88 @@ class HTMLTokenizer:
         
 
         switcher = {
-            self.__State.Data: handleData,
-            self.__State.RCDATA: handleRCDATA,
-            self.__State.RAWTEXT: handleRAWTEXT,
-            self.__State.ScriptData: handleScriptData,
-            self.__State.PLAINTEXT: handlePLAINTEXT,
-            self.__State.TagOpen: handleTagOpen,
-            self.__State.EndTagOpen: handleEndTagOpen,
-            self.__State.TagName: handleTagName,
-            self.__State.RCDATALessThanSign: handleRCDATALessThanSign,
-            self.__State.RCDATAEndTagOpen: handleRCDATAEndTagOpen,
-            self.__State.RCDATAEndTagName: handleRCDATAEndTagName,
-            self.__State.RAWTEXTLessThanSign: handleRAWTEXTLessThanSign,
-            self.__State.RAWTEXTEndTagOpen: handleRAWTEXTEndTagOpen,
-            self.__State.RAWTEXTEndTagName: handleRAWTEXTEndTagName,
-            self.__State.ScriptDataLessThanSign: handleScriptDataLessThanSign,
-            self.__State.ScriptDataEndTagOpen: handleScriptDataEndTagOpen,
-            self.__State.ScriptDataEndTagName: handleScriptDataEndTagName,
-            self.__State.ScriptDataEscapeStart: handleScriptDataEscapeStart,
-            self.__State.ScriptDataEscapeStartDash: handleScriptDataEscapeStartDash,
-            self.__State.ScriptDataEscaped: handleScriptDataEscaped,
-            self.__State.ScriptDataEscapedDash: handleScriptDataEscapedDash,
-            self.__State.ScriptDataEscapedDashDash: handleScriptDataEscapedDashDash,
-            self.__State.ScriptDataEscapedLessThanSign: handleScriptDataEscapedLessThanSign,
-            self.__State.ScriptDataEscapedEndTagOpen: handleScriptDataEscapedEndTagOpen,
-            self.__State.ScriptDataEscapedEndTagName: handleScriptDataEscapedEndTagName,
-            self.__State.ScriptDataDoubleEscapeStart: handleScriptDataDoubleEscapeStart,
-            self.__State.ScriptDataDoubleEscaped: handleScriptDataDoubleEscaped,
-            self.__State.ScriptDataDoubleEscapedDash: handleScriptDataDoubleEscapedDash,
-            self.__State.ScriptDataDoubleEscapedDashDash: handleScriptDataDoubleEscapedDashDash,
-            self.__State.ScriptDataDoubleEscapedLessThanSign: handleScriptDataDoubleEscapedLessThanSign,
-            self.__State.ScriptDataDoubleEscapeEnd: handleScriptDataDoubleEscapeEnd,
-            self.__State.BeforeAttributeName: handleBeforeAttributeName,
-            self.__State.AttributeName: handleAttributeName,
-            self.__State.AfterAttributeName: handleAfterAttributeName,
-            self.__State.BeforeAttributeValue: handleBeforeAttributeValue,
-            self.__State.AttributeValueDoubleQuoted: handleAttributeValueDoubleQuoted,
-            self.__State.AttributeValueSingleQuoted: handleAttributeValueSingleQuoted,
-            self.__State.AttributeValueUnquoted: handleAttributeValueUnquoted,
-            self.__State.AfterAttributeValueQuoted: handleAfterAttributeValueQuoted,
-            self.__State.SelfClosingStartTag: handleSelfClosingStartTag,
-            self.__State.BogusComment: handleBogusComment,
-            self.__State.MarkupDeclarationOpen: handleMarkupDeclarationOpen,
-            self.__State.CommentStart: handleCommentStart,
-            self.__State.CommentStartDash: handleCommentStartDash,
-            self.__State.Comment: handleComment,
-            self.__State.CommentLessThanSign: handleCommentLessThanSign,
-            self.__State.CommentLessThanSignBang: handleCommentLessThanSignBang,
-            self.__State.CommentLessThanSignBangDash: handleCommentLessThanSignBangDash,
-            self.__State.CommentLessThanSignBangDashDash: handleCommentLessThanSignBangDashDash,
-            self.__State.CommentEndDash: handleCommentEndDash,
-            self.__State.CommentEnd: handleCommentEnd,
-            self.__State.CommentEndBang: handleCommentEndBang,
-            self.__State.DOCTYPE: handleDOCTYPE,
-            self.__State.BeforeDOCTYPEName: handleBeforeDOCTYPEName,
-            self.__State.DOCTYPEName: handleDOCTYPEName,
-            self.__State.AfterDOCTYPEName: handleAfterDOCTYPEName,
-            self.__State.AfterDOCTYPEPublicKeyword: handleAfterDOCTYPEPublicKeyword,
-            self.__State.BeforeDOCTYPEPublicIdentifier: handleBeforeDOCTYPEPublicIdentifier,
-            self.__State.DOCTYPEPublicIdentifierDoubleQuoted: handleDOCTYPEPublicIdentifierDoubleQuoted,
-            self.__State.DOCTYPEPublicIdentifierSingleQuoted: handleDOCTYPEPublicIdentifierSingleQuoted,
-            self.__State.AfterDOCTYPEPublicIdentifier: handleAfterDOCTYPEPublicIdentifier,
-            self.__State.BetweenDOCTYPEPublicAndSystemIdentifiers: handleBetweenDOCTYPEPublicAndSystemIdentifiers,
-            self.__State.AfterDOCTYPESystemKeyword: handleAfterDOCTYPESystemKeyword,
-            self.__State.BeforeDOCTYPESystemIdentifier: handleBeforeDOCTYPESystemIdentifier,
-            self.__State.DOCTYPESystemIdentifierDoubleQuoted: handleDOCTYPESystemIdentifierDoubleQuoted,
-            self.__State.DOCTYPESystemIdentifierSingleQuoted: handleDOCTYPESystemIdentifierSingleQuoted,
-            self.__State.AfterDOCTYPESystemIdentifier: handleAfterDOCTYPESystemIdentifier,
-            self.__State.BogusDOCTYPE: handleBogusDOCTYPE,
-            self.__State.CDATASection: handleCDATASection,
-            self.__State.CDATASectionBracket: handleCDATASectionBracket,
-            self.__State.CDATASectionEnd: handleCDATASectionEnd,
-            self.__State.CharacterReference: handleCharacterReference,
-            self.__State.NamedCharacterReference: handleNamedCharacterReference,
-            self.__State.AmbiguousAmpersand: handleAmbiguousAmpersand,
-            self.__State.NumericCharacterReference: handleNumericCharacterReference,
-            self.__State.HexadecimalCharacterReferenceStart: handleHexadecimalCharacterReferenceStart,
-            self.__State.DecimalCharacterReferenceStart: handleDecimalCharacterReferenceStart,
-            self.__State.HexadecimalCharacterReference: handleHexadecimalCharacterReference,
-            self.__State.DecimalCharacterReference: handleDecimalCharacterReference,
-            self.__State.NumericCharacterReferenceEnd: handleNumericCharacterReferenceEnd,
+            self.State.Data: handleData,
+            self.State.RCDATA: handleRCDATA,
+            self.State.RAWTEXT: handleRAWTEXT,
+            self.State.ScriptData: handleScriptData,
+            self.State.PLAINTEXT: handlePLAINTEXT,
+            self.State.TagOpen: handleTagOpen,
+            self.State.EndTagOpen: handleEndTagOpen,
+            self.State.TagName: handleTagName,
+            self.State.RCDATALessThanSign: handleRCDATALessThanSign,
+            self.State.RCDATAEndTagOpen: handleRCDATAEndTagOpen,
+            self.State.RCDATAEndTagName: handleRCDATAEndTagName,
+            self.State.RAWTEXTLessThanSign: handleRAWTEXTLessThanSign,
+            self.State.RAWTEXTEndTagOpen: handleRAWTEXTEndTagOpen,
+            self.State.RAWTEXTEndTagName: handleRAWTEXTEndTagName,
+            self.State.ScriptDataLessThanSign: handleScriptDataLessThanSign,
+            self.State.ScriptDataEndTagOpen: handleScriptDataEndTagOpen,
+            self.State.ScriptDataEndTagName: handleScriptDataEndTagName,
+            self.State.ScriptDataEscapeStart: handleScriptDataEscapeStart,
+            self.State.ScriptDataEscapeStartDash: handleScriptDataEscapeStartDash,
+            self.State.ScriptDataEscaped: handleScriptDataEscaped,
+            self.State.ScriptDataEscapedDash: handleScriptDataEscapedDash,
+            self.State.ScriptDataEscapedDashDash: handleScriptDataEscapedDashDash,
+            self.State.ScriptDataEscapedLessThanSign: handleScriptDataEscapedLessThanSign,
+            self.State.ScriptDataEscapedEndTagOpen: handleScriptDataEscapedEndTagOpen,
+            self.State.ScriptDataEscapedEndTagName: handleScriptDataEscapedEndTagName,
+            self.State.ScriptDataDoubleEscapeStart: handleScriptDataDoubleEscapeStart,
+            self.State.ScriptDataDoubleEscaped: handleScriptDataDoubleEscaped,
+            self.State.ScriptDataDoubleEscapedDash: handleScriptDataDoubleEscapedDash,
+            self.State.ScriptDataDoubleEscapedDashDash: handleScriptDataDoubleEscapedDashDash,
+            self.State.ScriptDataDoubleEscapedLessThanSign: handleScriptDataDoubleEscapedLessThanSign,
+            self.State.ScriptDataDoubleEscapeEnd: handleScriptDataDoubleEscapeEnd,
+            self.State.BeforeAttributeName: handleBeforeAttributeName,
+            self.State.AttributeName: handleAttributeName,
+            self.State.AfterAttributeName: handleAfterAttributeName,
+            self.State.BeforeAttributeValue: handleBeforeAttributeValue,
+            self.State.AttributeValueDoubleQuoted: handleAttributeValueDoubleQuoted,
+            self.State.AttributeValueSingleQuoted: handleAttributeValueSingleQuoted,
+            self.State.AttributeValueUnquoted: handleAttributeValueUnquoted,
+            self.State.AfterAttributeValueQuoted: handleAfterAttributeValueQuoted,
+            self.State.SelfClosingStartTag: handleSelfClosingStartTag,
+            self.State.BogusComment: handleBogusComment,
+            self.State.MarkupDeclarationOpen: handleMarkupDeclarationOpen,
+            self.State.CommentStart: handleCommentStart,
+            self.State.CommentStartDash: handleCommentStartDash,
+            self.State.Comment: handleComment,
+            self.State.CommentLessThanSign: handleCommentLessThanSign,
+            self.State.CommentLessThanSignBang: handleCommentLessThanSignBang,
+            self.State.CommentLessThanSignBangDash: handleCommentLessThanSignBangDash,
+            self.State.CommentLessThanSignBangDashDash: handleCommentLessThanSignBangDashDash,
+            self.State.CommentEndDash: handleCommentEndDash,
+            self.State.CommentEnd: handleCommentEnd,
+            self.State.CommentEndBang: handleCommentEndBang,
+            self.State.DOCTYPE: handleDOCTYPE,
+            self.State.BeforeDOCTYPEName: handleBeforeDOCTYPEName,
+            self.State.DOCTYPEName: handleDOCTYPEName,
+            self.State.AfterDOCTYPEName: handleAfterDOCTYPEName,
+            self.State.AfterDOCTYPEPublicKeyword: handleAfterDOCTYPEPublicKeyword,
+            self.State.BeforeDOCTYPEPublicIdentifier: handleBeforeDOCTYPEPublicIdentifier,
+            self.State.DOCTYPEPublicIdentifierDoubleQuoted: handleDOCTYPEPublicIdentifierDoubleQuoted,
+            self.State.DOCTYPEPublicIdentifierSingleQuoted: handleDOCTYPEPublicIdentifierSingleQuoted,
+            self.State.AfterDOCTYPEPublicIdentifier: handleAfterDOCTYPEPublicIdentifier,
+            self.State.BetweenDOCTYPEPublicAndSystemIdentifiers: handleBetweenDOCTYPEPublicAndSystemIdentifiers,
+            self.State.AfterDOCTYPESystemKeyword: handleAfterDOCTYPESystemKeyword,
+            self.State.BeforeDOCTYPESystemIdentifier: handleBeforeDOCTYPESystemIdentifier,
+            self.State.DOCTYPESystemIdentifierDoubleQuoted: handleDOCTYPESystemIdentifierDoubleQuoted,
+            self.State.DOCTYPESystemIdentifierSingleQuoted: handleDOCTYPESystemIdentifierSingleQuoted,
+            self.State.AfterDOCTYPESystemIdentifier: handleAfterDOCTYPESystemIdentifier,
+            self.State.BogusDOCTYPE: handleBogusDOCTYPE,
+            self.State.CDATASection: handleCDATASection,
+            self.State.CDATASectionBracket: handleCDATASectionBracket,
+            self.State.CDATASectionEnd: handleCDATASectionEnd,
+            self.State.CharacterReference: handleCharacterReference,
+            self.State.NamedCharacterReference: handleNamedCharacterReference,
+            self.State.AmbiguousAmpersand: handleAmbiguousAmpersand,
+            self.State.NumericCharacterReference: handleNumericCharacterReference,
+            self.State.HexadecimalCharacterReferenceStart: handleHexadecimalCharacterReferenceStart,
+            self.State.DecimalCharacterReferenceStart: handleDecimalCharacterReferenceStart,
+            self.State.HexadecimalCharacterReference: handleHexadecimalCharacterReference,
+            self.State.DecimalCharacterReference: handleDecimalCharacterReference,
+            self.State.NumericCharacterReferenceEnd: handleNumericCharacterReferenceEnd,
         }
-        return switcher.get(self.__state, None)
+        return switcher.get(self.State, None)
 
     def run(self) -> None:
         self.__currentInputChar = self.__nextCodePoint()
