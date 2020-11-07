@@ -43,8 +43,13 @@ class HTMLDocumentParser:
         self.__openElements: List[Node] = []
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
+        self.__currentElement = self.__document
+        self.__scripting: bool = False
 
     def __getOpenElement(self) -> Node:
+        '''
+        Gets the latest opened element aka "parent".
+        '''
         return self.__document if (len(self.__openElements) == 0) else self.__openElements[-1]
 
     def __tokenHandler(self, token: Any) -> None:
@@ -66,9 +71,23 @@ class HTMLDocumentParser:
     
 
     def __createElement(self, token: HTMLTag) -> Element:
+        '''
+        Creates element based on given token and sets parent for it.
+        '''
         parent = self.__getOpenElement()
-        return Element(token, parent)
+        element = Element(token, parent)
+        element.parentNode.appendChild(element)
 
+        return element
+
+    def __addToOpenStack(self, node: Node) -> None:
+        self.__openElements.append(node)
+        self.__currentElement = node
+
+
+    def __removeCurrentFromOpenStack(self) -> None:
+        self.__openElements.remove()(self.__currentElement)
+        self.__currentElement = self.__getOpenElement()
 
     def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
@@ -86,15 +105,13 @@ class HTMLDocumentParser:
                 token = cast(HTMLTag, token)
                 if (token.name == "html"):
                     element = self.__createElement(token)
-                    self.__openElements.append(element)
-                    element.parentNode.appendChild(element)
+                    self.__addToOpenStack(element)
                     self.__switchTo(self.__Mode.BeforeHead)
                 else:
                     token = HTMLTag(HTMLToken.TokenType.StartTag)
                     token.name = "html"
                     element = self.__createElement(token)
-                    self.__openElements.append(element)
-                    element.parentNode.appendChild(element)
+                    self.__addToOpenStack(element)
                     self.__switchTo(self.__Mode.BeforeHead)
 
 
@@ -105,7 +122,7 @@ class HTMLDocumentParser:
             elif (token.type == HTMLToken.TokenType.Comment):
                 token = cast(HTMLCommentOrCharacter, token)
                 comment = Comment(token.data)
-                self.__getOpenElement().appendChild(comment)
+                self.__currentElement.appendChild(comment)
                 self.__continueIn(self.__Mode.BeforeHead)
             elif (token.type == HTMLToken.TokenType.DOCTYPE):
                 self.__continueIn(self.__Mode.BeforeHead)
@@ -113,24 +130,56 @@ class HTMLDocumentParser:
                 token = cast(HTMLTag, token)
                 if (token.name == "head"):
                     element = self.__createElement(token)
-                    self.__openElements.append(element)
-                    element.parentNode.appendChild(element)
+                    self.__addToOpenStack(element)
                     self.__switchTo(self.__Mode.InHead)
             else:
                 token = HTMLTag(HTMLToken.TokenType.StartTag)
                 token.name = "head"
                 element = self.__createElement(token)
-                self.__openElements.append(element)
-                element.parentNode.appendChild(element)
+                self.__addToOpenStack(element)
                 self.__switchTo(self.__Mode.InHead)
 
         def handleInHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.Character):
                 if (charIsWhitespace(token.data)):
+                    #TODO:Insert the character
                     pass
+            elif (token.type == HTMLToken.TokenType.DOCTYPE):
+                pass
+            elif (token.type == HTMLToken.TokenType.StartTag):
+                token = cast(HTMLTag, token)
+                if (token.name == "html"):
+                    #TODO: Handle using the "in body"
+                    pass
+                elif (token.name in ["base", "basefont", "bgsound", "link"]):
+                    #This kind of elements are not added to open stack.
+                    _ = self.__createElement(token)
+                elif (token.name == "meta"):
+                    #This kind of elements are not added to open stack.
+                    _ = self.__createElement(token)
+                    #TODO: Handle charset attribute
+                elif (token.name == "title"):   
+                    #TODO: Handle title.
+                    pass
+                elif (token.name in ["noscript", "noframes"] and self.__scripting):
+                    #TODO: Handle case.
+                    pass
+                elif (token.name == "noscript" and not self.__scripting):
+                    _ = self.__createElement(token)
+                    self.__switchTo(self.__Mode.InHeadNoscript)
 
-        def handleInHeadNoscript() -> None:
-            return
+        def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            if (token.type == HTMLToken.TokenType.DOCTYPE):
+                pass
+            elif (token.type == HTMLToken.TokenType.StartTag):
+                token = cast(HTMLTag, token)
+                if (token.name == "html"):
+                    #TODO: Handle using the "in body"
+                    pass
+            elif (token.type == HTMLToken.TokenType.EndTag):
+                token = cast(HTMLTag, token)
+                if (token.name == "noscript"):
+                    self.__removeCurrentFromOpenStack()
 
         def handleAfterHead() -> None:
             return
