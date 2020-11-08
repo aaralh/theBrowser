@@ -181,10 +181,27 @@ class HTMLTokenizer:
 
 
         def handleRCDATA() -> None:
-            return
+            if (self.__currentInputChar == "<"):
+                self.switchStateTo(self.State.RCDATALessThanSign)
+            elif (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = self.__currentInputChar
+                self.__emitCurrentToken()
+
 
         def handleRAWTEXT() -> None:
-            return
+            if (self.__currentInputChar == "<"):
+                self.switchStateTo(self.State.RAWTEXTLessThanSign)
+            elif (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = self.__currentInputChar
+                self.__emitCurrentToken()
 
         def handleScriptData() -> None:
             return

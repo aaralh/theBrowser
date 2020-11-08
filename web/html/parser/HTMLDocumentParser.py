@@ -40,6 +40,7 @@ class HTMLDocumentParser:
 
     def __init__(self, html: str) -> None:
         self.__currentInsertionMode = self.__Mode.Initial
+        self.__originalInsertionMode: Union[__Mode, None] = None
         self.__openElements: List[Node] = []
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
@@ -156,22 +157,29 @@ class HTMLDocumentParser:
                     #TODO: Handle using the "in body"
                     pass
                 elif (token.name in ["base", "basefont", "bgsound", "link"]):
-                    #This kind of elements are not added to open stack.
+                    # This kind of elements are not added to open stack.
                     _ = self.__createElement(token)
                 elif (token.name == "meta"):
-                    #This kind of elements are not added to open stack.
+                    # This kind of elements are not added to open stack.
                     _ = self.__createElement(token)
                     #TODO: Handle charset attribute.
                 elif (token.name == "title"):   
                     _ = self.__createElement(token)
+                    self.__originalInsertionMode = self.__currentInsertionMode
+                    self.__currentInsertionMode = self.__Mode.Text
                     self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
                 elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
                     _ = self.__createElement(token)
+                    self.__originalInsertionMode = self.__currentInsertionMode
+                    self.__currentInsertionMode = self.__Mode.Text
                     self.__tokenizer.switchStateTo(self.__tokenizer.State.RAWTEXT)
                     pass
                 elif (token.name == "noscript" and not self.__scripting):
                     _ = self.__createElement(token)
                     self.__switchModeTo(self.__Mode.InHeadNoscript)
+                elif (token.name == "script"):
+                    #TODO: Add support for JS.
+                    pass
 
         def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.DOCTYPE):
@@ -285,7 +293,7 @@ class HTMLDocumentParser:
             self.__Mode.AfterBody: handleAfterBody,
             self.__Mode.InFrameset: handleInFrameset,
             self.__Mode.AfterFrameset: handleAfterFrameset,
-            self.__Mode.AfterAfterBody: handleAfterBody,
+            self.__Mode.AfterAfterBody: handleAfterAfterBody,
             self.__Mode.AfterAfterFrameset: handleAfterAfterFrameset,
         }
 
