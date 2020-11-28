@@ -6,7 +6,9 @@ class Text(CharacterData):
 		super(data)
 
 	def splitText(self, offset: int) -> 'Text':
-		pass
+		reminder = self.data[:offset]
+		self.data = self.data[offset:]
+		return Text(reminder)
 
 	@property
 	def wholeText(self) -> str:
