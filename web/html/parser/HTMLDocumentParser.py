@@ -47,6 +47,9 @@ class HTMLDocumentParser:
         self.__currentElement = self.__document
         self.__scripting: bool = False
 
+    def run(self) -> None:
+        self.__tokenizer.run()
+
     def __getOpenElement(self) -> Node:
         '''
         Gets the latest opened element aka "parent".
@@ -165,14 +168,14 @@ class HTMLDocumentParser:
                     #TODO: Handle charset attribute.
                 elif (token.name == "title"):   
                     _ = self.__createElement(token)
+                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
                     self.__originalInsertionMode = self.__currentInsertionMode
                     self.__currentInsertionMode = self.__Mode.Text
-                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
                 elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
                     _ = self.__createElement(token)
+                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RAWTEXT)
                     self.__originalInsertionMode = self.__currentInsertionMode
                     self.__currentInsertionMode = self.__Mode.Text
-                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RAWTEXT)
                     pass
                 elif (token.name == "noscript" and not self.__scripting):
                     _ = self.__createElement(token)
@@ -222,8 +225,10 @@ class HTMLDocumentParser:
         def handleInBody() -> None:
             return
 
-        def handleText() -> None:
-            return
+        def handleText(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            if (token.type == HTMLToken.TokenType.Character):
+                #TODO:Insert the character
+                pass
 
         def handleInTable() -> None:
             return
@@ -305,5 +310,3 @@ class HTMLDocumentParser:
     def nextToken(self) -> Union[HTMLToken, None]:
         return
 
-    def run(self) -> None:
-        self.__tokenizer.run()

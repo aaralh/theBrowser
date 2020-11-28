@@ -8,10 +8,10 @@ class Document(Node):
 		self.__head: Union[Node, None] = None
 		self.__form: Union[Node, None] = None
 
-	@property.getter
+	@property
 	def head(self) -> Union[Node, None]:
 		return self.__head
 
-	@property.setter
+	@head.setter
 	def head(self, node: Node) -> None:
 		self.__head = node

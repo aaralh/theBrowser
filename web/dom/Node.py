@@ -9,7 +9,7 @@ class Node:
 		self.__nodeName: Union[str, None] = None
 
 
-	@property.getter
+	@property
 	def name(self) -> Union[str, None]:
 		return self.__nodeName
 	
@@ -18,18 +18,18 @@ class Node:
 		self.__nodeName = newName
 
 
-	@property.getter
-	def parentNode(self) -> Union[Node, None]:
+	@property
+	def parentNode(self) -> Union['Node', None]:
 		return self.__parentNode
 	
 	@parentNode.setter
-	def parentNode(self, parent: Node) -> None:
+	def parentNode(self, parent: 'Node') -> None:
 		self.__parentNode = parent
 
 
-	def appendChild(self, node: Node) -> None:
+	def appendChild(self, node: 'Node') -> None:
 		self.__childNodes.append(node)
 	
 
-	def removeChild(self, node: Node) -> None:
+	def removeChild(self, node: 'Node') -> None:
 		self.__childNodes.remove(node)

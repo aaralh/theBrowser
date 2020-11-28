@@ -59,7 +59,7 @@ class HTMLTag(HTMLToken):
         self.activeAttributeName: Union[str, None] = None
         self.name: Union[str, None] = None
         self.selfClosing: bool = False
-        self.attributes: Dict[str, str] = field(default_factory=dict)
+        self.attributes: Dict[str, str] = {}
 
     def __str__(self) -> str:
         return f"type: {self.__type}, name: {self.name}, attributes: {self.attributes}"
