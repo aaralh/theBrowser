@@ -17,7 +17,6 @@ class Node:
 	def name(self, newName: str) -> None:
 		self.__nodeName = newName
 
-
 	@property
 	def parentNode(self) -> Union['Node', None]:
 		return self.__parentNode
@@ -33,3 +32,7 @@ class Node:
 
 	def removeChild(self, node: 'Node') -> None:
 		self.__childNodes.remove(node)
+
+	@property
+	def childNodes(self):
+		return self.__childNodes

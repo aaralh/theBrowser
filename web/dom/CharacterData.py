@@ -1,4 +1,3 @@
-from web.dom.exceptions.DomException import DomException
 from web.dom.Node import Node
 
 class CharacterData(Node):
@@ -28,7 +27,8 @@ class CharacterData(Node):
 
 	def replaceData(self, offset: int, count: int, data: str) -> None:
 		if (offset > self.length):
-			raise DomException("", "IndexSizeError")
+			#TODO:Implement error
+			pass 
 		elif (offset + count > self.length):
 			count = self.length - offset
 		self._updateLength()

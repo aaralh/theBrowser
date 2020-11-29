@@ -5,6 +5,7 @@ from web.html.parser.utils import charIsWhitespace
 from web.dom.Element import Element
 from web.dom.Document import Document
 from web.dom.Node import Node
+from web.dom.Text import Text
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from web.html.parser.HTMLTokenizer import HTMLTokenizer
@@ -184,6 +185,7 @@ class HTMLDocumentParser:
                     #TODO: Add support for JS.
                     pass
 
+
         def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.DOCTYPE):
                 pass
@@ -227,8 +229,24 @@ class HTMLDocumentParser:
 
         def handleText(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.Character):
-                #TODO:Insert the character
+                if (type(self.__currentElement) is Document):
+                    return
+                elif (type(self.__currentElement.childNodes[-1]) is Text):
+                    cast(Text, self.__currentElement.childNodes[-1]).appendData(token.data)
+                else:
+                    textNode = Text(token.data)
+                    textNode.parentNode = self.__currentElement
+                    self.__currentElement.appendChild(textNode)
+            elif (token.type == HTMLToken.TokenType.EOF):
+                #TODO: Handle case
                 pass
+            elif (token.type == HTMLToken.TokenType.EndTag):
+                if(token.name == "script"):
+                    #TODO: handle case
+                    pass
+            else:
+                self.__removeCurrentFromOpenStack()
+                self.__switchModeTo(self.__originalInsertionMode)
 
         def handleInTable() -> None:
             return

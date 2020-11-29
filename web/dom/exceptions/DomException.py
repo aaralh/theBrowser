@@ -1,6 +1,6 @@
 from enum import Enum
 
-class DomException:
+class DomException(BaseException):
 
 	class _ErrorCode(Enum):
 		NONE = 0 # Error is not recognized.
