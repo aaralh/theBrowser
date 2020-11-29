@@ -14,3 +14,7 @@ class Element(Node):
 		self.__className
 		self.__classList
 		self.__slot """
+
+	@property
+	def name(self) -> str:
+		return self.__localName
