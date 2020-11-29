@@ -266,8 +266,8 @@ class HTMLDocumentParser:
 
         def handleAfterHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.Character):
-                if (charIsWhitespace(token.data))
-                self.__insertCharacter(token)
+                if (charIsWhitespace(token.data)):
+                    self.__insertCharacter(token)
             elif (token.type == HTMLToken.TokenType.Comment):
                 self.__insertComment(token)
             elif (token.type == HTMLToken.TokenType.DOCTYPE):
