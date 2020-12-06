@@ -1,8 +1,10 @@
+from web.dom.Document import Document
 from web.dom.Node import Node
 
 class CharacterData(Node):
 	
-	def __init__(self, data: str):
+	def __init__(self, data: str, parent: Node, document: Document):
+		super(CharacterData, self).__init__(parent, document)
 		self.data = data
 		self.length = len(data)
 	

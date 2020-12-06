@@ -13,6 +13,7 @@ class HTMLToken:
         Character = auto()
         EOF = auto()
 
+    @property
     def type(self) -> Union[TokenType, None]:
         return self.__type
 
@@ -26,7 +27,7 @@ class HTMLToken:
 class HTMLDoctype(HTMLToken):
 
     def __init__(self) -> None:
-        self.__type = HTMLToken.TokenType.DOCTYPE
+        super(HTMLDoctype, self).__init__(HTMLToken.TokenType.DOCTYPE)
         self.name: Union[str, None] = None
         self.publicIdentifier: Union[str, None] = None
         self.systemPublicIdentidier: Union[str, None] = None
@@ -34,7 +35,7 @@ class HTMLDoctype(HTMLToken):
 
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.name}"
+        return f"type: {self.type}, name: {self.name}"
 
 
     def setName(self, newName: str) -> None:
@@ -45,24 +46,24 @@ class HTMLDoctype(HTMLToken):
 class HTMLCommentOrCharacter(HTMLToken):
 
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
-        self.__type = tokenType
+        super(HTMLCommentOrCharacter, self).__init__(tokenType)
         self.data: Union[str, None] = None
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.data}"
+        return f"type: {self.type}, name: {self.data}"
 
 
 class HTMLTag(HTMLToken):
 
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
-        self.__type = tokenType
+        super(HTMLTag, self).__init__(tokenType)
         self.activeAttributeName: Union[str, None] = None
         self.name: Union[str, None] = None
         self.selfClosing: bool = False
         self.attributes: Dict[str, str] = {}
 
     def __str__(self) -> str:
-        return f"type: {self.__type}, name: {self.name}, attributes: {self.attributes}"
+        return f"type: {self.type}, name: {self.name}, attributes: {self.attributes}"
 
 
     def createNewAttribute(self) -> None:

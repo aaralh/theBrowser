@@ -1,12 +1,17 @@
 from typing import List, Union
-
+from web.dom.Document import Document
 
 class Node:
 
-	def __init__(self):
-		self.__parentNode: Union[Node, None] = None
+	def __init__(self, parent: Union['Node', None], document: Document):
+		self.__parentNode: Union[Node, None] = parent
 		self.__childNodes: List[Node] = []
 		self.__nodeName: Union[str, None] = None
+		self.__document: Union[Document, None] = document
+
+	def __str__(self):
+		return f"""<{self.name}>
+			{self.childNodes}"""
 
 
 	@property
@@ -36,3 +41,11 @@ class Node:
 	@property
 	def childNodes(self):
 		return self.__childNodes
+
+	@property
+	def document(self) -> Union[Document, None]:
+		return self.__document
+	
+	@document.setter
+	def document(self, document: Document) -> None:
+		self.__document = document

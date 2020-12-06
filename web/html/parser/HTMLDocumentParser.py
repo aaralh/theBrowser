@@ -61,6 +61,15 @@ class HTMLDocumentParser:
 
     def __tokenHandler(self, token: Any) -> None:
         print(token)
+        print(self.__document)
+        print(self.__openElements)
+        print(self.__currentInsertionMode)
+        
+        switcher = self.__getModeSwitcher()
+        if (switcher != None):
+            switcher(token)
+        print(self.__currentInsertionMode)
+        print()
 
 
     def __continueIn(self, mode: __Mode) -> None:
@@ -76,21 +85,21 @@ class HTMLDocumentParser:
         if (switcher != None):
             switcher() """
     
-    def __reconsumeIn(self, newMode: __Mode) -> None:
+    def __reconsumeIn(self, newMode: __Mode, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         '''
         Switch state without consuming next character.
         '''
         self.State = newMode
         switcher = self.__getModeSwitcher()
         if (switcher != None):
-            switcher()
+            switcher(token)
 
     def __createElement(self, token: HTMLTag) -> Element:
         '''
         Creates element based on given token and sets parent for it.
         '''
         parent = self.__getOpenElement()
-        element = Element(token, parent)
+        element = Element(token, parent, parent.document)
         element.parentNode.appendChild(element)
 
         return element
@@ -101,7 +110,7 @@ class HTMLDocumentParser:
 
 
     def __removeCurrentFromOpenStack(self) -> None:
-        self.__openElements.remove()(self.__currentElement)
+        self.__openElements.remove(self.__currentElement)
         self.__currentElement = self.__getOpenElement()
 
     def __insertCharacter(self, token: HTMLCommentOrCharacter) -> None:
@@ -123,10 +132,11 @@ class HTMLDocumentParser:
     def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
         def handleInitial(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            print("Token type:", token.type)
             if (token.type == HTMLToken.TokenType.DOCTYPE):
                 token = cast(HTMLDoctype, token)
-                documentNode = DocumentType(token)
-                self.__document.appendChild(documentNode)
+                documentNode = DocumentType(token, self.__document)
+                self.__document = documentNode
                 #TODO: Handle quircks mode.
                 self.__switchModeTo(self.__Mode.BeforeHTML)
                 
@@ -220,13 +230,13 @@ class HTMLDocumentParser:
                     self.__switchModeTo(self.__Mode.AfterHead)
                 elif (token.name in ["body", "html", "br"]):
                     self.__removeCurrentFromOpenStack()
-                    self.__reconsumeIn()(self.__Mode.AfterHead)
+                    self.__reconsumeIn(self.__Mode.AfterHead, token)
                 elif (token.name == "template"):
                     #TODO: Handle case.
                     pass
             else:
                 self.__removeCurrentFromOpenStack()
-                self.__reconsumeIn()(self.__Mode.AfterHead)
+                self.__reconsumeIn(self.__Mode.AfterHead, token)
 
 
         def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -296,7 +306,7 @@ class HTMLDocumentParser:
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
                     self.__framesetOK = False
-                    self.__reconsumeIn(self.__Mode.InBody)
+                    self.__reconsumeIn(self.__Mode.InBody, token)
                 else:
                     pass # Ignore token.
             else:
@@ -304,7 +314,7 @@ class HTMLDocumentParser:
                 token.name = "body"
                 element = self.__createElement(token)
                 self.__addToOpenStack(element)
-                self.__reconsumeIn(self.__Mode.InBody)
+                self.__reconsumeIn(self.__Mode.InBody, token)
 
 
         def handleInBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -331,6 +341,11 @@ class HTMLDocumentParser:
                     pass # Handle case
                 elif (token.name == "frameset"):
                     pass # Handle case
+                elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
+                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
+                        self.__removeCurrentFromOpenStack()
+                        self.__createElement()
+
             elif (token.type == HTMLToken.TokenType.EndTag):
                 if (token.name == "template"):
                     pass # Handle case, Process the token using the rules for the "in head" insertion mode.
@@ -342,6 +357,8 @@ class HTMLDocumentParser:
                     else:
                         self.__switchModeTo(self.__Mode.AfterBody)
                         #TODO: Implement the popping functionality.
+                elif (token.name == "html"):
+                    self.__reconsumeIn(self.__Mode.AfterBody, token)
 
             elif (token.type == HTMLToken.TokenType.EOF):
                 pass #TODO: Handle case.
@@ -433,6 +450,8 @@ class HTMLDocumentParser:
             self.__Mode.AfterAfterBody: handleAfterAfterBody,
             self.__Mode.AfterAfterFrameset: handleAfterAfterFrameset,
         }
+
+        return switcher.get(self.__currentInsertionMode, None)
 
 
 
