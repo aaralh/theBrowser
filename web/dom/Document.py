@@ -3,7 +3,7 @@ from typing import Union
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
-    from web.dom.HTMLElement import HTMLElement
+    from web.dom.elements.HTMLElement import HTMLElement
 
 class Document:
 	def __init__(self):

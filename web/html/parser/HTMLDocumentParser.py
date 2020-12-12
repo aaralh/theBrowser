@@ -1,12 +1,12 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
 from web.dom.CharacterData import CharacterData
-from web.dom.Comment import Comment
+from web.dom.elements.Comment import Comment
 from web.html.parser.utils import charIsWhitespace
-from web.dom.Element import Element
+from web.dom.elements.Element import Element
 from web.dom.Document import Document
 from web.dom.Node import Node
-from web.dom.Text import Text
+from web.dom.elements.Text import Text
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from web.html.parser.HTMLTokenizer import HTMLTokenizer

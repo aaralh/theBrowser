@@ -1,5 +1,5 @@
 from typing import Union
-from web.dom.Element import Element
+from web.dom.elements.Element import Element
 from web.dom.Document import Document
 from web.dom.TagNames import TAG_NAMES
 
