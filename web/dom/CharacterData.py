@@ -16,7 +16,7 @@ class CharacterData(Node):
 		return self.data[offset:lastIndex]
 
 	def appendData(self, data: str) -> None:
-		self.data + data
+		self.data += data
 		self._updateLength()
 
 	def insertData(self, offset: int, data: str) -> None:
@@ -39,3 +39,9 @@ class CharacterData(Node):
 
 	def __str__(self) -> str:
 		return self.data
+
+	def printTree(self, depth: int) -> str:
+		indentation = ""
+		for _ in range(depth):
+			indentation += "\t"
+		return  f"{indentation}" + self.data + "\n"

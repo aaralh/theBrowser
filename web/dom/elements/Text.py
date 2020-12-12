@@ -1,10 +1,11 @@
+from web.dom.Node import Node
 from web.dom.Document import Document
 from web.dom.CharacterData import CharacterData
 
 class Text(CharacterData):
 
-	def __init__(self, document: Document, data=""):
-		super(Text, self).__init__(data, document)
+	def __init__(self, document: Document, parent: Node, data=""):
+		super(Text, self).__init__(data, parent, document)
 
 	def splitText(self, offset: int) -> 'Text':
 		reminder = self.data[:offset]

@@ -61,15 +61,9 @@ class HTMLDocumentParser:
         return self.__document if (len(self.__openElements) == 0) else self.__openElements[-1]
 
     def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-
         switcher = self.__getModeSwitcher()
         if (switcher != None):
             switcher(token)
-
-        print("Token:", token)
-        print("The dom")
-        print(self.__document)
-        print("")
 
         if (token.type == HTMLToken.TokenType.EOF):
             print("The dom")
@@ -120,10 +114,12 @@ class HTMLDocumentParser:
     def __insertCharacter(self, token: HTMLCommentOrCharacter) -> None:
         if (type(self.__currentElement) is Document):
             return
-        elif (type(self.__currentElement.childNodes[-1]) is Text):
+        elif (len(self.__currentElement.childNodes) > 0 and type(self.__currentElement.childNodes[-1]) is Text):
             cast(Text, self.__currentElement.childNodes[-1]).appendData(token.data)
         else:
-            textNode = Text(token.data)
+            textNode = Text(self.__document, self.__currentElement, token.data)
+            print("self.__currentElement")
+            print(self.__currentElement.name)
             textNode.parentNode = self.__currentElement
             self.__currentElement.appendChild(textNode)
 
@@ -293,7 +289,7 @@ class HTMLDocumentParser:
                     pass
                 elif (token.name == "body"):
                     element = self.__createElement(token)
-                    self.__openElements.append(element)
+                    self.__addToOpenStack(element)
                     self.__switchModeTo(self.__Mode.InBody)
                 elif (token.name == "frameset"):
                     pass # TODO: Handle case.
@@ -325,7 +321,7 @@ class HTMLDocumentParser:
             if (token.type == HTMLToken.TokenType.Character):
                 if (token.data is None):
                     pass #Ignore token.
-                elif (CharacterData(token.data)):
+                elif (charIsWhitespace(token.data)):
                     #TODO: Reconstruct the active formatting elements, if any.
                     self.__insertCharacter(token)
                 else:
@@ -348,13 +344,15 @@ class HTMLDocumentParser:
                 elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
                     if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
                         self.__removeCurrentElementFromOpenStack()
-                    self.__createElement(token)
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
                 elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
                     if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
                         self.__removeCurrentElementFromOpenStack()
                     elif (self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
                         self.__removeCurrentElementFromOpenStack()
-                    self.__createElement(token)
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
                 elif (token.name == "li"):
                     self.__framesetOK = False
                     element = self.__createElement(token)
@@ -364,7 +362,7 @@ class HTMLDocumentParser:
                 if (token.name == "template"):
                     pass # Handle case, Process the token using the rules for the "in head" insertion mode.
                 elif (token.name == "body"):
-                    openBodyElement = filter(lambda element: element.name == "body", self.__openElements)
+                    openBodyElement = list(filter(lambda element: element.name == "body", self.__openElements))
                     if (len(openBodyElement) == 0):
                         pass # Ignore token.
                         #TODO: handle the else case.
@@ -423,7 +421,7 @@ class HTMLDocumentParser:
         def handleInTemplate() -> None:
             return
 
-        def handleAfterBody() -> None:
+        def handleAfterBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             return
 
         def handleInFrameset() -> None:
