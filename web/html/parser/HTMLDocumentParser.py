@@ -113,7 +113,7 @@ class HTMLDocumentParser:
         self.__currentElement = node
 
 
-    def __removeCurrentFromOpenStack(self) -> None:
+    def __removeCurrentElementFromOpenStack(self) -> None:
         self.__openElements.remove(self.__currentElement)
         self.__currentElement = self.__getOpenElement()
 
@@ -230,16 +230,16 @@ class HTMLDocumentParser:
 
             elif (token.type == HTMLToken.TokenType.EndTag):
                 if (token.name == "head"):
-                    self.__removeCurrentFromOpenStack()
+                    self.__removeCurrentElementFromOpenStack()
                     self.__switchModeTo(self.__Mode.AfterHead)
                 elif (token.name in ["body", "html", "br"]):
-                    self.__removeCurrentFromOpenStack()
+                    self.__removeCurrentElementFromOpenStack()
                     self.__reconsumeIn(self.__Mode.AfterHead, token)
                 elif (token.name == "template"):
                     #TODO: Handle case.
                     pass
             else:
-                self.__removeCurrentFromOpenStack()
+                self.__removeCurrentElementFromOpenStack()
                 self.__reconsumeIn(self.__Mode.AfterHead, token)
 
 
@@ -254,10 +254,10 @@ class HTMLDocumentParser:
             elif (token.type == HTMLToken.TokenType.EndTag):
                 token = cast(HTMLTag, token)
                 if (token.name == "noscript"):
-                    self.__removeCurrentFromOpenStack()
+                    self.__removeCurrentElementFromOpenStack()
                     self.__switchModeTo(self.__Mode.InHead)
                 elif (token.name == "br"):
-                    self.__removeCurrentFromOpenStack()
+                    self.__removeCurrentElementFromOpenStack()
                 else:
                     pass
             elif (token.type == HTMLToken.TokenType.Character):
@@ -275,7 +275,7 @@ class HTMLDocumentParser:
                 elif (token.name in ["head", "noscrip"]):
                     pass
             else:
-                self.__removeCurrentFromOpenStack()
+                self.__removeCurrentElementFromOpenStack()
 
 
         def handleAfterHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -347,13 +347,13 @@ class HTMLDocumentParser:
                     pass # Handle case
                 elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
                     if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__removeCurrentFromOpenStack()
+                        self.__removeCurrentElementFromOpenStack()
                     self.__createElement(token)
                 elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
                     if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__removeCurrentFromOpenStack()
+                        self.__removeCurrentElementFromOpenStack()
                     elif (self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
-                        self.__removeCurrentFromOpenStack()
+                        self.__removeCurrentElementFromOpenStack()
                     self.__createElement(token)
                 elif (token.name == "li"):
                     self.__framesetOK = False
@@ -390,7 +390,7 @@ class HTMLDocumentParser:
                     #TODO: handle case
                     pass
             else:
-                self.__removeCurrentFromOpenStack()
+                self.__removeCurrentElementFromOpenStack()
                 self.__switchModeTo(self.__originalInsertionMode)
 
         def handleInTable() -> None:
