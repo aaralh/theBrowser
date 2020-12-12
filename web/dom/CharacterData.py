@@ -36,3 +36,6 @@ class CharacterData(Node):
 		self._updateLength()
 		# TODO: Continue here
 		pass
+
+	def __str__(self) -> str:
+		return self.data

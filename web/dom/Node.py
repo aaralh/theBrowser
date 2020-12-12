@@ -10,8 +10,12 @@ class Node:
 		self.__document: Union[Document, None] = document
 
 	def __str__(self):
-		return f"""<{self.name}>
-			{self.childNodes}"""
+		treeString = "*Document*\n"
+
+		for node in self.childNodes:
+			treeString += node.__str__()
+
+		return treeString
 
 
 	@property

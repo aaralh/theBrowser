@@ -59,17 +59,20 @@ class HTMLDocumentParser:
         '''
         return self.__document if (len(self.__openElements) == 0) else self.__openElements[-1]
 
-    def __tokenHandler(self, token: Any) -> None:
-        print(token)
-        print(self.__document)
-        print(self.__openElements)
-        print(self.__currentInsertionMode)
-        
+    def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+
         switcher = self.__getModeSwitcher()
         if (switcher != None):
             switcher(token)
-        print(self.__currentInsertionMode)
-        print()
+
+        print("Token:", token)
+        print("The dom")
+        print(self.__document)
+        print("")
+
+        if (token.type == HTMLToken.TokenType.EOF):
+            print("The dom")
+            print(self.__document)
 
 
     def __continueIn(self, mode: __Mode) -> None:

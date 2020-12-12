@@ -16,6 +16,31 @@ class Element(Node):
 		self.__classList
 		self.__slot """
 
+	def __str__(self):
+		return self.printTree()
+
+	def printTree(self, depth: int = 0) -> str:
+		indentation = ""
+		for _ in range(depth):
+			indentation += "\t"
+		depth += 1
+		treeString = f"{indentation}<{self.name} {self.attributes}>"
+		for node in self.childNodes:
+			treeString += "\n"
+			treeString += node.printTree(depth)
+		
+		if (self.childNodes):
+			treeString += f"{indentation}</{self.name}>\n"
+		else:
+			treeString += f"</{self.name}>\n"
+
+
+		return treeString
+
 	@property
 	def name(self) -> str:
 		return self.__localName
+
+	@property
+	def attributes(self) -> str:
+		return self.__attributes
