@@ -10,6 +10,7 @@ from web.dom.elements.Text import Text
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from web.html.parser.HTMLTokenizer import HTMLTokenizer
+from web.dom.ElementFactory import ElementFactory
 
 
 
@@ -102,7 +103,7 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         '''
         parent = self.__getOpenElement()
-        element = Element(token, parent, parent.document)
+        element = ElementFactory.create_element(token, parent, parent.document)
         element.parentNode.appendChild(element)
 
         return element
