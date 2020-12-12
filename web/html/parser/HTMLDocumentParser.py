@@ -347,7 +347,17 @@ class HTMLDocumentParser:
                 elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
                     if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
                         self.__removeCurrentFromOpenStack()
-                        self.__createElement()
+                    self.__createElement(token)
+                elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
+                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
+                        self.__removeCurrentFromOpenStack()
+                    elif (self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
+                        self.__removeCurrentFromOpenStack()
+                    self.__createElement(token)
+                elif (token.name == "li"):
+                    self.__framesetOK = False
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
 
             elif (token.type == HTMLToken.TokenType.EndTag):
                 if (token.name == "template"):
