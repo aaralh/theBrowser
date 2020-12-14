@@ -397,6 +397,8 @@ class HTMLDocumentParser:
                     self.__framesetOK = False
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
+                elif (token.name == "a"):
+                    
 
 
             elif (token.type == HTMLToken.TokenType.EndTag):
@@ -419,7 +421,27 @@ class HTMLDocumentParser:
                         #TODO: Handle parse error
                         pass
                     self.__popElementsFromOpenStackUntilElement(token.name)
-                elif (token.name == "form")
+                elif (token.name == "form"):
+                    #TODO: Handle case
+                    pass
+                elif (token.name == "p"):
+                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
+                        self.__removeCurrentElementFromOpenStack()
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
+                elif (token.name == "li"):
+                    #TODO: Handle case
+                    pass
+                elif (token.name in ["dd", "dt"]):
+                    #TODO: Handle case
+                    pass
+                elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
+                    if (self.__currentElement.name == token.name):
+                        self.__removeCurrentElementFromOpenStack()
+                elif (token.name == "sarcasm"):
+                    #TODO: Handle case
+                    pass
+                        
 
             elif (token.type == HTMLToken.TokenType.EOF):
                 pass #TODO: Handle case.
