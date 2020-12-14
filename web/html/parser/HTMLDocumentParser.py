@@ -129,6 +129,21 @@ class HTMLDocumentParser:
         self.__currentElement.appendChild(comment)
         self.__continueIn(self.__Mode.BeforeHead)
 
+    def __elementInOpenStackScope(self, elementName: str) -> bool:
+        for element in self.__openElements:
+            if (element.name == elementName):
+                return True
+        return False
+
+    def __popElementsFromOpenStackUntilElement(self, elementName: str) -> None:
+        while (len(self.__openElements) > 0):
+            if (self.__currentElement.name == elementName):
+                self.__removeCurrentElementFromOpenStack()
+                return
+            else:
+                self.__removeCurrentElementFromOpenStack()
+
+
     def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
         def handleInitial(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -353,10 +368,36 @@ class HTMLDocumentParser:
                         self.__removeCurrentElementFromOpenStack()
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
+                elif (token.name in ["pre", "listing"]):
+                    pass #TODO: Handle case
+                elif (token.name == "form"):
+                    pass #TODO: Handle case
                 elif (token.name == "li"):
                     self.__framesetOK = False
                     element = self.__createElement(token)
                     self.__addToOpenStack(element)
+                    if (self.__currentElement.name == "li"):
+                        pass
+                    #TODO: Implement rest of the case
+                elif (token.name in ["dd", "dt"]):
+                    self.__framesetOK = False
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
+                    #TODO: Handle case
+                elif (token.name == "plaintext"):
+                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
+                        self.__removeCurrentElementFromOpenStack()
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
+                    self.__tokenizer.switchStateTo(self.__tokenizer.State.PLAINTEXT)
+                elif (token.name == "button"):
+                    if (self.__elementInOpenStackScope("button")):
+                        self.__popElementsFromOpenStackUntilElement()
+                    #TODO: Reconstruct the active formatting elements, if any.
+                    self.__framesetOK = False
+                    element = self.__createElement(token)
+                    self.__addToOpenStack(element)
+
 
             elif (token.type == HTMLToken.TokenType.EndTag):
                 if (token.name == "template"):
@@ -371,6 +412,14 @@ class HTMLDocumentParser:
                         #TODO: Implement the popping functionality.
                 elif (token.name == "html"):
                     self.__reconsumeIn(self.__Mode.AfterBody, token)
+                elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"]):
+                    if (not self.__elementInOpenStackScope(token.name)):
+                        pass
+                    elif (not self.__currentElement.name == token.name):
+                        #TODO: Handle parse error
+                        pass
+                    self.__popElementsFromOpenStackUntilElement(token.name)
+                elif (token.name == "form")
 
             elif (token.type == HTMLToken.TokenType.EOF):
                 pass #TODO: Handle case.
