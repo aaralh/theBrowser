@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
+from web.html.parser.ListOfActiveElements import ListOfActiveElements
 from web.dom.CharacterData import CharacterData
 from web.dom.elements.Comment import Comment
 from web.html.parser.utils import charIsWhitespace
@@ -50,7 +51,7 @@ class HTMLDocumentParser:
         self.__currentElement = self.__document
         self.__scripting: bool = False
         self.__framesetOK: bool = True
-        self.__listOfActiveFormattingElements: List[Node] = []
+        self.__formattingElements = ListOfActiveElements()
 
     def run(self) -> None:
         self.__tokenizer.run()
@@ -146,15 +147,20 @@ class HTMLDocumentParser:
 
     def __adoptionAgencyAlgorithm(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         subject = token.name
-        if (self.__currentElement.name == subject and self.__currentElement not in self.__listOfActiveFormattingElements):
+        if (self.__currentElement.name == subject and not self.__formattingElements.contains(self.__currentElement)):
             self.__popCurrentElementFromOpenStack()
             return
         outerLoopCounter = 0
 
         while outerLoopCounter < 8:
             outerLoopCounter += 1
-            formattingElement = self.__listOfActiveFormattingElements[-1]
+            formattingElement = self.__formattingElements.lastElementWithTagNameBeforeMarker(subject)
+
+            if (not self.__elementInOpenStackScope(formattingElement)):
+                self.__formattingElements.remove(formattingElement)
             #TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
+            #https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
+            
 
     def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
