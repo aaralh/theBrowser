@@ -23,7 +23,7 @@ class ListOfActiveElements:
 
 	def contains(self, element: Node) -> bool:
 		for item in self.__listOfActiveElements:
-			if item == element:
+			if item.element == element:
 				return True
 		
 		return False
