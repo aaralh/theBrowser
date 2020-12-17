@@ -34,7 +34,10 @@ class StackOfOpenElments:
 		return self.last()
 
 	def hasInScope(self, tagName: str) -> bool:
-		pass
+		for element in self.__openElements:
+			if (element.name == tagName):
+				return True
+		return False
 
 	def hasInButtonScope(self, tagName: str) -> bool:
 		pass
