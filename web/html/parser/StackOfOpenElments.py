@@ -40,7 +40,7 @@ class StackOfOpenElments:
 		return False
 
 	def hasInButtonScope(self, tagName: str) -> bool:
-		pass
+		return self.currentNode().name == tagName and self.currentNode().parentNode.name == "button"
 
 	def hasInTableScope(self, tagName: str) -> bool:
 		pass

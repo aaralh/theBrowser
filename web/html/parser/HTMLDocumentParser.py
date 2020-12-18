@@ -1,6 +1,7 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
 from web.html.parser.ListOfActiveElements import ListOfActiveElements
+from web.html.parser.StackOfOpenElments import StackOfOpenElments
 from web.dom.CharacterData import CharacterData
 from web.dom.elements.Comment import Comment
 from web.html.parser.utils import charIsWhitespace
@@ -44,7 +45,7 @@ class HTMLDocumentParser:
     def __init__(self, html: str) -> None:
         self.__currentInsertionMode = self.__Mode.Initial
         self.__originalInsertionMode: Union[self.__Mode, None] = None
-        self.__openElements: List[Node] = []
+        self.__openElements = StackOfOpenElments()
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
         self.__currentElement = self.__document
@@ -59,7 +60,7 @@ class HTMLDocumentParser:
         '''
         Gets the latest opened element aka "parent".
         '''
-        return self.__document if (len(self.__openElements) == 0) else self.__openElements[-1]
+        return self.__document if self.__openElements.isEmpty() else self.__openElements.last()
 
     def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         switcher = self.__getModeSwitcher()
@@ -101,14 +102,6 @@ class HTMLDocumentParser:
 
         return element
 
-    def __addToOpenStack(self, node: Node) -> None:
-        self.__openElements.append(node)
-        self.__currentElement = node
-
-    def __popCurrentElementFromOpenStack(self) -> None:
-        self.__openElements.remove(self.__currentElement)
-        self.__currentElement = self.__getOpenElement()
-
     def __insertCharacter(self, token: HTMLCommentOrCharacter) -> None:
         if (type(self.__currentElement) is Document):
             return
@@ -128,24 +121,10 @@ class HTMLDocumentParser:
         self.__currentElement.appendChild(comment)
         self.__continueIn(self.__Mode.BeforeHead)
 
-    def __elementInOpenStackScope(self, elementName: str) -> bool:
-        for element in self.__openElements:
-            if (element.name == elementName):
-                return True
-        return False
-
-    def __popElementsFromOpenStackUntilElement(self, elementName: str) -> None:
-        while (len(self.__openElements) > 0):
-            if (self.__currentElement.name == elementName):
-                self.__popCurrentElementFromOpenStack()
-                return
-            else:
-                self.__popCurrentElementFromOpenStack()
-
     def __adoptionAgencyAlgorithm(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         subject = token.name
         if (self.__currentElement.name == subject and not self.__formattingElements.contains(self.__currentElement)):
-            self.__popCurrentElementFromOpenStack()
+            self.__openElements.pop()
             return
         outerLoopCounter = 0
 
@@ -175,13 +154,13 @@ class HTMLDocumentParser:
                 token = cast(HTMLTag, token)
                 if (token.name == "html"):
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__switchModeTo(self.__Mode.BeforeHead)
                 else:
                     token = HTMLTag(HTMLToken.TokenType.StartTag)
                     token.name = "html"
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__switchModeTo(self.__Mode.BeforeHead)
 
         def handleBeforeHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -196,13 +175,13 @@ class HTMLDocumentParser:
                 token = cast(HTMLTag, token)
                 if (token.name == "head"):
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__switchModeTo(self.__Mode.InHead)
             else:
                 token = HTMLTag(HTMLToken.TokenType.StartTag)
                 token.name = "head"
                 element = self.__createElement(token)
-                self.__addToOpenStack(element)
+                self.__openElements.push(element)
                 self.__switchModeTo(self.__Mode.InHead)
 
         def handleInHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -256,16 +235,16 @@ class HTMLDocumentParser:
 
             elif (token.type == HTMLToken.TokenType.EndTag):
                 if (token.name == "head"):
-                    self.__popCurrentElementFromOpenStack()
+                    self.__openElements.pop()
                     self.__switchModeTo(self.__Mode.AfterHead)
                 elif (token.name in ["body", "html", "br"]):
-                    self.__popCurrentElementFromOpenStack()
+                    self.__openElements.pop()
                     self.__reconsumeIn(self.__Mode.AfterHead, token)
                 elif (token.name == "template"):
                     # TODO: Handle case.
                     pass
             else:
-                self.__popCurrentElementFromOpenStack()
+                self.__openElements.pop()
                 self.__reconsumeIn(self.__Mode.AfterHead, token)
 
         def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -279,10 +258,10 @@ class HTMLDocumentParser:
             elif (token.type == HTMLToken.TokenType.EndTag):
                 token = cast(HTMLTag, token)
                 if (token.name == "noscript"):
-                    self.__popCurrentElementFromOpenStack()
+                    self.__openElements.pop()
                     self.__switchModeTo(self.__Mode.InHead)
                 elif (token.name == "br"):
-                    self.__popCurrentElementFromOpenStack()
+                    self.__openElements.pop()
                 else:
                     pass
             elif (token.type == HTMLToken.TokenType.Character):
@@ -300,7 +279,7 @@ class HTMLDocumentParser:
                 elif (token.name in ["head", "noscrip"]):
                     pass
             else:
-                self.__popCurrentElementFromOpenStack()
+                self.__openElements.pop()
 
         def handleAfterHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
             if (token.type == HTMLToken.TokenType.Character):
@@ -317,7 +296,7 @@ class HTMLDocumentParser:
                     pass
                 elif (token.name == "body"):
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__switchModeTo(self.__Mode.InBody)
                 elif (token.name == "frameset"):
                     pass  # TODO: Handle case.
@@ -333,7 +312,7 @@ class HTMLDocumentParser:
                     token = HTMLTag(HTMLToken.TokenType.StartTag)
                     token.name = "body"
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__framesetOK = False
                     self.__reconsumeIn(self.__Mode.InBody, token)
                 else:
@@ -342,7 +321,7 @@ class HTMLDocumentParser:
                 token = HTMLTag(HTMLToken.TokenType.StartTag)
                 token.name = "body"
                 element = self.__createElement(token)
-                self.__addToOpenStack(element)
+                self.__openElements.push(element)
                 self.__reconsumeIn(self.__Mode.InBody, token)
 
         def handleInBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -371,17 +350,17 @@ class HTMLDocumentParser:
                 elif (token.name == "frameset"):
                     pass  # Handle case
                 elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
-                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__popCurrentElementFromOpenStack()
+                    if (self.__openElements.hasInButtonScope("p")):
+                        self.__openElements.pop()
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
-                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__popCurrentElementFromOpenStack()
+                    if (self.__openElements.hasInButtonScope("p")):
+                        self.__openElements.pop()
                     elif (self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
-                        self.__popCurrentElementFromOpenStack()
+                        self.__openElements.pop()
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name in ["pre", "listing"]):
                     pass  # TODO: Handle case
                 elif (token.name == "form"):
@@ -389,20 +368,20 @@ class HTMLDocumentParser:
                 elif (token.name == "li"):
                     self.__framesetOK = False
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     if (self.__currentElement.name == "li"):
                         pass
                     # TODO: Implement rest of the case
                 elif (token.name in ["dd", "dt"]):
                     self.__framesetOK = False
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     # TODO: Handle case
                 elif (token.name == "plaintext"):
-                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__popCurrentElementFromOpenStack()
+                    if (self.__openElements.hasInButtonScope("p")):
+                        self.__openElements.pop()
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                     self.__tokenizer.switchStateTo(
                         self.__tokenizer.State.PLAINTEXT)
                 elif (token.name == "button"):
@@ -411,17 +390,17 @@ class HTMLDocumentParser:
                     # TODO: Reconstruct the active formatting elements, if any.
                     self.__framesetOK = False
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name == "a"):
                     if (self.__elementInOpenStackScope(token.name)):
                         self.__popElementsFromOpenStackUntilElement(token.name)
 
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name in ["b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt", "u"]):
                     # TODO: Reconstruct the active formatting elements, if any and add handling to all tother places too
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name == "nobr"):
                     if (self.__elementInOpenStackScope(token.name)):
                         # TODO: run the adoption agency algorithm for the token
@@ -434,9 +413,8 @@ class HTMLDocumentParser:
                     # Handle case, Process the token using the rules for the "in head" insertion mode.
                     pass
                 elif (token.name == "body"):
-                    openBodyElement = list(
-                        filter(lambda element: element.name == "body", self.__openElements))
-                    if (len(openBodyElement) == 0):
+                    openBodyElement = self.__openElements.lastElementWithTagName(token.name)
+                    if (openBodyElement == None):
                         pass  # Ignore token.
                         # TODO: handle the else case.
                     else:
@@ -445,20 +423,20 @@ class HTMLDocumentParser:
                 elif (token.name == "html"):
                     self.__reconsumeIn(self.__Mode.AfterBody, token)
                 elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"]):
-                    if (not self.__elementInOpenStackScope(token.name)):
+                    if (not self.__openElements.hasInScope(token.name)):
                         pass
-                    elif (not self.__currentElement.name == token.name):
+                    elif (not self.__openElements.currentNode().name == token.name):
                         # TODO: Handle parse error
                         pass
-                    self.__popElementsFromOpenStackUntilElement(token.name)
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                 elif (token.name == "form"):
                     # TODO: Handle case
                     pass
                 elif (token.name == "p"):
-                    if (self.__currentElement.name == "p" and self.__currentElement.parentNode.name == "button"):
-                        self.__popCurrentElementFromOpenStack()
+                    if (self.__openElements.hasInButtonScope("p")):
+                        self.__openElements.pop()
                     element = self.__createElement(token)
-                    self.__addToOpenStack(element)
+                    self.__openElements.push(element)
                 elif (token.name == "li"):
                     # TODO: Handle case
                     pass
@@ -467,12 +445,13 @@ class HTMLDocumentParser:
                     pass
                 elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
                     if (self.__currentElement.name == token.name):
-                        self.__popCurrentElementFromOpenStack()
+                        self.__openElements.pop()
                 elif (token.name == "sarcasm"):
                     # TODO: Handle case
                     pass
                 elif (token.name in ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"]):
                     # TODO: Run the adoption agency algorithm for the token.
+                    pass
 
             elif (token.type == HTMLToken.TokenType.EOF):
                 pass  # TODO: Handle case.
@@ -488,7 +467,7 @@ class HTMLDocumentParser:
                     # TODO: handle case
                     pass
             else:
-                self.__popCurrentElementFromOpenStack()
+                self.__openElements.pop()
                 self.__switchModeTo(self.__originalInsertionMode)
 
         def handleInTable() -> None:
