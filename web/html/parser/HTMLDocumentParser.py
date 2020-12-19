@@ -445,10 +445,13 @@ class HTMLDocumentParser:
                 elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"]):
                     if (not self.__openElements.hasInScope(token.name)):
                         pass
-                    elif (not self.__openElements.currentNode().name == token.name):
-                        # TODO: Handle parse error
-                        raise NotImplementedError
-                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+                    else:
+                        # TODO: Generate implied end tags
+                        if (not self.__openElements.currentNode().name == token.name):
+                            # TODO: Handle parse error
+                            pass
+                        
+                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                 elif (token.name == "form"):
                     # TODO: Handle case
                     raise NotImplementedError

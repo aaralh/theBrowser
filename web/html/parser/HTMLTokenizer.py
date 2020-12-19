@@ -1,7 +1,7 @@
 from enum import Enum, auto
-from typing import Union, Callable, Any, cast
+from typing import Union, Callable, Any, cast, List
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from .utils import charIsWhitespace
+from .utils import charIsWhitespace, charIsASCIIDigitOrAlpha
 
 
 class HTMLTokenizer:
@@ -156,6 +156,11 @@ class HTMLTokenizer:
         self.__returnState: Union[Any, None] = None
         self.__currentToken: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter, None] = None
         self.__tokenHandlerCb = tokenHandlerCb
+        self.__temporaryBuffer: List[str] = []
+
+    def __flushTemporaryBuffer(self) -> None:
+        self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
+        self.__temporaryBuffer = []
 
     def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
 
@@ -198,10 +203,10 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
 
         def handleScriptData() -> None:
-            return
+            raise NotImplementedError
 
         def handlePLAINTEXT() -> None:
-            return
+            raise NotImplementedError
 
         def handleTagOpen() -> None:
             if (self.__currentInputChar == "!"):
@@ -215,8 +220,6 @@ class HTMLTokenizer:
         def handleEndTagOpen() -> None:
             self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
             self.__reconsumeIn(self.State.TagName)
-            return
-
 
         def handleTagName() -> None:
             if (self.__currentInputChar == None):
@@ -237,73 +240,73 @@ class HTMLTokenizer:
             
 
         def handleRCDATALessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleRCDATAEndTagOpen() -> None:
-            return
+            raise NotImplementedError
 
         def handleRCDATAEndTagName() -> None:
-            return
+            raise NotImplementedError
 
         def handleRAWTEXTLessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleRAWTEXTEndTagOpen() -> None:
-            return
+            raise NotImplementedError
 
         def handleRAWTEXTEndTagName() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataLessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEndTagOpen() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEndTagName() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapeStart() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapeStartDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscaped() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapedDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapedDashDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapedLessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapedEndTagOpen() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataEscapedEndTagName() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscapeStart() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscaped() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscapedDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscapedDashDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscapedLessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleScriptDataDoubleEscapeEnd() -> None:
-            return
+            raise NotImplementedError
 
         def handleBeforeAttributeName() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
@@ -337,7 +340,20 @@ class HTMLTokenizer:
             
 
         def handleAfterAttributeName() -> None:
-            return
+            if (charIsWhitespace(self.__currentInputChar)):
+                pass
+            elif (self.__currentInputChar == "/"):
+                self.switchStateTo(self.State.SelfClosingStartTag)
+            elif (self.__currentInputChar == "="):
+                self.switchStateTo(self.State.BeforeAttributeValue)
+            elif (self.__currentInputChar == ">"):
+                self.__emitCurrentToken()
+                self.switchStateTo(self.State.Data)
+            elif (self.__currentInputChar is None):
+                raise NotImplementedError
+            else:
+                self.__currentToken.createNewAttribute()
+                self.__reconsumeIn(self.State.AttributeName)
 
         def handleBeforeAttributeValue() -> None:
             if (charIsWhitespace(self.__currentInputChar)):
@@ -407,10 +423,18 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.State.BeforeAttributeName)
 
         def handleSelfClosingStartTag() -> None:
-            return
+            if (self.__currentInputChar == ">"):
+                self.__currentToken.selfClosing = True
+                self.switchStateTo(self.State.Data)
+                self.__emitCurrentToken()
+            elif (self.currentInputChar is None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                self.__reconsumeIn(self.State.BeforeAttributeName)
 
         def handleBogusComment() -> None:
-            return
+            raise NotImplementedError
 
         def handleMarkupDeclarationOpen() -> None:
             if(self.__nextCharactersAre("--")):
@@ -466,16 +490,16 @@ class HTMLTokenizer:
                 self.__continueIn(self.State.Comment)
 
         def handleCommentLessThanSign() -> None:
-            return
+            raise NotImplementedError
 
         def handleCommentLessThanSignBang() -> None:
-            return
+            raise NotImplementedError
 
         def handleCommentLessThanSignBangDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleCommentLessThanSignBangDashDash() -> None:
-            return
+            raise NotImplementedError
 
         def handleCommentEndDash() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
@@ -515,12 +539,12 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.State.Comment)
 
         def handleCommentEndBang() -> None:
-            return
+            raise NotImplementedError
 
         def handleDOCTYPE() -> None:
             if (charIsWhitespace(cast(str, self.__currentInputChar))):
                 self.switchStateTo(self.State.BeforeDOCTYPEName)
-            return
+            
 
         def handleBeforeDOCTYPEName() -> None:
             if (charIsWhitespace(cast(str,self.__currentInputChar))):
@@ -533,7 +557,7 @@ class HTMLTokenizer:
                     self.__currentToken.name = self.__currentInputChar
                 
                 self.switchStateTo(self.State.DOCTYPEName)
-            return
+
 
         def handleDOCTYPEName() -> None:
             self.__currentToken = cast(HTMLDoctype, self.__currentToken)
@@ -543,82 +567,94 @@ class HTMLTokenizer:
             else:
                 self.__currentToken.name = self.__currentToken.name + str(self.__currentInputChar)
                 self.__continueIn(self.State.DOCTYPEName)
-            return
+
 
         def handleAfterDOCTYPEName() -> None:
-            return
+            raise NotImplementedError
 
         def handleAfterDOCTYPEPublicKeyword() -> None:
-            return
+            raise NotImplementedError
 
         def handleBeforeDOCTYPEPublicIdentifier() -> None:
-            return
+            raise NotImplementedError
 
         def handleDOCTYPEPublicIdentifierDoubleQuoted() -> None:
-            return
+            raise NotImplementedError
 
         def handleDOCTYPEPublicIdentifierSingleQuoted() -> None:
-            return
+            raise NotImplementedError
 
         def handleAfterDOCTYPEPublicIdentifier() -> None:
-            return
+            raise NotImplementedError
 
         def handleBetweenDOCTYPEPublicAndSystemIdentifiers() -> None:
-            return
+            raise NotImplementedError
 
         def handleAfterDOCTYPESystemKeyword() -> None:
-            return
+            raise NotImplementedError
 
         def handleBeforeDOCTYPESystemIdentifier() -> None:
-            return
+            raise NotImplementedError
 
         def handleDOCTYPESystemIdentifierDoubleQuoted() -> None:
-            return
+            raise NotImplementedError
 
         def handleDOCTYPESystemIdentifierSingleQuoted() -> None:
-            return
+            raise NotImplementedError
 
         def handleAfterDOCTYPESystemIdentifier() -> None:
-            return
+            raise NotImplementedError
 
         def handleBogusDOCTYPE() -> None:
-            return
+            raise NotImplementedError
 
         def handleCDATASection() -> None:
-            return
+            raise NotImplementedError
 
         def handleCDATASectionBracket() -> None:
-            return
+            raise NotImplementedError
 
         def handleCDATASectionEnd() -> None:
-            return
+            raise NotImplementedError
 
         def handleCharacterReference() -> None:
-            return
+            if (charIsASCIIDigitOrAlpha(self.__currentInputChar)):
+                self.__reconsumeIn(self.State.NamedCharacterReference)
+            elif (self.__currentInputChar == "#"):
+                self.__temporaryBuffer.append(self.__currentInputChar)
+                self.switchStateTo(self.State.NumericCharacterReference)
+            else:
+                self.__flushTemporaryBuffer()
+                self.__reconsumeIn(self.__returnState)
 
         def handleNamedCharacterReference() -> None:
-            return
+            if ():
+                # TODO: Implement case.
+                raise NotImplementedError
+            else:
+                self.__flushTemporaryBuffer()
+                self.__reconsumeIn(self.State.AmbiguousAmpersand)
 
         def handleAmbiguousAmpersand() -> None:
-            return
+            raise NotImplementedError
 
         def handleNumericCharacterReference() -> None:
-            return
+            raise NotImplementedError
 
         def handleHexadecimalCharacterReferenceStart() -> None:
-            return
+            raise NotImplementedError
 
         def handleDecimalCharacterReferenceStart() -> None:
-            return
+            raise NotImplementedError
 
         def handleHexadecimalCharacterReference() -> None:
-            return
+            raise NotImplementedError
 
         def handleDecimalCharacterReference() -> None:
-            return
+            raise NotImplementedError
 
         def handleNumericCharacterReferenceEnd() -> None:
-            return
+            raise NotImplementedError
 
         
 
