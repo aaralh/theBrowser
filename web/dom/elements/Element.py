@@ -5,16 +5,13 @@ from web.dom.Node import Node
 
 
 class Element(Node):
-	def __init__(self, token: HTMLTag, parent: Node, document: Document):
+	def __init__(self, token: HTMLTag, parent: Node, document: Document, namespace: str = ""):
 		super(Element, self).__init__(parent, document)
 		self.__localName = token.name
 		self.__is = token.attributes.get("id", None)
 		self.__attributes = token.attributes
-	""" 	self.__tagName
-		self.__id
-		self.__className
-		self.__classList
-		self.__slot """
+		self.__namespace: str = namespace
+
 
 	def __str__(self):
 		return self.printTree()
@@ -36,6 +33,10 @@ class Element(Node):
 
 
 		return treeString
+	
+	@property
+	def namespace(self) -> str:
+		return self.__namespace
 
 	@property
 	def name(self) -> str:

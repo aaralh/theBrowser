@@ -1,13 +1,14 @@
 
 from typing import List, Union
 
-from web.dom.Node import Node
+from web.dom.elements.Element import Element
+from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 
 
 class StackOfOpenElments:
 
 	def __init__(self):
-		self.__openElements: List[Node] = []
+		self.__openElements: List[Element] = []
 		self.__scopeBaseList: List[str] = ["applet", "caption", "html", "table", "td", "th", "marquee", "object", "template"]
 
 	def __hasInScopeImpl(self, targetNodeName: str, tagNameList: List[str]) -> bool:
@@ -22,25 +23,25 @@ class StackOfOpenElments:
 	def isEmpty(self) -> bool:
 		return len(self.__openElements) == 0
 
-	def first(self) -> Union[Node, None]:
+	def first(self) -> Union[Element, None]:
 		if (not self.isEmpty()):
 			return self.__openElements[0]
 		return None
 
-	def last(self) -> Union[Node, None]:
+	def last(self) -> Union[Element, None]:
 		if (not self.isEmpty()):
 			return self.__openElements[-1]
 		return None
 
-	def push(self, element: Node) -> None:
+	def push(self, element: Element) -> None:
 		self.__openElements.append(element)
 
-	def pop(self) -> Union[Node, None]:
+	def pop(self) -> Union[Element, None]:
 		if (not self.isEmpty()):
 			return self.__openElements.pop()
 		return None
 
-	def currentNode(self) -> Union[Node, None]:
+	def currentNode(self) -> Union[Element, None]:
 		return self.last()
 
 	def hasInScope(self, tagName: str) -> bool:
@@ -65,10 +66,10 @@ class StackOfOpenElments:
 		scopeList = ["option", "optgroup"]
 		return self.__hasInScopeImpl(tagName, scopeList)
 
-	def contains(self, element: Node) -> bool:
+	def contains(self, element: Element) -> bool:
 		return element in self.__openElements
 
-	def elements(self) -> List[Node]:
+	def elements(self) -> List[Element]:
 		return self.__openElements
 
 	def popUntilElementWithAtagNameHasBeenPopped(self, tagName: str) -> None:
@@ -79,18 +80,24 @@ class StackOfOpenElments:
 			else:
 				self.pop()
 
-	def topmostSpecialNodeBelow(self, element: Node) -> Union[Node, None]:
-		raise NotImplementedError
+	def topmostSpecialNodeBelow(self, formattingElement: Element) -> Union[Element, None]:
+		foundElement: Union[Element, None] = None
+		for element in reversed(self.elements()):
+			if (element == formattingElement):
+				break
+			if (HTMLDocumentParser.isSpecialtag(element.name) and element.namespace):
+				foundElement = element
+		return foundElement
 
-	def lastElementWithTagName(self, tagName: str) -> Union[Node, None]:
+	def lastElementWithTagName(self, tagName: str) -> Union[Element, None]:
 		for element in reversed(self.elements()):
 			if (element.name == tagName):
 				return element
 
-	def elementBefore(self, targetNode: Node) -> Union[Node, None]:
+	def elementBefore(self, targetElement: Element) -> Union[Element, None]:
 		foundTarget = False
 		for element in reversed(self.__openElements):
-			if (element == targetNode):
+			if (element == targetElement):
 				foundTarget = True
 			elif foundTarget:
 				return element

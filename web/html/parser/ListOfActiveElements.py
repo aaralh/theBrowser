@@ -1,13 +1,12 @@
 from typing import List, Union
 from web.dom.elements.Element import Element
-from web.dom.Node import Node
 from dataclasses import dataclass
 
 class ListOfActiveElements:
 
 	@dataclass
 	class Entry:
-		element: Node
+		element: Element
 		
 		@property
 		def isMarker(self) -> bool:
@@ -21,14 +20,14 @@ class ListOfActiveElements:
 	def isEmpty(self) -> bool:
 		return len(self.__listOfActiveElements) == 0
 
-	def contains(self, element: Node) -> bool:
+	def contains(self, element: Element) -> bool:
 		for item in self.__listOfActiveElements:
 			if item.element == element:
 				return True
 		
 		return False
 	
-	def push(self, element: Node) -> None:
+	def push(self, element: Element) -> None:
 		self.__listOfActiveElements.append(self.Entry(element))
 
 	def lastEntry(self) -> Union[Entry, None]:
@@ -40,7 +39,7 @@ class ListOfActiveElements:
 		self.__listOfActiveElements.append(self.Entry(None))
 
 
-	def remove(self, element: Node) -> None:
+	def remove(self, element: Element) -> None:
 		entries = List[filter(lambda entry: entry.element == element,  self.__listOfActiveElements)]
 		if len(entries) > 0:
 			self.__listOfActiveElements.remove(entries[0])
@@ -48,7 +47,7 @@ class ListOfActiveElements:
 	def entries(self) -> List['Entry']:
 		return self.__listOfActiveElements
 
-	def lastElementWithTagNameBeforeMarker(self, tagName: str) -> Union[Node, None]:
+	def lastElementWithTagNameBeforeMarker(self, tagName: str) -> Union[Element, None]:
 		for entry in reversed(self.__listOfActiveElements):
 			if (entry.isMarker):
 				return None

@@ -48,19 +48,41 @@ class HTMLDocumentParser:
         self.__openElements = StackOfOpenElments()
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
-        self.__currentElement = self.__document
         self.__scripting: bool = False
         self.__framesetOK: bool = True
         self.__formattingElements = ListOfActiveElements()
 
-    def run(self) -> None:
-        self.__tokenizer.run()
-
-    def __getOpenElement(self) -> Node:
+    @property
+    def __currentElement(self) -> Node:
         '''
         Gets the latest opened element aka "parent".
         '''
-        return self.__document if self.__openElements.isEmpty() else self.__openElements.last()
+        return self.__document if self.__openElements.isEmpty() else self.__openElements.last() 
+
+    @staticmethod
+    def isSpecialtag(tagName: str, namespace: str):
+   
+        if (namespace == "html"):
+            return tagName in [ "address", "applet", "area", "article", "aside", "base", "basefont", "bgsound", "blockquote",
+                                "body", "br", "button", "caption", "center", "col", "colgroup", "dd", "details", "dir", "div",
+                                "dl", "dt", "embed", "fieldset", "figcaption", "figure", "footer", "form", "frame", "frameset",
+                                "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "iframe", "img",
+                                "input", "keygen", "li", "link", "listing", "main", "marquee", "menu", "meta", "nav", "noembed",
+                                "noframes", "noscript", "object", "ol", "p", "param", "plaintext", "pre", "script", "section",
+                                "select", "source", "style", "summary", "table", "tbody", "td", "template_", "textarea", "tfoot",
+                                "th", "thead", "title", "tr", "track", "ul", "wbr", "xmp"]
+        elif (namespace == "svg"):
+            return tagName in ["desc", "foreignObject", "title"]
+
+        elif (namespace == "mathml"):
+            # TODO: Handle case
+            raise NotImplementedError
+        
+        return False
+
+
+    def run(self) -> None:
+        self.__tokenizer.run()
 
     def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         switcher = self.__getModeSwitcher()
@@ -79,9 +101,6 @@ class HTMLDocumentParser:
         Switch state and consume next character.
         '''
         self.__currentInsertionMode = newMode
-        """ switcher = self.__getModeSwitcher()
-        if (switcher != None):
-            switcher() """
 
     def __reconsumeIn(self, newMode: __Mode, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         '''
@@ -96,7 +115,7 @@ class HTMLDocumentParser:
         '''
         Creates element based on given token and sets parent for it.
         '''
-        parent = self.__getOpenElement()
+        parent = self.__currentElement
         element = ElementFactory.create_element(token, parent, parent.document)
         element.parentNode.appendChild(element)
 
@@ -133,8 +152,27 @@ class HTMLDocumentParser:
             formattingElement = self.__formattingElements.lastElementWithTagNameBeforeMarker(
                 subject)
 
-            if (not self.__elementInOpenStackScope(formattingElement)):
+            if (formattingElement is None):
+                return
+
+            if (not self.__openElements.contains(formattingElement)):
                 self.__formattingElements.remove(formattingElement)
+                return
+            if(self.__openElements.contains(formattingElement) and not self.__openElements.hasInScope()):
+                return
+            if (formattingElement != self.__currentElement):
+                #TODO: Handle parsing error.
+                pass
+            
+            furtherMostBlock = self.__openElements.topmostSpecialNodeBelow(formattingElement)
+
+            if (furtherMostBlock is None):
+                self.__openElements.popUntilElementWithAtagNameHasBeenPopped(formattingElement.name)
+                self.__formattingElements.remove(formattingElement)
+                return
+
+            commonAncestor = self.__openElements.elementBefore(formattingElement)
+
             # TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
             # https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
 
@@ -389,15 +427,15 @@ class HTMLDocumentParser:
                     self.__tokenizer.switchStateTo(
                         self.__tokenizer.State.PLAINTEXT)
                 elif (token.name == "button"):
-                    if (self.__elementInOpenStackScope("button")):
-                        self.__popElementsFromOpenStackUntilElement()
+                    if (self.__openElements.hasInScope(token.name)):
+                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                     # TODO: Reconstruct the active formatting elements, if any.
                     self.__framesetOK = False
                     element = self.__createElement(token)
                     self.__openElements.push(element)
                 elif (token.name == "a"):
-                    if (self.__elementInOpenStackScope(token.name)):
-                        self.__popElementsFromOpenStackUntilElement(token.name)
+                    if (self.__openElements.hasInScope(token.name)):
+                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
 
                     element = self.__createElement(token)
                     self.__openElements.push(element)
@@ -406,7 +444,7 @@ class HTMLDocumentParser:
                     element = self.__createElement(token)
                     self.__openElements.push(element)
                 elif (token.name == "nobr"):
-                    if (self.__elementInOpenStackScope(token.name)):
+                    if (self.__openElements.hasInScope(token.name)):
                         # TODO: run the adoption agency algorithm for the token
                         raise NotImplementedError
                     self.__createElement(token)
