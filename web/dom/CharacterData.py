@@ -42,6 +42,8 @@ class CharacterData(Node):
 
 	def printTree(self, depth: int) -> str:
 		indentation = ""
+
 		for _ in range(depth):
 			indentation += "\t"
+
 		return  f"{indentation}" + self.data + "\n"

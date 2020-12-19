@@ -2,7 +2,7 @@
 from typing import List, Union
 
 from web.dom.elements.Element import Element
-from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
+from web.html.parser.ParserUtils import ParserUtils
 
 
 class StackOfOpenElments:
@@ -18,7 +18,9 @@ class StackOfOpenElments:
 			if (node.name in tagNameList):
 				return False
 
-
+	def popAllElements(self) -> None:
+		while not self.isEmpty():
+			self.__openElements.pop()
 
 	def isEmpty(self) -> bool:
 		return len(self.__openElements) == 0
@@ -76,7 +78,7 @@ class StackOfOpenElments:
 		while (len(self.__openElements) > 0):
 			if (self.currentNode().name == tagName):
 				self.pop()
-				return
+				break
 			else:
 				self.pop()
 
@@ -85,7 +87,7 @@ class StackOfOpenElments:
 		for element in reversed(self.elements()):
 			if (element == formattingElement):
 				break
-			if (HTMLDocumentParser.isSpecialtag(element.name) and element.namespace):
+			if (ParserUtils.isSpecialtag(element.name) and element.namespace):
 				foundElement = element
 		return foundElement
 

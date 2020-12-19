@@ -14,7 +14,6 @@ from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLComme
 from web.html.parser.HTMLTokenizer import HTMLTokenizer
 from web.dom.ElementFactory import ElementFactory
 
-
 class HTMLDocumentParser:
 
     class __Mode(Enum):
@@ -48,6 +47,7 @@ class HTMLDocumentParser:
         self.__openElements = StackOfOpenElments()
         self.__tokenizer = HTMLTokenizer(html, self.__tokenHandler)
         self.__document = Document()
+        self.__documentNode = None
         self.__scripting: bool = False
         self.__framesetOK: bool = True
         self.__formattingElements = ListOfActiveElements()
@@ -57,28 +57,7 @@ class HTMLDocumentParser:
         '''
         Gets the latest opened element aka "parent".
         '''
-        return self.__document if self.__openElements.isEmpty() else self.__openElements.last() 
-
-    @staticmethod
-    def isSpecialtag(tagName: str, namespace: str):
-   
-        if (namespace == "html"):
-            return tagName in [ "address", "applet", "area", "article", "aside", "base", "basefont", "bgsound", "blockquote",
-                                "body", "br", "button", "caption", "center", "col", "colgroup", "dd", "details", "dir", "div",
-                                "dl", "dt", "embed", "fieldset", "figcaption", "figure", "footer", "form", "frame", "frameset",
-                                "h1", "h2", "h3", "h4", "h5", "h6", "head", "header", "hgroup", "hr", "html", "iframe", "img",
-                                "input", "keygen", "li", "link", "listing", "main", "marquee", "menu", "meta", "nav", "noembed",
-                                "noframes", "noscript", "object", "ol", "p", "param", "plaintext", "pre", "script", "section",
-                                "select", "source", "style", "summary", "table", "tbody", "td", "template_", "textarea", "tfoot",
-                                "th", "thead", "title", "tr", "track", "ul", "wbr", "xmp"]
-        elif (namespace == "svg"):
-            return tagName in ["desc", "foreignObject", "title"]
-
-        elif (namespace == "mathml"):
-            # TODO: Handle case
-            raise NotImplementedError
-        
-        return False
+        return self.__documentNode if self.__openElements.isEmpty() else self.__openElements.last() 
 
 
     def run(self) -> None:
@@ -91,7 +70,7 @@ class HTMLDocumentParser:
 
         if (token.type == HTMLToken.TokenType.EOF):
             print("The dom")
-            print(self.__document)
+            print(self.__documentNode)
 
     def __continueIn(self, mode: __Mode) -> None:
         self.__switchModeTo(mode)
@@ -106,7 +85,7 @@ class HTMLDocumentParser:
         '''
         Switch state without consuming next character.
         '''
-        self.State = newMode
+        self.__currentInsertionMode = newMode
         switcher = self.__getModeSwitcher()
         if (switcher != None):
             switcher(token)
@@ -116,7 +95,7 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         '''
         parent = self.__currentElement
-        element = ElementFactory.create_element(token, parent, parent.document)
+        element = ElementFactory.create_element(token, parent, self.__document)
         element.parentNode.appendChild(element)
 
         return element
@@ -125,12 +104,9 @@ class HTMLDocumentParser:
         if (type(self.__currentElement) is Document):
             return
         elif (len(self.__currentElement.childNodes) > 0 and type(self.__currentElement.childNodes[-1]) is Text):
-            cast(
-                Text, self.__currentElement.childNodes[-1]).appendData(token.data)
+            cast(Text, self.__currentElement.childNodes[-1]).appendData(token.data)
         else:
             textNode = Text(self.__document, self.__currentElement, token.data)
-            print("self.__currentElement")
-            print(self.__currentElement.name)
             textNode.parentNode = self.__currentElement
             self.__currentElement.appendChild(textNode)
 
@@ -172,7 +148,8 @@ class HTMLDocumentParser:
                 return
 
             commonAncestor = self.__openElements.elementBefore(formattingElement)
-
+            # bookmark = 
+            # case 13
             # TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
             # https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
 
@@ -183,7 +160,7 @@ class HTMLDocumentParser:
             if (token.type == HTMLToken.TokenType.DOCTYPE):
                 token = cast(HTMLDoctype, token)
                 documentNode = DocumentType(token, self.__document)
-                self.__document = documentNode
+                self.__documentNode = documentNode
                 # TODO: Handle quircks mode.
                 self.__switchModeTo(self.__Mode.BeforeHTML)
 
@@ -461,6 +438,7 @@ class HTMLDocumentParser:
                         # TODO: handle the else case.
                     else:
                         self.__switchModeTo(self.__Mode.AfterBody)
+                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                         # TODO: Implement the popping functionality.
                 elif (token.name == "html"):
                     self.__reconsumeIn(self.__Mode.AfterBody, token)
@@ -543,6 +521,8 @@ class HTMLDocumentParser:
             return
 
         def handleAfterBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+            if (token.type == HTMLToken.TokenType.EOF):
+                self.__openElements.popAllElements()
             return
 
         def handleInFrameset() -> None:

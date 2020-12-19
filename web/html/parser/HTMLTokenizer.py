@@ -115,17 +115,13 @@ class HTMLTokenizer:
         '''
         Switch state and consume next character.
         '''
-        self.State = newState
-        self.__currentInputChar = self.__nextCodePoint()
-        switcher = self.__getStateSwitcher()
-        if (switcher != None):
-            switcher()
+        self.state = newState
 
     def __reconsumeIn(self, newState: State) -> None:
         '''
         Switch state without consuming next character.
         '''
-        self.State = newState
+        self.state = newState
         switcher = self.__getStateSwitcher()
         if (switcher != None):
             switcher()
@@ -153,7 +149,7 @@ class HTMLTokenizer:
         return char
 
     def __init__(self, html: str, tokenHandlerCb: Callable):
-        self.State = self.State.Data
+        self.state = self.State.Data
         self.__html = html
         self.__cursor = 0
         self.__currentInputChar: Union[str, None] = None
@@ -172,13 +168,11 @@ class HTMLTokenizer:
             elif (self.__currentInputChar == None):
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-                return
             else:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.data = self.__currentInputChar
                 self.__emitCurrentToken()
                 self.__continueIn(self.State.Data)
-
 
         def handleRCDATA() -> None:
             if (self.__currentInputChar == "<"):
@@ -710,10 +704,16 @@ class HTMLTokenizer:
             self.State.DecimalCharacterReference: handleDecimalCharacterReference,
             self.State.NumericCharacterReferenceEnd: handleNumericCharacterReferenceEnd,
         }
-        return switcher.get(self.State, None)
+        return switcher.get(self.state, None)
 
     def run(self) -> None:
-        self.__currentInputChar = self.__nextCodePoint()
+        while (self.__cursor < len(self.__html)):
+            self.__currentInputChar = self.__nextCodePoint()
+            switcher = self.__getStateSwitcher()
+            if (switcher != None):
+                switcher()
+        
+        self.__currentInputChar = None
         switcher = self.__getStateSwitcher()
         if (switcher != None):
             switcher()
