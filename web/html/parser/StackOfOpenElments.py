@@ -8,6 +8,16 @@ class StackOfOpenElments:
 
 	def __init__(self):
 		self.__openElements: List[Node] = []
+		self.__scopeBaseList: List[str] = ["applet", "caption", "html", "table", "td", "th", "marquee", "object", "template"]
+
+	def __hasInScopeImpl(self, targetNodeName: str, tagNameList: List[str]) -> bool:
+		for node in reversed(self.__openElements):
+			if (node.name == targetNodeName):
+				return True
+			if (node.name in tagNameList):
+				return False
+
+
 
 	def isEmpty(self) -> bool:
 		return len(self.__openElements) == 0
@@ -34,22 +44,26 @@ class StackOfOpenElments:
 		return self.last()
 
 	def hasInScope(self, tagName: str) -> bool:
-		for element in self.__openElements:
-			if (element.name == tagName):
-				return True
-		return False
+		return self.__hasInScopeImpl(tagName, self.__scopeBaseList)
 
 	def hasInButtonScope(self, tagName: str) -> bool:
-		return self.currentNode().name == tagName and self.currentNode().parentNode.name == "button"
+		scopeList = self.__scopeBaseList.copy()
+		scopeList.append("button")
+		return self.__hasInScopeImpl(tagName, scopeList)
 
 	def hasInTableScope(self, tagName: str) -> bool:
-		pass
+		scopeList = ["html", "table", "template"]
+		return self.__hasInScopeImpl(tagName, scopeList)
 
 	def hasInListItemScope(self, tagName: str) -> bool:
-		pass
+		scopeList = self.__scopeBaseList.copy()
+		scopeList.append("ol")
+		scopeList.append("ul")
+		return self.__hasInScopeImpl(tagName, scopeList)
 
 	def hasInSelectScope(self, tagName: str) -> bool:
-		pass
+		scopeList = ["option", "optgroup"]
+		return self.__hasInScopeImpl(tagName, scopeList)
 
 	def contains(self, element: Node) -> bool:
 		return element in self.__openElements
@@ -66,12 +80,19 @@ class StackOfOpenElments:
 				self.pop()
 
 	def topmostSpecialNodeBelow(self, element: Node) -> Union[Node, None]:
-		pass
+		raise NotImplementedError
 
 	def lastElementWithTagName(self, tagName: str) -> Union[Node, None]:
 		for element in reversed(self.elements()):
 			if (element.name == tagName):
 				return element
 
-	def elementBefore(self, element: Node) -> Union[Node, None]:
-		pass
+	def elementBefore(self, targetNode: Node) -> Union[Node, None]:
+		foundTarget = False
+		for element in reversed(self.__openElements):
+			if (element == targetNode):
+				foundTarget = True
+			elif foundTarget:
+				return element
+		
+		return None

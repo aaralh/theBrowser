@@ -1,4 +1,4 @@
-from typing import Union
+from typing import Dict, Union
 from web.dom.Document import Document
 from web.html.parser.HTMLToken import HTMLCommentOrCharacter, HTMLDoctype, HTMLTag, HTMLToken
 from web.dom.Node import Node
@@ -42,5 +42,5 @@ class Element(Node):
 		return self.__localName
 
 	@property
-	def attributes(self) -> str:
+	def attributes(self) -> Dict[str, str]:
 		return self.__attributes
