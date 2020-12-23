@@ -2,21 +2,23 @@ from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from .utils import charIsWhitespace, charIsASCIIDigitOrAlpha
+from .Entities import getNamedCharFromTable, atleastOneNameStartsWith
 
 
 class HTMLTokenizer:
-
     def __emitCurrentToken(self) -> None:
         self.__tokenHandlerCb(self.__currentToken)
         self.__currentToken = None
 
-    def __createNewToken(self, tokenType: HTMLToken.TokenType) -> Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]:
+    def __createNewToken(
+        self, tokenType: HTMLToken.TokenType
+    ) -> Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]:
         token = None
-        if (tokenType == HTMLToken.TokenType.DOCTYPE):
+        if tokenType == HTMLToken.TokenType.DOCTYPE:
             token = HTMLDoctype()
-        elif (tokenType == HTMLToken.TokenType.Comment or tokenType == HTMLToken.TokenType.Character):
+        elif tokenType == HTMLToken.TokenType.Comment or tokenType == HTMLToken.TokenType.Character:
             token = HTMLCommentOrCharacter(tokenType)
-        elif (tokenType == HTMLToken.TokenType.StartTag or tokenType == HTMLToken.TokenType.EndTag):
+        elif tokenType == HTMLToken.TokenType.StartTag or tokenType == HTMLToken.TokenType.EndTag:
             token = HTMLTag(tokenType)
         else:
             token = HTMLToken(tokenType)
@@ -107,32 +109,30 @@ class HTMLTokenizer:
     def __continueIn(self, state: State) -> None:
         self.switchStateTo(state)
 
-
     def __ignoreCharacterAndContinueTo(self, newState: State) -> None:
         self.switchStateTo(newState)
 
     def switchStateTo(self, newState: State) -> None:
-        '''
+        """
         Switch state and consume next character.
-        '''
+        """
         self.state = newState
 
     def __reconsumeIn(self, newState: State) -> None:
-        '''
+        """
         Switch state without consuming next character.
-        '''
+        """
         self.state = newState
         switcher = self.__getStateSwitcher()
-        if (switcher != None):
+        if switcher != None:
             switcher()
 
-    
     def __nextCharactersAre(self, characters: str) -> bool:
         for index in range(len(characters)):
-            if (self.__cursor >= len(self.__html)):
+            if self.__cursor >= len(self.__html):
                 return False
             char = self.__html[self.__cursor + index]
-            if (char.lower() != characters[index].lower()):
+            if char.lower() != characters[index].lower():
                 return False
 
         return True
@@ -140,9 +140,8 @@ class HTMLTokenizer:
     def __consumeCharacters(self, characters: str) -> None:
         self.__cursor += len(characters)
 
-
     def __nextCodePoint(self) -> Union[str, None]:
-        if (self.__cursor >= len(self.__html)):
+        if self.__cursor >= len(self.__html):
             return
         char = self.__html[self.__cursor]
         self.__cursor += 1
@@ -159,18 +158,23 @@ class HTMLTokenizer:
         self.__temporaryBuffer: List[str] = []
 
     def __flushTemporaryBuffer(self) -> None:
-        self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
+        if (self.__currentToken is not None):
+            self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
+        else:
+            for char in self.__temporaryBuffer:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = char
+                self.__emitCurrentToken()
         self.__temporaryBuffer = []
 
     def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
-
         def handleData() -> None:
-            if (self.__currentInputChar == "&"):
+            if self.__currentInputChar == "&":
                 self.__returnState = self.State.Data
                 self.switchStateTo(self.State.CharacterReference)
-            elif (self.__currentInputChar == "<"):
+            elif self.__currentInputChar == "<":
                 self.switchStateTo(self.State.TagOpen)
-            elif (self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
@@ -180,9 +184,9 @@ class HTMLTokenizer:
                 self.__continueIn(self.State.Data)
 
         def handleRCDATA() -> None:
-            if (self.__currentInputChar == "<"):
+            if self.__currentInputChar == "<":
                 self.switchStateTo(self.State.RCDATALessThanSign)
-            elif (self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
@@ -190,11 +194,10 @@ class HTMLTokenizer:
                 self.__currentToken.data = self.__currentInputChar
                 self.__emitCurrentToken()
 
-
         def handleRAWTEXT() -> None:
-            if (self.__currentInputChar == "<"):
+            if self.__currentInputChar == "<":
                 self.switchStateTo(self.State.RAWTEXTLessThanSign)
-            elif (self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
@@ -209,11 +212,11 @@ class HTMLTokenizer:
             raise NotImplementedError
 
         def handleTagOpen() -> None:
-            if (self.__currentInputChar == "!"):
+            if self.__currentInputChar == "!":
                 self.__reconsumeIn(self.State.MarkupDeclarationOpen)
-            elif (self.__currentInputChar == "/"):
+            elif self.__currentInputChar == "/":
                 self.switchStateTo(self.State.EndTagOpen)
-            elif (self.__currentInputChar.isalpha()):
+            elif self.__currentInputChar.isalpha():
                 self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.StartTag))
                 self.__reconsumeIn(self.State.TagName)
 
@@ -222,22 +225,21 @@ class HTMLTokenizer:
             self.__reconsumeIn(self.State.TagName)
 
         def handleTagName() -> None:
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (charIsWhitespace(self.__currentInputChar)):
+            elif charIsWhitespace(self.__currentInputChar):
                 self.switchStateTo(self.State.BeforeAttributeName)
-            elif (self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__currentToken = cast(HTMLTag, self.__currentToken)
-                if (self.__currentToken.name != None and self.__currentInputChar != None):
+                if self.__currentToken.name != None and self.__currentInputChar != None:
                     self.__currentToken.name += self.__currentInputChar
                 else:
                     self.__currentToken.name = self.__currentInputChar
                 self.__continueIn(self.State.TagName)
-            
 
         def handleRCDATALessThanSign() -> None:
             raise NotImplementedError
@@ -311,123 +313,117 @@ class HTMLTokenizer:
         def handleBeforeAttributeName() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
 
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__reconsumeIn(self.State.AfterAttributeName)
-            elif (charIsWhitespace(self.__currentInputChar)):
+            elif charIsWhitespace(self.__currentInputChar):
                 self.__continueIn(self.State.BeforeAttributeName)
             else:
                 self.__currentToken.createNewAttribute()
                 self.__reconsumeIn(self.State.AttributeName)
-            
 
         def handleAttributeName() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
 
-            if(
-                self.__currentInputChar == None or 
-                charIsWhitespace(self.__currentInputChar) or
-                self.__currentInputChar == "/" or
-                self.__currentInputChar == ">"
+            if (
+                self.__currentInputChar == None
+                or charIsWhitespace(self.__currentInputChar)
+                or self.__currentInputChar == "/"
+                or self.__currentInputChar == ">"
             ):
                 self.__reconsumeIn(self.State.AfterAttributeName)
-            elif(self.__currentInputChar == "="):
+            elif self.__currentInputChar == "=":
                 self.switchStateTo(self.State.BeforeAttributeValue)
-            elif(self.__currentInputChar.isupper() and self.__currentInputChar.isalpha()):
+            elif self.__currentInputChar.isupper() and self.__currentInputChar.isalpha():
                 self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
             else:
                 self.__currentToken.addCharToAttributeName(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeName)
-            
 
         def handleAfterAttributeName() -> None:
-            if (charIsWhitespace(self.__currentInputChar)):
+            if charIsWhitespace(self.__currentInputChar):
                 pass
-            elif (self.__currentInputChar == "/"):
+            elif self.__currentInputChar == "/":
                 self.switchStateTo(self.State.SelfClosingStartTag)
-            elif (self.__currentInputChar == "="):
+            elif self.__currentInputChar == "=":
                 self.switchStateTo(self.State.BeforeAttributeValue)
-            elif (self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
-            elif (self.__currentInputChar is None):
+            elif self.__currentInputChar is None:
                 raise NotImplementedError
             else:
                 self.__currentToken.createNewAttribute()
                 self.__reconsumeIn(self.State.AttributeName)
 
         def handleBeforeAttributeValue() -> None:
-            if (charIsWhitespace(self.__currentInputChar)):
+            if charIsWhitespace(self.__currentInputChar):
                 self.__continueIn(self.State.BeforeAttributeValue)
-            elif (self.__currentInputChar == '"'):
+            elif self.__currentInputChar == '"':
                 self.switchStateTo(self.State.AttributeValueDoubleQuoted)
-            elif (self.__currentInputChar == "'"):
+            elif self.__currentInputChar == "'":
                 self.switchStateTo(self.State.AttributeValueSingleQuoted)
-            elif (self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__reconsumeIn(self.State.AttributeValueUnquoted)
 
-
         def handleAttributeValueDoubleQuoted() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (self.__currentInputChar == '"'):
+            elif self.__currentInputChar == '"':
                 self.switchStateTo(self.State.AfterAttributeValueQuoted)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeValueDoubleQuoted)
 
-
         def handleAttributeValueSingleQuoted() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (self.__currentInputChar == "'"):
+            elif self.__currentInputChar == "'":
                 self.switchStateTo(self.State.AfterAttributeValueQuoted)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeValueSingleQuoted)
 
-
         def handleAttributeValueUnquoted() -> None:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (charIsWhitespace(self.__currentInputChar)):
+            elif charIsWhitespace(self.__currentInputChar):
                 self.switchStateTo(self.State.BeforeAttributeName)
-            elif (self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeValueUnquoted)
 
-
         def handleAfterAttributeValueQuoted() -> None:
-            if (self.__currentInputChar == None):
+            if self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
-            elif (charIsWhitespace(self.__currentInputChar)):
+            elif charIsWhitespace(self.__currentInputChar):
                 self.switchStateTo(self.State.BeforeAttributeName)
-            elif (self.__currentInputChar == "/"):
+            elif self.__currentInputChar == "/":
                 self.switchStateTo(self.State.SelfClosingStartTag)
-            elif (self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__reconsumeIn(self.State.BeforeAttributeName)
 
         def handleSelfClosingStartTag() -> None:
-            if (self.__currentInputChar == ">"):
+            if self.__currentInputChar == ">":
                 self.__currentToken.selfClosing = True
                 self.switchStateTo(self.State.Data)
                 self.__emitCurrentToken()
-            elif (self.currentInputChar is None):
+            elif self.currentInputChar is None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
@@ -437,38 +433,37 @@ class HTMLTokenizer:
             raise NotImplementedError
 
         def handleMarkupDeclarationOpen() -> None:
-            if(self.__nextCharactersAre("--")):
+            if self.__nextCharactersAre("--"):
                 self.__consumeCharacters("--")
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Comment)
                 self.switchStateTo(self.State.CommentStart)
-            elif (self.__nextCharactersAre("DOCTYPE")):
+            elif self.__nextCharactersAre("DOCTYPE"):
                 self.__consumeCharacters("DOCTYPE")
                 self.switchStateTo(self.State.DOCTYPE)
 
         def handleCommentStart() -> None:
 
-            if (self.__currentInputChar == "-"):
+            if self.__currentInputChar == "-":
                 self.switchStateTo(self.State.CommentStartDash)
-            elif(self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__reconsumeIn(self.State.Comment)
 
-
         def handleCommentStartDash() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if (self.__currentInputChar == "-"):
+            if self.__currentInputChar == "-":
                 self.switchStateTo(self.State.CommentEnd)
-            elif(self.__currentInputChar == ">"):
+            elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
-            elif(self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
-                if (self.__currentToken.data != None):
+                if self.__currentToken.data != None:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
@@ -476,14 +471,14 @@ class HTMLTokenizer:
 
         def handleComment() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if (self.__currentInputChar == "-"):
+            if self.__currentInputChar == "-":
                 self.switchStateTo(self.State.CommentEndDash)
-            elif(self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
-                if (self.__currentToken.data != None):
+                if self.__currentToken.data != None:
                     self.__currentToken.data += self.__currentInputChar
                 else:
                     self.__currentToken.data = self.__currentInputChar
@@ -503,14 +498,14 @@ class HTMLTokenizer:
 
         def handleCommentEndDash() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if (self.__currentInputChar == "-"):
+            if self.__currentInputChar == "-":
                 self.switchStateTo(self.State.CommentEnd)
-            elif(self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
-                if (self.__currentToken.data != None):
+                if self.__currentToken.data != None:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
@@ -518,21 +513,21 @@ class HTMLTokenizer:
 
         def handleCommentEnd() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if (self.__currentInputChar == ">"):
+            if self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
-            elif(self.__currentInputChar == "-"):
-                if (self.__currentToken.data != None):
+            elif self.__currentInputChar == "-":
+                if self.__currentToken.data != None:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
                 self.__continueIn(self.State.CommentEnd)
-            elif(self.__currentInputChar == None):
+            elif self.__currentInputChar == None:
                 self.__emitCurrentToken()
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
-                if (self.__currentToken.data != None):
+                if self.__currentToken.data != None:
                     self.__currentToken.data += "-"
                 else:
                     self.__currentToken.data = "-"
@@ -542,32 +537,29 @@ class HTMLTokenizer:
             raise NotImplementedError
 
         def handleDOCTYPE() -> None:
-            if (charIsWhitespace(cast(str, self.__currentInputChar))):
+            if charIsWhitespace(cast(str, self.__currentInputChar)):
                 self.switchStateTo(self.State.BeforeDOCTYPEName)
-            
 
         def handleBeforeDOCTYPEName() -> None:
-            if (charIsWhitespace(cast(str,self.__currentInputChar))):
+            if charIsWhitespace(cast(str, self.__currentInputChar)):
                 self.__ignoreCharacterAndContinueTo(self.State.BeforeDOCTYPEName)
             else:
                 self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))
-                if (self.__currentToken.name != None and self.__currentInputChar != None):
+                if self.__currentToken.name != None and self.__currentInputChar != None:
                     self.__currentToken.name += self.__currentInputChar
                 else:
                     self.__currentToken.name = self.__currentInputChar
-                
-                self.switchStateTo(self.State.DOCTYPEName)
 
+                self.switchStateTo(self.State.DOCTYPEName)
 
         def handleDOCTYPEName() -> None:
             self.__currentToken = cast(HTMLDoctype, self.__currentToken)
-            if (self.__currentInputChar == ">"):
+            if self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
             else:
                 self.__currentToken.name = self.__currentToken.name + str(self.__currentInputChar)
                 self.__continueIn(self.State.DOCTYPEName)
-
 
         def handleAfterDOCTYPEName() -> None:
             raise NotImplementedError
@@ -618,9 +610,12 @@ class HTMLTokenizer:
             raise NotImplementedError
 
         def handleCharacterReference() -> None:
-            if (charIsASCIIDigitOrAlpha(self.__currentInputChar)):
+            self.__temporaryBuffer.append("&")
+            print("Current char: ", self.__currentInputChar)
+            if charIsASCIIDigitOrAlpha(self.__currentInputChar):
+                print("NamedCharacterReference")
                 self.__reconsumeIn(self.State.NamedCharacterReference)
-            elif (self.__currentInputChar == "#"):
+            elif self.__currentInputChar == "#":
                 self.__temporaryBuffer.append(self.__currentInputChar)
                 self.switchStateTo(self.State.NumericCharacterReference)
             else:
@@ -628,15 +623,33 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.__returnState)
 
         def handleNamedCharacterReference() -> None:
-            if ():
+            consumedCharacters: List[str] = []
+            consumedCharacters.append(self.__currentInputChar)
+            while (atleastOneNameStartsWith("".join(consumedCharacters))):
+                nextChar = self.__nextCodePoint()
+                consumedCharacters.append(nextChar)
+                if (nextChar == ";"):
+                    break
+
+            match = getNamedCharFromTable("".join(consumedCharacters))
+            if (match is not None):
                 # TODO: Implement case.
                 raise NotImplementedError
             else:
+                self.__temporaryBuffer.extend(consumedCharacters)
                 self.__flushTemporaryBuffer()
                 self.__reconsumeIn(self.State.AmbiguousAmpersand)
 
         def handleAmbiguousAmpersand() -> None:
-            raise NotImplementedError
+            print("Char:", self.__currentInputChar)
+            if charIsASCIIDigitOrAlpha(self.__currentInputChar):
+                self.__temporaryBuffer.append(self.__currentInputChar)
+                self.__flushTemporaryBuffer()
+            elif self.__currentInputChar == ";":
+                self.__reconsumeIn(self.__returnState)
+            else:
+                self.__reconsumeIn(self.__returnState)
+
 
         def handleNumericCharacterReference() -> None:
             raise NotImplementedError
@@ -655,8 +668,6 @@ class HTMLTokenizer:
 
         def handleNumericCharacterReferenceEnd() -> None:
             raise NotImplementedError
-
-        
 
         switcher = {
             self.State.Data: handleData,
@@ -743,13 +754,13 @@ class HTMLTokenizer:
         return switcher.get(self.state, None)
 
     def run(self) -> None:
-        while (self.__cursor < len(self.__html)):
+        while self.__cursor < len(self.__html):
             self.__currentInputChar = self.__nextCodePoint()
             switcher = self.__getStateSwitcher()
-            if (switcher != None):
+            if switcher != None:
                 switcher()
-        
+
         self.__currentInputChar = None
         switcher = self.__getStateSwitcher()
-        if (switcher != None):
+        if switcher != None:
             switcher()

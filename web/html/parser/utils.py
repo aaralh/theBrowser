@@ -6,5 +6,5 @@ def charIsASCIIDigitOrAlpha(char: str) -> bool:
 	try:
 		char.encode().decode("ascii")
 		return True
-	except UnicodeDecodeError as e:
+	except Exception as e:
 		return False

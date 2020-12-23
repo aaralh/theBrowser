@@ -2240,8 +2240,30 @@ doubleCodePointEntities: Dict[str, List[int]] = {
 
 
 def getNamedCharFromTable(namedChar: str) -> Union[int, List[int], None]:
-    match = singleCodePointEntities.get(namedChar, None)
-    if match is not None:
-        return match
-    match = doubleCodePointEntities.get(namedChar, None)
-    return match
+    """
+    Returns value for named char if one is found.
+    """
+    for key in singleCodePointEntities.keys():
+        if key.lower() == namedChar.lower():
+            return singleCodePointEntities.get(key)
+
+    for key in doubleCodePointEntities.keys():
+        if key.lower() == namedChar.lower():
+            return doubleCodePointEntities.get(key)
+    
+    return None
+
+def atleastOneNameStartsWith(namedChar: str) -> bool:
+    """
+    Returns boolean based on if any key in named character 
+    reference table starts with given string.
+    """
+    for key in singleCodePointEntities.keys():
+        if key.lower().startswith(namedChar.lower()):
+            return True
+
+    for key in doubleCodePointEntities.keys():
+        if key.lower().startswith(namedChar.lower()):
+            return True
+    
+    return False

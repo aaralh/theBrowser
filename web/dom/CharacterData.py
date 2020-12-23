@@ -1,5 +1,6 @@
 from web.dom.Document import Document
 from web.dom.Node import Node
+from web.html.parser.utils import charIsWhitespace
 
 class CharacterData(Node):
 	
@@ -45,5 +46,7 @@ class CharacterData(Node):
 
 		for _ in range(depth):
 			indentation += "\t"
-
-		return  f"{indentation}" + self.data + "\n"
+		if (not self.data.isspace()):
+			return  f"{indentation}" + self.data + "\n"
+		else:
+			return ""
