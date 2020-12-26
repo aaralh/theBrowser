@@ -156,6 +156,7 @@ class HTMLTokenizer:
         self.__currentToken: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter, None] = None
         self.__tokenHandlerCb = tokenHandlerCb
         self.__temporaryBuffer: List[str] = []
+        self.__characterReferenceCode: int = 0
 
     def __flushTemporaryBuffer(self) -> None:
         if (self.__currentToken is not None):
@@ -435,7 +436,7 @@ class HTMLTokenizer:
                 self.__currentToken.selfClosing = True
                 self.switchStateTo(self.State.Data)
                 self.__emitCurrentToken()
-            elif self.currentInputChar is None:
+            elif self.__currentInputChar is None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
                 self.__emitCurrentToken()
             else:
@@ -644,7 +645,11 @@ class HTMLTokenizer:
             match = getNamedCharFromTable("".join(consumedCharacters))
             if (match is not None):
                 # TODO: Implement case.
-                raise NotImplementedError
+
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = chr(match)
+                self.__emitCurrentToken()
+                self.switchStateTo(self.__returnState)
             else:
                 self.__temporaryBuffer.extend(consumedCharacters)
                 self.__flushTemporaryBuffer()
@@ -661,16 +666,32 @@ class HTMLTokenizer:
 
 
         def handleNumericCharacterReference() -> None:
-            raise NotImplementedError
+            characterReferenceCode = 0
+            
+            if (self.__currentInputChar == "X" or self.__currentInputChar == "x"):
+                self.__temporaryBuffer.append(self.__currentInputChar)
+                self.switchStateTo(self.State.HexadecimalCharacterReferenceStart)
+            else:
+                self.__reconsumeIn(self.State.DecimalCharacterReferenceStart)
 
         def handleHexadecimalCharacterReferenceStart() -> None:
             raise NotImplementedError
 
         def handleDecimalCharacterReferenceStart() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar.isdigit()):
+                self.__reconsumeIn(self.State.HexadecimalCharacterReference)
+            else:
+                #TODO: handle parse error.
+                self.__flushTemporaryBuffer()
+                self.__reconsumeIn(self.__returnState)
 
         def handleHexadecimalCharacterReference() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar.isdigit()):
+                self.__characterReferenceCode *= 16
+                self.__characterReferenceCode += self.__currentInputChar - 0x30
+            elif (self.__currentInputChar):
+                
+
 
         def handleDecimalCharacterReference() -> None:
             raise NotImplementedError

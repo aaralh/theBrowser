@@ -221,7 +221,7 @@ class HTMLDocumentParser:
 					element = self.__createElement(token)
 					if ("charset" in element.attributes):
 						# TODO: Handle charset attribute.
-						raise NotImplementedError
+						pass
 						
 				elif (token.name == "title"):
 					_ = self.__createElement(token)
