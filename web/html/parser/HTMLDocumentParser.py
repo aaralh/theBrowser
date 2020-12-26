@@ -156,7 +156,6 @@ class HTMLDocumentParser:
 	def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
 		def handleInitial(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-			print("Token type:", token.type)
 			if (token.type == HTMLToken.TokenType.DOCTYPE):
 				token = cast(HTMLDoctype, token)
 				documentNode = DocumentType(token, self.__document)
@@ -456,10 +455,10 @@ class HTMLDocumentParser:
 					# TODO: Handle case
 					raise NotImplementedError
 				elif (token.name == "p"):
-					if (self.__openElements.hasInButtonScope("p")):
-						self.__openElements.pop()
-					element = self.__createElement(token)
-					self.__openElements.push(element)
+					if (not self.__openElements.hasInButtonScope("p")):
+							element = self.__createElement(token)
+							self.__openElements.push(element)
+					self.__openElements.pop()
 				elif (token.name == "li"):
 					# TODO: Handle case
 					raise NotImplementedError
@@ -467,8 +466,18 @@ class HTMLDocumentParser:
 					# TODO: Handle case
 					raise NotImplementedError
 				elif (token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]):
-					if (self.__currentElement.name == token.name):
-						self.__openElements.pop()
+					if (not self.__openElements.hasInScope(token.name)):
+						raise NotImplementedError #TODO: handle parse error.
+						return
+					
+					if (self.__currentElement.name != token.name):
+						raise NotImplementedError #TODO: handle parse error.
+
+					while (not self.__openElements.isEmpty()):
+						poppedElement = self.__openElements.pop()
+						if (poppedElement.name == token.name):
+							break
+					return
 				elif (token.name == "sarcasm"):
 					# TODO: Handle case
 					raise NotImplementedError
@@ -477,7 +486,11 @@ class HTMLDocumentParser:
 					raise NotImplementedError
 
 			elif (token.type == HTMLToken.TokenType.EOF):
-				raise NotImplementedError  # TODO: Handle case.
+				for node in self.__openElements.elements():
+					if node.name in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr", "body", "html"]:
+						raise NotImplementedError  # TODO: Handle parse error.
+						break
+				return
 
 		def handleText(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
 			if (token.type == HTMLToken.TokenType.Character):

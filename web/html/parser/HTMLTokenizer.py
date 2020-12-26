@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from .utils import charIsWhitespace, charIsASCIIDigitOrAlpha
+from .utils import charIsWhitespace
 from .Entities import getNamedCharFromTable, atleastOneNameStartsWith
 
 
@@ -184,7 +184,10 @@ class HTMLTokenizer:
                 self.__continueIn(self.State.Data)
 
         def handleRCDATA() -> None:
-            if self.__currentInputChar == "<":
+            if self.__currentInputChar == "&":
+                self.__returnState = self.State.RCDATA
+                self.switchStateTo(self.State.CharacterReference)
+            elif self.__currentInputChar == "<":
                 self.switchStateTo(self.State.RCDATALessThanSign)
             elif self.__currentInputChar == None:
                 self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
@@ -375,6 +378,9 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
             elif self.__currentInputChar == '"':
                 self.switchStateTo(self.State.AfterAttributeValueQuoted)
+            elif self.__currentInputChar == "&":
+                self.__returnState = self.State.AttributeValueDoubleQuoted
+                self.switchStateTo(self.State.CharacterReference)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeValueDoubleQuoted)
@@ -386,6 +392,9 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
             elif self.__currentInputChar == "'":
                 self.switchStateTo(self.State.AfterAttributeValueQuoted)
+            elif self.__currentInputChar == "&":
+                self.__returnState = self.State.AttributeValueSingleQuoted
+                self.switchStateTo(self.State.CharacterReference)
             else:
                 self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
                 self.__continueIn(self.State.AttributeValueSingleQuoted)
@@ -397,6 +406,9 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
             elif charIsWhitespace(self.__currentInputChar):
                 self.switchStateTo(self.State.BeforeAttributeName)
+            elif self.__currentInputChar == "&":
+                self.__returnState = self.State.AttributeValueUnquoted
+                self.switchStateTo(self.State.CharacterReference)
             elif self.__currentInputChar == ">":
                 self.__emitCurrentToken()
                 self.switchStateTo(self.State.Data)
@@ -611,9 +623,7 @@ class HTMLTokenizer:
 
         def handleCharacterReference() -> None:
             self.__temporaryBuffer.append("&")
-            print("Current char: ", self.__currentInputChar)
-            if charIsASCIIDigitOrAlpha(self.__currentInputChar):
-                print("NamedCharacterReference")
+            if self.__currentInputChar.isalnum():
                 self.__reconsumeIn(self.State.NamedCharacterReference)
             elif self.__currentInputChar == "#":
                 self.__temporaryBuffer.append(self.__currentInputChar)
@@ -627,10 +637,10 @@ class HTMLTokenizer:
             consumedCharacters.append(self.__currentInputChar)
             while (atleastOneNameStartsWith("".join(consumedCharacters))):
                 nextChar = self.__nextCodePoint()
+                self.__currentInputChar = nextChar
                 consumedCharacters.append(nextChar)
                 if (nextChar == ";"):
                     break
-
             match = getNamedCharFromTable("".join(consumedCharacters))
             if (match is not None):
                 # TODO: Implement case.
@@ -641,8 +651,7 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.State.AmbiguousAmpersand)
 
         def handleAmbiguousAmpersand() -> None:
-            print("Char:", self.__currentInputChar)
-            if charIsASCIIDigitOrAlpha(self.__currentInputChar):
+            if self.__currentInputChar.isalnum():
                 self.__temporaryBuffer.append(self.__currentInputChar)
                 self.__flushTemporaryBuffer()
             elif self.__currentInputChar == ";":
