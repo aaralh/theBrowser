@@ -7,6 +7,8 @@ from .Entities import getNamedCharFromTable, atleastOneNameStartsWith
 class HTMLTokenizer:
     def __emitCurrentToken(self) -> None:
         self.__tokenHandlerCb(self.__currentToken)
+        if (self.__currentToken.type == HTMLToken.TokenType.StartTag):
+            self.__lastEmittedStartTagName = self.__currentToken.name
         self.__currentToken = None
 
     def __createNewToken(
@@ -156,6 +158,7 @@ class HTMLTokenizer:
         self.__tokenHandlerCb = tokenHandlerCb
         self.__temporaryBuffer: List[str] = []
         self.__characterReferenceCode: int = 0
+        self.__lastEmittedStartTagName: str = None
 
     def __flushTemporaryBuffer(self) -> None:
         if (self.__currentToken is not None):
@@ -209,7 +212,15 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
 
         def handleScriptData() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar == "<"):
+                self.switchStateTo(self.State.ScriptDataLessThanSign)
+            elif (self.__currentInputChar == None):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = self.__currentInputChar
+                self.__emitCurrentToken()
 
         def handlePLAINTEXT() -> None:
             raise NotImplementedError
@@ -263,14 +274,77 @@ class HTMLTokenizer:
             raise NotImplementedError
 
         def handleScriptDataLessThanSign() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar == "/"):
+                self.__temporaryBuffer = []
+                self.switchStateTo(self.State.ScriptDataEndTagOpen)
+            elif (self.__currentInputChar == "!"):
+                self.switchStateTo(self.State.ScriptDataEscapeStart)
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "!"
+                self.__emitCurrentToken()
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.ScriptData)
+
 
         def handleScriptDataEndTagOpen() -> None:
-            raise NotImplementedError
+            if (charIsUppercaseAlpha(self.__currentInputChar) or charIsLowercaseAlpha(self.__currentInputChar)):
+                self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.EndTag))
+                self.__currentToken.name = ""
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.ScriptDataEndTagName)
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.ScriptData)
 
         def handleScriptDataEndTagName() -> None:
-            raise NotImplementedError
 
+            def elseState() -> None:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+                for char in reversed(self.__temporaryBuffer):
+                    self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                    self.__currentToken.data = char
+                    self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.ScriptData)
+
+            if (charIsWhitespace(self.__currentInputChar)):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.BeforeAttributeName)
+                else:
+                    elseState()
+            elif (self.__currentInputChar == "/"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.SelfClosingStartTag)
+                else:
+                    elseState()
+            elif (self.__currentInputChar == ">"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.Data)
+                else:
+                    elseState()
+            elif (charIsUppercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            elif (charIsUppercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.addCharToAttributeName(self.__currentInputChar)
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            else:
+                elseState()
         def handleScriptDataEscapeStart() -> None:
             raise NotImplementedError
 

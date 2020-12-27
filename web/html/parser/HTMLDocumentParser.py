@@ -563,8 +563,8 @@ class HTMLDocumentParser:
 
 			elif (token.type == HTMLToken.TokenType.EOF):
 				for node in self.__openElements.elements():
-					if node.name in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr", "body", "html"]:
-						raise NotImplementedError  # TODO: Handle parse error.
+					if node.name not in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr", "body", "html"]:
+						# TODO: Handle parse error.
 						break
 				return
 
@@ -572,8 +572,11 @@ class HTMLDocumentParser:
 			if (token.type == HTMLToken.TokenType.Character):
 				self.__insertCharacter(token)
 			elif (token.type == HTMLToken.TokenType.EOF):
-				# TODO: Handle case
-				raise NotImplementedError
+				if (self.__currentElement.name == "script"):
+					#TODO: Mark the script element as "already started".
+					pass
+				self.__openElements.pop()
+				self.__reconsumeIn(self.__originalInsertionMode, token)
 			elif (token.type == HTMLToken.TokenType.EndTag):
 				if(token.name == "script"):
 					#TODO: flush_character_insertions()
