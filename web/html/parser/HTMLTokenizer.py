@@ -1,9 +1,8 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from .utils import charIsWhitespace
+from .utils import charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atleastOneNameStartsWith
-
 
 class HTMLTokenizer:
     def __emitCurrentToken(self) -> None:
@@ -160,6 +159,7 @@ class HTMLTokenizer:
 
     def __flushTemporaryBuffer(self) -> None:
         if (self.__currentToken is not None):
+            print(self.__temporaryBuffer)
             self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
         else:
             for char in self.__temporaryBuffer:
@@ -624,6 +624,7 @@ class HTMLTokenizer:
 
         def handleCharacterReference() -> None:
             self.__temporaryBuffer.append("&")
+            print("Current char: ", self.__currentInputChar)
             if self.__currentInputChar.isalnum():
                 self.__reconsumeIn(self.State.NamedCharacterReference)
             elif self.__currentInputChar == "#":
@@ -645,10 +646,12 @@ class HTMLTokenizer:
             match = getNamedCharFromTable("".join(consumedCharacters))
             if (match is not None):
                 # TODO: Implement case.
-
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = chr(match)
-                self.__emitCurrentToken()
+                if (self.__currentToken != None):
+                    self.__currentToken.addCharToAttributeValue(chr(match))
+                else:
+                    self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                    self.__currentToken.data = chr(match)
+                    self.__emitCurrentToken()
                 self.switchStateTo(self.__returnState)
             else:
                 self.__temporaryBuffer.extend(consumedCharacters)
@@ -688,16 +691,74 @@ class HTMLTokenizer:
         def handleHexadecimalCharacterReference() -> None:
             if (self.__currentInputChar.isdigit()):
                 self.__characterReferenceCode *= 16
-                self.__characterReferenceCode += self.__currentInputChar - 0x30
-            elif (self.__currentInputChar):
-                
+                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0030
+            elif (charIsUppercaseAlpha(self.__currentInputChar)):
+                self.__characterReferenceCode *= 16
+                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0037
+            elif (charIsLowercaseAlpha(self.__currentInputChar)):
+                self.__characterReferenceCode *= 16
+                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0057
+            elif (self.__currentInputChar == ";"):
+                self.switchStateTo(self.State.NumericCharacterReferenceEnd)
+            else:
+                #TODO: Handle parse error.
+                self.__reconsumeIn(self.state.NumericCharacterReferenceEnd)
 
 
         def handleDecimalCharacterReference() -> None:
             raise NotImplementedError
 
         def handleNumericCharacterReferenceEnd() -> None:
-            raise NotImplementedError
+            if (self.__characterReferenceCode == 0):
+                #TODO: handle parse error.
+                self.__characterReferenceCode = 0xFFFD
+            elif (self.__characterReferenceCode > 0x10ffff):
+                #TODO: handle parse error.
+                self.__characterReferenceCode = 0xFFFD
+            elif (charIsSurrogate(self.__characterReferenceCode)):
+                #TODO: handle parse error.
+                self.__characterReferenceCode = 0xFFFD
+            elif (charIsNoncharacter(self.__characterReferenceCode)):
+                #TODO: Handle parse error.
+                pass
+            elif(self.__characterReferenceCode == 0x0D or (charIsControl(self.__characterReferenceCode) and not charIsWhitespace(chr(self.characterReferenceCode)))):
+                conversionTable = {
+                    0x80: 0x20AC,
+                    0x82: 0x201A,
+                    0x83: 0x0192,
+                    0x84: 0x201E,
+                    0x85: 0x2026,
+                    0x86: 0x2020,
+                    0x87: 0x2021,
+                    0x88: 0x02C6,
+                    0x89: 0x2030,
+                    0x8A: 0x0160,
+                    0x8B: 0x2039,
+                    0x8C: 0x0152,
+                    0x8E: 0x017D,
+                    0x91: 0x2018,
+                    0x92: 0x2019,
+                    0x93: 0x201C,
+                    0x94: 0x201D,
+                    0x95: 0x2022,
+                    0x96: 0x2013,
+                    0x97: 0x2014,
+                    0x98: 0x02DC,
+                    0x99: 0x2122,
+                    0x9A: 0x0161,
+                    0x9B: 0x203A,
+                    0x9C: 0x0153,
+                    0x9E: 0x017E,
+                    0x9F: 0x0178,
+                }
+                value = conversionTable.get(self.__characterReferenceCode, None)
+                if (value != None):
+                    self.__characterReferenceCode = value
+
+            self.__temporaryBuffer = []
+            self.__temporaryBuffer.append(chr(self.__characterReferenceCode))
+            self.__flushTemporaryBuffer()
+            self.switchStateTo(self.__returnState)
 
         switcher = {
             self.State.Data: handleData,
@@ -785,6 +846,7 @@ class HTMLTokenizer:
 
     def run(self) -> None:
         while self.__cursor < len(self.__html):
+            print("State: ", self.state)
             self.__currentInputChar = self.__nextCodePoint()
             switcher = self.__getStateSwitcher()
             if switcher != None:

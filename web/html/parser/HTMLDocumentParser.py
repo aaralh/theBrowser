@@ -64,6 +64,7 @@ class HTMLDocumentParser:
 		self.__tokenizer.run()
 
 	def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+		print("Token: ", token)
 		switcher = self.__getModeSwitcher()
 		if (switcher != None):
 			switcher(token)
@@ -241,7 +242,7 @@ class HTMLDocumentParser:
 					self.__switchModeTo(self.__Mode.InHeadNoscript)
 				elif (token.name == "script"):
 					# TODO: Add support for JS.
-					raise NotImplementedError
+					pass
 				elif (token.name == "template"):
 					# TODO: Handle case.
 					raise NotImplementedError
