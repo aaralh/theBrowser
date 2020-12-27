@@ -11,8 +11,8 @@ class StackOfOpenElments:
 
 	@dataclass
 	class LastElementResult:
-		index: int
-		element: Element
+		index: Union[int, None] = None
+		element: Union[Element, None] = None
 
 	def __init__(self):
 		self.__openElements: List[Element] = []
@@ -99,7 +99,7 @@ class StackOfOpenElments:
 		return foundElement
 
 	def lastElementWithTagName(self, tagName: str) -> Union[LastElementResult, None]:
-		for index, element in reversed(enumerate(self.elements())):
+		for index, element in reversed(list(enumerate(self.elements()))):
 			if (element.name == tagName):
 				result = self.LastElementResult()
 				result.index = index

@@ -7,5 +7,5 @@ class HTMLTemplateElement(Element):
 		self.content: DocumentFragment = DocumentFragment()
 
 	@property
-	def content(self):
+	def content(self) -> DocumentFragment:
 		return self.content

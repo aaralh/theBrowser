@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
+from web.dom.elements.HTMLScriptElement import HTMLScriptElement
 from web.dom.elements.HTMLTemplateElement import HTMLTemplateElement
 from web.html.parser.ListOfActiveElements import ListOfActiveElements
 from web.html.parser.StackOfOpenElments import StackOfOpenElments
@@ -19,8 +20,8 @@ class HTMLDocumentParser:
 
 	@dataclass
 	class AdjustedInsertionLocation:
-		parent: Element
-		insertBeforeSibling: Union[Element, None] # If none insert as last child.
+		parent: Union[Element, None] = None
+		insertBeforeSibling: Union[Element, None] = None # If none insert as last child.
 
 
 	class __Mode(Enum):
@@ -59,6 +60,9 @@ class HTMLDocumentParser:
 		self.__framesetOK: bool = True
 		self.__formattingElements = ListOfActiveElements()
 		self.__fosterParenting: bool = False
+		self.parsingFragment: bool = False
+		self.invokefWhileDocumentWrite: bool = False
+
 
 	@property
 	def __currentElement(self) -> Node:
@@ -79,7 +83,7 @@ class HTMLDocumentParser:
 
 		if (token.type == HTMLToken.TokenType.EOF):
 			print("The dom")
-			#print(self.__documentNode)
+			print(self.__documentNode)
 
 	def __continueIn(self, mode: __Mode) -> None:
 		self.__switchModeTo(mode)
@@ -299,8 +303,20 @@ class HTMLDocumentParser:
 				elif (token.name == "script"):
 					# TODO: Add support for JS.
 					adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
-					self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation)
-					pass
+					element = cast(HTMLScriptElement, self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
+					element.parserDocument = self.__document
+					element.isNonBlocking = False
+
+					if (self.parsingFragment):
+						raise NotImplementedError
+					if (self.invokefWhileDocumentWrite):
+						raise NotImplementedError
+
+					self.__openElements.push(element)
+					self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+					self.__originalInsertionMode = self.__currentInsertionMode
+					self.__switchModeTo(self.__Mode.Text)
+					
 				elif (token.name == "template"):
 					# TODO: Handle case.
 					raise NotImplementedError
@@ -560,8 +576,11 @@ class HTMLDocumentParser:
 				raise NotImplementedError
 			elif (token.type == HTMLToken.TokenType.EndTag):
 				if(token.name == "script"):
-					# TODO: handle case
-					raise NotImplementedError
+					#TODO: flush_character_insertions()
+					script = self.__currentElement
+					self.__openElements.pop()
+					self.__switchModeTo(self.__originalInsertionMode)
+					#TODO: HAndle rest of the case.
 			else:
 				self.__openElements.pop()
 				self.__switchModeTo(self.__originalInsertionMode)

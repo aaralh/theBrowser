@@ -1,4 +1,25 @@
+from typing import Union
+from web.dom.Document import Document
 from web.dom.elements.Element import Element
 
 class HTMLScriptElement(Element):
-		pass #TODO: Implement missing properties and functions.
+	def __init__(self, *args, **kwargs):
+		super(HTMLScriptElement, self).__init__(*args, **kwargs)
+		self.__parserDocument: Union[Document, None] = None
+		self.__isNonBlocking: bool = False
+
+	@property
+	def parserDocument(self) -> Document:
+		return self.__parserDocument
+
+	@parserDocument.setter
+	def parserDocument(self, document: Document) -> None:
+		self.__parserDocument = document
+
+	@property
+	def isNonBlocking(self) -> bool:
+		return self.__isNonBlocking
+
+	@parserDocument.setter
+	def isNonBlocking(self, isBlocking: bool) -> None:
+		self.__isNonBlocking = isBlocking
