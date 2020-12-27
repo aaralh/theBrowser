@@ -159,7 +159,6 @@ class HTMLTokenizer:
 
     def __flushTemporaryBuffer(self) -> None:
         if (self.__currentToken is not None):
-            print(self.__temporaryBuffer)
             self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
         else:
             for char in self.__temporaryBuffer:
@@ -624,7 +623,6 @@ class HTMLTokenizer:
 
         def handleCharacterReference() -> None:
             self.__temporaryBuffer.append("&")
-            print("Current char: ", self.__currentInputChar)
             if self.__currentInputChar.isalnum():
                 self.__reconsumeIn(self.State.NamedCharacterReference)
             elif self.__currentInputChar == "#":
@@ -846,7 +844,6 @@ class HTMLTokenizer:
 
     def run(self) -> None:
         while self.__cursor < len(self.__html):
-            print("State: ", self.state)
             self.__currentInputChar = self.__nextCodePoint()
             switcher = self.__getStateSwitcher()
             if switcher != None:

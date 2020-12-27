@@ -37,6 +37,11 @@ class Node:
 
 	def appendChild(self, node: 'Node') -> None:
 		self.__childNodes.append(node)
+
+	
+	def appendChildBeforeElement(self, node: 'Node', insertBefore: 'Node') -> None:
+		index = self.__childNodes.index(insertBefore)
+		self.__childNodes.insert(index, node)
 	
 
 	def removeChild(self, node: 'Node') -> None:

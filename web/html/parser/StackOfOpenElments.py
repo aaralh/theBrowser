@@ -1,4 +1,5 @@
 
+from dataclasses import dataclass
 from typing import List, Union
 
 from web.dom.elements.Element import Element
@@ -6,6 +7,12 @@ from web.html.parser.ParserUtils import ParserUtils
 
 
 class StackOfOpenElments:
+
+
+	@dataclass
+	class LastElementResult:
+		index: int
+		element: Element
 
 	def __init__(self):
 		self.__openElements: List[Element] = []
@@ -91,10 +98,13 @@ class StackOfOpenElments:
 				foundElement = element
 		return foundElement
 
-	def lastElementWithTagName(self, tagName: str) -> Union[Element, None]:
-		for element in reversed(self.elements()):
+	def lastElementWithTagName(self, tagName: str) -> Union[LastElementResult, None]:
+		for index, element in reversed(enumerate(self.elements())):
 			if (element.name == tagName):
-				return element
+				result = self.LastElementResult()
+				result.index = index
+				result.element = element
+				return result
 
 	def elementBefore(self, targetElement: Element) -> Union[Element, None]:
 		foundTarget = False

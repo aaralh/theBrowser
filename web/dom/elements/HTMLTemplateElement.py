@@ -1,4 +1,11 @@
+from web.dom.elements.DocumentFragment import DocumentFragment
 from web.dom.elements.Element import Element
 
 class HTMLTemplateElement(Element):
-		pass #TODO: Implement missing properties and functions.
+	def __init__(self, *args, **kwargs):
+		super(HTMLTemplateElement, self).__init__(*args, **kwargs)
+		self.content: DocumentFragment = DocumentFragment()
+
+	@property
+	def content(self):
+		return self.content

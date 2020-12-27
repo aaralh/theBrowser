@@ -1,5 +1,6 @@
 from enum import Enum, auto
 from typing import Any, List, Union, Callable, cast
+from web.dom.elements.HTMLTemplateElement import HTMLTemplateElement
 from web.html.parser.ListOfActiveElements import ListOfActiveElements
 from web.html.parser.StackOfOpenElments import StackOfOpenElments
 from web.dom.CharacterData import CharacterData
@@ -13,8 +14,14 @@ from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from web.html.parser.HTMLTokenizer import HTMLTokenizer
 from web.dom.ElementFactory import ElementFactory
-
+from dataclasses import dataclass
 class HTMLDocumentParser:
+
+	@dataclass
+	class AdjustedInsertionLocation:
+		parent: Element
+		insertBeforeSibling: Union[Element, None] # If none insert as last child.
+
 
 	class __Mode(Enum):
 		Initial = auto()
@@ -51,6 +58,7 @@ class HTMLDocumentParser:
 		self.__scripting: bool = False
 		self.__framesetOK: bool = True
 		self.__formattingElements = ListOfActiveElements()
+		self.__fosterParenting: bool = False
 
 	@property
 	def __currentElement(self) -> Node:
@@ -64,14 +72,14 @@ class HTMLDocumentParser:
 		self.__tokenizer.run()
 
 	def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-		print("Token: ", token)
+		
 		switcher = self.__getModeSwitcher()
 		if (switcher != None):
 			switcher(token)
 
 		if (token.type == HTMLToken.TokenType.EOF):
 			print("The dom")
-			print(self.__documentNode)
+			#print(self.__documentNode)
 
 	def __continueIn(self, mode: __Mode) -> None:
 		self.__switchModeTo(mode)
@@ -98,6 +106,19 @@ class HTMLDocumentParser:
 		parent = self.__currentElement
 		element = ElementFactory.create_element(token, parent, self.__document)
 		element.parentNode.appendChild(element)
+
+		return element
+
+	def __createElementWihtAdjustedLocation(self, token: HTMLTag, adjustedLocation: AdjustedInsertionLocation):
+		'''
+		Creates element based on given token and inserts it based on adjsuted location.
+		'''
+		parent = adjustedLocation.parent
+		element = ElementFactory.create_element(token, parent, self.__document)
+		if (adjustedLocation.insertBeforeSibling == None):
+			element.parentNode.appendChild(element)
+		else:
+			element.parentNode.appendChildBeforeElement(adjustedLocation.insertBeforeSibling)
 
 		return element
 
@@ -153,6 +174,40 @@ class HTMLDocumentParser:
 			# case 13
 			# TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
 			# https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
+
+	def __findAppropriatePlaceForInsertingNode(self) -> AdjustedInsertionLocation:
+		target = self.__currentElement
+		adjustedLocation = self.AdjustedInsertionLocation()
+
+		if (self.__fosterParenting and target.name in ["table", "tbody", "tfoot", "thead", "tr"]):
+			templateResult = self.__openElements.lastElementWithTagName("template")
+			tableResult = self.__openElements.lastElementWithTagName("table")
+			if (templateResult != None and tableResult == None or (tableResult != None and tableResult.index < templateResult.index)):
+					adjustedLocation.parent = templateResult.element
+					adjustedLocation.insertBeforeSibling = None
+					return adjustedLocation
+			elif (tableResult == None):
+				adjustedLocation.parent = self.__openElements.first()
+				adjustedLocation.insertBeforeSibling = None
+				return adjustedLocation
+			elif (tableResult != None and tableResult.element.parentNode != None):
+				adjustedLocation.parent = tableResult.element.parentNode
+				adjustedLocation.insertBeforeSibling = tableResult.element
+				return adjustedLocation
+			
+			previousElement = self.__openElements.elementBefore(tableResult.element)
+			adjustedLocation.parent = previousElement
+			adjustedLocation.insertBeforeSibling = None
+			return adjustedLocation
+		else:
+			adjustedLocation.parent = target
+			adjustedLocation.insertBeforeSibling = None
+		
+		if (adjustedLocation.parent.name == "template"):
+			adjustedLocation.parent = cast(HTMLTemplateElement, adjustedLocation.parent).content
+			adjustedLocation.insertBeforeSibling = None
+
+		return adjustedLocation
 
 	def __getModeSwitcher(self) -> Union[Callable[[], None], None]:
 
@@ -231,7 +286,8 @@ class HTMLDocumentParser:
 					self.__originalInsertionMode = self.__currentInsertionMode
 					self.__currentInsertionMode = self.__Mode.Text
 				elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
-					_ = self.__createElement(token)
+					element = self.__createElement(token)
+					self.__openElements.push(element)
 					self.__tokenizer.switchStateTo(
 						self.__tokenizer.State.RAWTEXT)
 					self.__originalInsertionMode = self.__currentInsertionMode
@@ -242,6 +298,8 @@ class HTMLDocumentParser:
 					self.__switchModeTo(self.__Mode.InHeadNoscript)
 				elif (token.name == "script"):
 					# TODO: Add support for JS.
+					adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
+					self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation)
 					pass
 				elif (token.name == "template"):
 					# TODO: Handle case.
@@ -326,18 +384,18 @@ class HTMLDocumentParser:
 					# TODO: Handle case, Process the token using the rules for the "in head" insertion mode.
 					raise NotImplementedError
 				elif (token.name in ["body", "html", "br"]):
-					token = HTMLTag(HTMLToken.TokenType.StartTag)
-					token.name = "body"
-					element = self.__createElement(token)
+					_token = HTMLTag(HTMLToken.TokenType.StartTag)
+					_token.name = "body"
+					element = self.__createElement(_token)
 					self.__openElements.push(element)
 					self.__framesetOK = False
 					self.__reconsumeIn(self.__Mode.InBody, token)
 				else:
 					pass  # Ignore token.
 			else:
-				token = HTMLTag(HTMLToken.TokenType.StartTag)
-				token.name = "body"
-				element = self.__createElement(token)
+				_token = HTMLTag(HTMLToken.TokenType.StartTag)
+				_token.name = "body"
+				element = self.__createElement(_token)
 				self.__openElements.push(element)
 				self.__reconsumeIn(self.__Mode.InBody, token)
 
@@ -363,7 +421,8 @@ class HTMLDocumentParser:
 					# Handle case, Process the token using the rules for the "in head" insertion mode.
 					raise NotImplementedError
 				elif (token.name == "body"):
-					raise NotImplementedError  # Handle case
+					#TODO: handle parse error.
+					pass
 				elif (token.name == "frameset"):
 					raise NotImplementedError  # Handle case
 				elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
