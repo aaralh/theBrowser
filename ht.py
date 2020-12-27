@@ -5,7 +5,7 @@ import datetime
 
 if __name__ == "__main__":
 	print(datetime.datetime.now())
-	with open("google_frontpage.html", "r") as htmlFile:
+	with open("simple.html", "r") as htmlFile:
 		html = htmlFile.read()
 	parser = HTMLDocumentParser(html)
 	parser.run()
