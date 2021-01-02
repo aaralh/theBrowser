@@ -108,7 +108,7 @@ class StackOfOpenElments:
 	def lastElementWithTagName(self, tagName: str) -> Union[Result, None]:
 		for index, element in reversed(list(enumerate(self.elements()))):
 			if (element.name == tagName):
-				result = self.LastElementResult()
+				result = self.Result()
 				result.index = index
 				result.element = element
 				return result

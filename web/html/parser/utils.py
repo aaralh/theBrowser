@@ -1,8 +1,7 @@
 import re
 
 def charIsWhitespace(char: str) -> bool:
-	whitespaces = ["\t", "\a", "\f", " "]
-	return char in whitespaces
+	return char.isspace()
 
 def charIsUppercaseAlpha(char: str) -> bool:
 	return char >= "A" and char <= "Z"

@@ -5,7 +5,8 @@
 <head>
 	<meta name="viewport" content="width=device-width, initial-scale=1.0">
 	<title>My HTML</title>
-	<script nonce="TaRV7nuc56qdHvH7T/fS2Q==">(function () { window.google = { kEI: 'OHLnX8j1Fsqkaaq7h7AL', kEXPI: '31', u: '43d82216', kBL: 'ZWEf' }; google.sn = 'webhp'; google.kHL = 'fi'; })(); var a = 0; a < 13</script>
+	<script
+		nonce="TaRV7nuc56qdHvH7T/fS2Q==">(function () { window.google = { kEI: 'OHLnX8j1Fsqkaaq7h7AL', kEXPI: '31', u: '43d82216', kBL: 'ZWEf' }; google.sn = 'webhp'; google.kHL = 'fi'; })(); var a = 0; a < 13</script>
 	<style>
 		@-webkit-keyframes gb__a {
 			0% {
@@ -42,13 +43,36 @@
 		<div>This is content</div>
 		test
 	</div>
-	<div class="skill"><h3>HTML&CSS</h3>
-		<p class="skill_exp">Perusteet</p>
-		<div class="object_wrapper">
-			<div class="purple_object object"></div>
-			<div class="purple_object object"></div>
+	<div>
+		<style>
+			@media only screen and (max-width:380px) {
+				#gb div {
+					display: none
+				}
+			}
+
+			#gb {
+				font-size: 13px
+			}
+		</style>
+		<div class="skill">
+			<h3>HTML&CSS</h3>
+			<p class="skill_exp">Perusteet</p>
+			<div class="object_wrapper">
+				<div class="purple_object object"></div>
+				<div class="purple_object object"></div>
+			</div>
 		</div>
+
 	</div>
+
+	<textarea class="csi" name="csi" style="display:none"></textarea>
+	<script>
+		const test = () => {
+			console.log("Tests");
+		}
+		test();
+	</script>
 </body>
 
 </html>

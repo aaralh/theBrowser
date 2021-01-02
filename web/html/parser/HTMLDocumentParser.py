@@ -557,7 +557,6 @@ class HTMLDocumentParser:
 						node = self.__openElements.elementBefore(node)
 						loop()
 					
-					done()
 					element = self.__createElement(token)
 					self.__openElements.push(element)
 					
@@ -597,20 +596,39 @@ class HTMLDocumentParser:
 						raise NotImplementedError
 					self.__createElement(token)
 					# TODO: Push onto the list of active formatting elements that element. Add this handling to other places too.
-
+				elif (token.name in ["area", "br", "embed", "img", "keygen", "wbr"]):
+					#TODO: Construct active elements.
+					element = self.__createElement(token)
+					self.__openElements.push(element)
+					self.__openElements.pop()
+				elif (token.name == "textarea"):
+					element = self.__createElement(token)
+					self.__openElements.push(element)
+					#TODO: Handle new line
+					self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
+					self.__originalInsertionMode = self.__currentInsertionMode
+					self.__framesetOK = False
+					self.__switchModeTo(self.__Mode.Text)
+				else:
+					#TODO: Construct active elements.
+					element = self.__createElement(token)
+					self.__openElements.push(element)
 			elif (token.type == HTMLToken.TokenType.EndTag):
 				if (token.name == "template"):
 					# Handle case, Process the token using the rules for the "in head" insertion mode.
 					raise NotImplementedError
 				elif (token.name == "body"):
+					print("Closing body element")
 					openBodyElement = self.__openElements.lastElementWithTagName(token.name)
 					if (openBodyElement == None):
+						print("No body tag in open stack")
 						pass  # Ignore token.
 						# TODO: handle the else case.
 					else:
 						self.__switchModeTo(self.__Mode.AfterBody)
 						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
 						# TODO: Implement the popping functionality.
+						self.__switchModeTo(self.__Mode.AfterBody)
 				elif (token.name == "html"):
 					self.__reconsumeIn(self.__Mode.AfterBody, token)
 				elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details", "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section", "summary", "ul"]):
@@ -682,6 +700,24 @@ class HTMLDocumentParser:
 				elif (token.name in ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"]):
 					# TODO: Run the adoption agency algorithm for the token.
 					self.__adoptionAgencyAlgorithm(token)
+				else:
+					node = self.__currentElement
+
+					def loop(node: Element):
+						self.__generateImpliedEndTags(token.name)
+						if (node.name != self.__currentElement.name):
+							#TODO: Handle parse error.
+							pass
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(node.name)
+						return
+
+					if (node.name == token.name):
+						loop(node)
+					elif (tagIsSpecial(node.name)):
+						#TODO: Handle parse error.
+						return
+					node = self.__currentElement
+					loop(node)
 
 			elif (token.type == HTMLToken.TokenType.EOF):
 				for node in self.__openElements.elements():
