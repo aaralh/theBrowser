@@ -12,6 +12,11 @@ class ListOfActiveElements:
 		def isMarker(self) -> bool:
 			return self.element is None
 
+	@dataclass
+	class Result:
+		index: Union[int, None] = None
+		element: Union[Element, None] = None
+
 
 	def __init__(self):
 		self.__listOfActiveElements: List[self.Entry] = []
@@ -47,12 +52,12 @@ class ListOfActiveElements:
 	def entries(self) -> List['Entry']:
 		return self.__listOfActiveElements
 
-	def lastElementWithTagNameBeforeMarker(self, tagName: str) -> Union[Element, None]:
-		for entry in reversed(self.__listOfActiveElements):
+	def lastElementWithTagNameBeforeMarker(self, tagName: str) -> Union[Result, None]:
+		for index, entry in reversed(list(enumerate(self.__listOfActiveElements))):
 			if (entry.isMarker):
 				return None
 			if (entry.element.name == tagName):
-				return entry.element
+				return self.Result(index, entry.element)
 		
 		return None
 			

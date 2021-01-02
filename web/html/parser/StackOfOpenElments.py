@@ -10,7 +10,7 @@ class StackOfOpenElments:
 
 
 	@dataclass
-	class LastElementResult:
+	class Result:
 		index: Union[int, None] = None
 		element: Union[Element, None] = None
 
@@ -75,7 +75,14 @@ class StackOfOpenElments:
 		scopeList = ["option", "optgroup"]
 		return self.__hasInScopeImpl(tagName, scopeList)
 
-	def contains(self, element: Element) -> bool:
+	def contains(self, elementName: str) -> bool:
+		for element in self.__openElements:
+			if element.name == elementName:
+				return True
+
+		return False
+
+	def containsElement(self, element: Element) -> bool:
 		return element in self.__openElements
 
 	def elements(self) -> List[Element]:
@@ -89,16 +96,16 @@ class StackOfOpenElments:
 			else:
 				self.pop()
 
-	def topmostSpecialNodeBelow(self, formattingElement: Element) -> Union[Element, None]:
-		foundElement: Union[Element, None] = None
-		for element in reversed(self.elements()):
+	def topmostSpecialNodeBelow(self, formattingElement: Element) -> Union[Result, None]:
+		result: Union[self.Result, None] = None
+		for index, element in reversed(list(enumerate(self.elements()))):
 			if (element == formattingElement):
 				break
 			if (ParserUtils.isSpecialtag(element.name) and element.namespace):
-				foundElement = element
-		return foundElement
+				result = self.Result(index, element)
+		return result
 
-	def lastElementWithTagName(self, tagName: str) -> Union[LastElementResult, None]:
+	def lastElementWithTagName(self, tagName: str) -> Union[Result, None]:
 		for index, element in reversed(list(enumerate(self.elements()))):
 			if (element.name == tagName):
 				result = self.LastElementResult()
@@ -115,3 +122,9 @@ class StackOfOpenElments:
 				return element
 		
 		return None
+
+	def getElementOnIndex(self, index: int) -> Union[Element, None]:
+		if (len(self.__openElements) < index):
+			return None
+		else:
+			return self.__openElements[index]

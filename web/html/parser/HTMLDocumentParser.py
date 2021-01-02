@@ -1,4 +1,5 @@
-from enum import Enum, auto
+from enum import Enum, Flag, auto
+from os import name
 from typing import Any, List, Union, Callable, cast
 from web.dom.elements.HTMLScriptElement import HTMLScriptElement
 from web.dom.elements.HTMLTemplateElement import HTMLTemplateElement
@@ -16,6 +17,8 @@ from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLComme
 from web.html.parser.HTMLTokenizer import HTMLTokenizer
 from web.dom.ElementFactory import ElementFactory
 from dataclasses import dataclass
+from copy import deepcopy
+
 class HTMLDocumentParser:
 
 	@dataclass
@@ -62,7 +65,7 @@ class HTMLDocumentParser:
 		self.__fosterParenting: bool = False
 		self.parsingFragment: bool = False
 		self.invokefWhileDocumentWrite: bool = False
-
+		self.__formElement: Union[Element, None] = None
 
 	@property
 	def __currentElement(self) -> Node:
@@ -154,16 +157,15 @@ class HTMLDocumentParser:
 
 		while outerLoopCounter < 8:
 			outerLoopCounter += 1
-			formattingElement = self.__formattingElements.lastElementWithTagNameBeforeMarker(
-				subject)
-
+			formattingElementResult = self.__formattingElements.lastElementWithTagNameBeforeMarker(subject)
+			formattingElement = formattingElementResult.element
 			if (formattingElement is None):
 				return
 
-			if (not self.__openElements.contains(formattingElement)):
+			if (not self.__openElements.containsElement(formattingElement)):
 				self.__formattingElements.remove(formattingElement)
 				return
-			if(self.__openElements.contains(formattingElement) and not self.__openElements.hasInScope()):
+			if(self.__openElements.containsElement(formattingElement) and not self.__openElements.hasInScope()):
 				return
 			if (formattingElement != self.__currentElement):
 				#TODO: Handle parsing error.
@@ -176,11 +178,25 @@ class HTMLDocumentParser:
 				self.__formattingElements.remove(formattingElement)
 				return
 
-			commonAncestor = self.__openElements.elementBefore(formattingElement)
+			""" commonAncestor = self.__openElements.elementBefore(formattingElement)
+			bookMark = formattingElementResult.index
+
+			node = deepcopy(furtherMostBlock.element)
+			lastNode = deepcopy(furtherMostBlock.element)
+			innerLoopCounter = 0
+			while (innerLoopCounter <= 3):
+				node = self.__openElements.elementBefore(node)
+				if (node is None):
+					node = self.__openElements.getElementOnIndex(fur) """
+
 			# bookmark = 
 			# case 13
 			# TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
 			# https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
+
+	def __generateImpliedEndTags(self, exception: str) -> None:
+		while (self.__currentElement.name is not exception and  self.__currentElement.name in ["caption", "colgroup", "dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr"]):
+			self.__openElements.pop()
 
 	def __findAppropriatePlaceForInsertingNode(self) -> AdjustedInsertionLocation:
 		target = self.__currentElement
@@ -499,7 +515,17 @@ class HTMLDocumentParser:
 				elif (token.name in ["pre", "listing"]):
 					raise NotImplementedError  # TODO: Handle case
 				elif (token.name == "form"):
-					raise NotImplementedError  # TODO: Handle case
+					if (self.__formElement is not None and self.__openElements.contains("template") is False):
+						#TODO: Handle parse error.
+						pass
+					elif (self.__openElements.hasInButtonScope("p")):
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped("p")
+					
+					element = self.__createElement(token)
+					self.__openElements.push(element)
+					
+					if (self.__openElements.contains("template") is False):
+						self.__formElement = element
 				elif (token.name == "li"):
 					self.__framesetOK = False
 					element = self.__createElement(token)
@@ -571,8 +597,27 @@ class HTMLDocumentParser:
 						
 						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
 				elif (token.name == "form"):
-					# TODO: Handle case
-					raise NotImplementedError
+					if (self.__openElements.contains("template") is False):
+						node = self.__formElement
+						self.__formElement = None
+						if (node is None or self.__openElements.hasInScope(node.name) is False):
+							#TODO: Handle parse error.
+							return
+						self.__generateImpliedEndTags()
+						if (self.__currentElement != node):
+							#TODO: Handle parse error
+							pass
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(node.name)
+					else:
+						if (self.__openElements.hasInScope("form")):
+							#TODO: Handle parse error.
+							return
+						self.__generateImpliedEndTags()
+						if (self.__currentElementname != "form"):
+							#TODO: Handle parse error
+							pass
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped("form")
+
 				elif (token.name == "p"):
 					if (not self.__openElements.hasInButtonScope("p")):
 							element = self.__createElement(token)
@@ -602,7 +647,7 @@ class HTMLDocumentParser:
 					raise NotImplementedError
 				elif (token.name in ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike", "strong", "tt", "u"]):
 					# TODO: Run the adoption agency algorithm for the token.
-					raise NotImplementedError
+					self.__adoptionAgencyAlgorithm(token)
 
 			elif (token.type == HTMLToken.TokenType.EOF):
 				for node in self.__openElements.elements():
