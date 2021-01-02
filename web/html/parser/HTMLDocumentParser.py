@@ -76,6 +76,9 @@ class HTMLDocumentParser:
 		self.__tokenizer.run()
 
 	def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+		
+		print("Token: ", token)
+		print("Input mode: ", self.__currentInsertionMode)
 
 		switcher = self.__getModeSwitcher()
 		if (switcher != None):
@@ -284,19 +287,20 @@ class HTMLDocumentParser:
 						pass
 						
 				elif (token.name == "title"):
-					_ = self.__createElement(token)
+					element = self.__createElement(token)
+					self.__openElements.push(element)
 					self.__tokenizer.switchStateTo(
 						self.__tokenizer.State.RCDATA)
+					print("Assigning insertion mode:", self.__currentInsertionMode)
 					self.__originalInsertionMode = self.__currentInsertionMode
-					self.__currentInsertionMode = self.__Mode.Text
+					self.__switchModeTo(self.__Mode.Text)
 				elif ((token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"])):
 					element = self.__createElement(token)
 					self.__openElements.push(element)
 					self.__tokenizer.switchStateTo(
 						self.__tokenizer.State.RAWTEXT)
 					self.__originalInsertionMode = self.__currentInsertionMode
-					self.__currentInsertionMode = self.__Mode.Text
-					pass
+					self.__switchModeTo(self.__Mode.Text)
 				elif (token.name == "noscript" and not self.__scripting):
 					_ = self.__createElement(token)
 					self.__switchModeTo(self.__Mode.InHeadNoscript)
@@ -577,8 +581,7 @@ class HTMLDocumentParser:
 					pass
 				self.__openElements.pop()
 				self.__reconsumeIn(self.__originalInsertionMode, token)
-			elif (token.type == HTMLToken.TokenType.EndTag):
-				if(token.name == "script"):
+			elif (token.type == HTMLToken.TokenType.EndTag and token.name == "script"):
 					#TODO: flush_character_insertions()
 					script = self.__currentElement
 					self.__openElements.pop()

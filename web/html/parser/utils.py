@@ -10,6 +10,9 @@ def charIsUppercaseAlpha(char: str) -> bool:
 def charIsLowercaseAlpha(char: str) -> bool:
 	return char >= "a" and char <= "z"
 
+def charIsAlpha(char: str) -> bool:
+	return charIsLowercaseAlpha(char) or charIsUppercaseAlpha(char)
+
 def charIsSurrogate(char: int) -> bool:
 	return re.search(r'[\uD800-\uDFFF]', str(char)) is not None
 

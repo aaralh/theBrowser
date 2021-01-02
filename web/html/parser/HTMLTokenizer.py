@@ -1,7 +1,7 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from .utils import charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, charIsLowercaseAlpha, charIsSurrogate
+from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atleastOneNameStartsWith
 
 class HTMLTokenizer:
@@ -10,6 +10,7 @@ class HTMLTokenizer:
         if (self.__currentToken.type == HTMLToken.TokenType.StartTag):
             self.__lastEmittedStartTagName = self.__currentToken.name
         self.__currentToken = None
+        print("Currrent state: ", self.state)
 
     def __createNewToken(
         self, tokenType: HTMLToken.TokenType
@@ -256,22 +257,136 @@ class HTMLTokenizer:
                 self.__continueIn(self.State.TagName)
 
         def handleRCDATALessThanSign() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar == "/"):
+                self.__temporaryBuffer = []
+                self.switchStateTo(self.State.RCDATAEndTagOpen)
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RCDATA)
 
         def handleRCDATAEndTagOpen() -> None:
-            raise NotImplementedError
+            if (charIsAlpha(self.__currentInputChar)):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+                self.__currentToken.name = ""
+                self.__reconsumeIn(self.State.RCDATAEndTagName)
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RCDATA)
+
 
         def handleRCDATAEndTagName() -> None:
-            raise NotImplementedError
+            print("Current char:", self.__currentInputChar)
+            print("Current token:", self.__currentToken)
+            print("Last emited token:", self.__lastEmittedStartTagName)
+            def elseCase():
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+
+                for char in self.__temporaryBuffer:
+                    self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                    self.__currentToken.data = char
+                    self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RCDATA)
+
+            if (charIsWhitespace(self.__currentInputChar)):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.BeforeAttributeName)
+                else:
+                    elseCase()
+            elif (self.__currentInputChar == "/"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.SelfClosingStartTag)
+                else:
+                    elseCase()
+            elif (self.__currentInputChar == ">"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.Data)
+                    self.__emitCurrentToken()
+                else:
+                    elseCase()
+            elif (charIsUppercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            elif (charIsLowercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            else:
+                elseCase()
 
         def handleRAWTEXTLessThanSign() -> None:
-            raise NotImplementedError
+            if (self.__currentInputChar == "/"):
+                self.__temporaryBuffer = []
+                self.switchStateTo(self.State.RAWTEXTEndTagOpen)
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RAWTEXT)
 
         def handleRAWTEXTEndTagOpen() -> None:
-            raise NotImplementedError
+            if (charIsAlpha(self.__currentInputChar)):
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+                self.__currentToken.name = ""
+                self.__reconsumeIn(self.State.RAWTEXTEndTagName)
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RAWTEXT)
 
         def handleRAWTEXTEndTagName() -> None:
-            raise NotImplementedError
+            def elseCase():
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "<"
+                self.__emitCurrentToken()
+                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = "/"
+                self.__emitCurrentToken()
+
+                for char in self.__temporaryBuffer:
+                    self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+                    self.__currentToken.data = char
+                    self.__emitCurrentToken()
+                self.__reconsumeIn(self.State.RAWTEXT)
+
+            if (charIsWhitespace(self.__currentInputChar)):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.BeforeAttributeName)
+                else:
+                    elseCase()
+            elif (self.__currentInputChar == "/"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.SelfClosingStartTag)
+                else:
+                    elseCase()
+            elif (self.__currentInputChar == ">"):
+                if (self.__currentToken.name == self.__lastEmittedStartTagName):
+                    self.switchStateTo(self.State.Data)
+                    self.__emitCurrentToken()
+                else:
+                    elseCase()
+            elif (charIsUppercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            elif (charIsLowercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
+                self.__temporaryBuffer.append(self.__currentInputChar)
+            else:
+                elseCase()
 
         def handleScriptDataLessThanSign() -> None:
             if (self.__currentInputChar == "/"):
@@ -307,7 +422,7 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.State.ScriptData)
 
         def handleScriptDataEndTagName() -> None:
-            def elseState() -> None:
+            def elseCase() -> None:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.data = "<"
                 self.__emitCurrentToken()
@@ -324,18 +439,18 @@ class HTMLTokenizer:
                 if (self.__currentToken.name == self.__lastEmittedStartTagName):
                     self.switchStateTo(self.State.BeforeAttributeName)
                 else:
-                    elseState()
+                    elseCase()
             elif (self.__currentInputChar == "/"):
                 if (self.__currentToken.name == self.__lastEmittedStartTagName):
                     self.switchStateTo(self.State.SelfClosingStartTag)
                 else:
-                    elseState()
+                    elseCase()
             elif (self.__currentInputChar == ">"):
                 if (self.__currentToken.name == self.__lastEmittedStartTagName):
                     self.switchStateTo(self.State.Data)
                     self.__emitCurrentToken()
                 else:
-                    elseState()
+                    elseCase()
             elif (charIsUppercaseAlpha(self.__currentInputChar)):
                 self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
                 self.__temporaryBuffer.append(self.__currentInputChar)
@@ -343,7 +458,7 @@ class HTMLTokenizer:
                 self.__currentToken.appendCharToTokenName(self.__currentInputChar)
                 self.__temporaryBuffer.append(self.__currentInputChar)
             else:
-                elseState()
+                elseCase()
 
         def handleScriptDataEscapeStart() -> None:
             raise NotImplementedError
