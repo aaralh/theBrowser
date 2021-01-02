@@ -7,7 +7,7 @@ from web.html.parser.ListOfActiveElements import ListOfActiveElements
 from web.html.parser.StackOfOpenElments import StackOfOpenElments
 from web.dom.CharacterData import CharacterData
 from web.dom.elements.Comment import Comment
-from web.html.parser.utils import charIsWhitespace
+from web.html.parser.utils import charIsWhitespace, tagIsSpecial
 from web.dom.elements.Element import Element
 from web.dom.Document import Document
 from web.dom.Node import Node
@@ -158,9 +158,9 @@ class HTMLDocumentParser:
 		while outerLoopCounter < 8:
 			outerLoopCounter += 1
 			formattingElementResult = self.__formattingElements.lastElementWithTagNameBeforeMarker(subject)
-			formattingElement = formattingElementResult.element
-			if (formattingElement is None):
+			if (formattingElementResult is None):
 				return
+			formattingElement = formattingElementResult.element
 
 			if (not self.__openElements.containsElement(formattingElement)):
 				self.__formattingElements.remove(formattingElement)
@@ -194,9 +194,16 @@ class HTMLDocumentParser:
 			# TODO: Continue here https://html.spec.whatwg.org/multipage/parsing.html#adoption-agency-algorithm
 			# https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
 
-	def __generateImpliedEndTags(self, exception: str) -> None:
+	def __generateImpliedEndTags(self, exception: str = None) -> None:
 		while (self.__currentElement.name is not exception and  self.__currentElement.name in ["caption", "colgroup", "dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr"]):
 			self.__openElements.pop()
+
+	def __closeAPElement(self) -> None:
+		self.__generateImpliedEndTags("p")
+		if (self.__currentElement.name != "p"):
+			#TODO: Handle parse error.
+			pass
+		self.__openElements.popUntilElementWithAtagNameHasBeenPopped("p")
 
 	def __findAppropriatePlaceForInsertingNode(self) -> AdjustedInsertionLocation:
 		target = self.__currentElement
@@ -527,13 +534,33 @@ class HTMLDocumentParser:
 					if (self.__openElements.contains("template") is False):
 						self.__formElement = element
 				elif (token.name == "li"):
+
+					def done():
+						if(self.__openElements.hasInButtonScope("p")):
+							self.__closeAPElement()
+
+					def loop():
+						self.__generateImpliedEndTags("li")
+						if (self.__currentElement.name != "li"):
+							#TODO: Handle parse error.
+							pass
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
+						done()
+
 					self.__framesetOK = False
+					node = self.__currentElement
+					if (self.__currentElement.name == "li"):
+						loop()
+					if (tagIsSpecial(node.name) and node.name not in ["address", "div", "p"]):
+						done()
+					else:
+						node = self.__openElements.elementBefore(node)
+						loop()
+					
+					done()
 					element = self.__createElement(token)
 					self.__openElements.push(element)
-					if (self.__currentElement.name == "li"):
-						pass
-					# TODO: Implement rest of the case
-					raise NotImplementedError
+					
 				elif (token.name in ["dd", "dt"]):
 					self.__framesetOK = False
 					element = self.__createElement(token)
@@ -624,8 +651,15 @@ class HTMLDocumentParser:
 							self.__openElements.push(element)
 					self.__openElements.pop()
 				elif (token.name == "li"):
-					# TODO: Handle case
-					raise NotImplementedError
+					if (self.__openElements.hasInListItemScope(token.name)):
+						#TODO: Handle parse rror.
+						pass
+					else:
+						self.__generateImpliedEndTags(token.name)
+						if (self.__currentElement.name != "li"):
+							#TODO: Handle parse error.
+							pass
+						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
 				elif (token.name in ["dd", "dt"]):
 					# TODO: Handle case
 					raise NotImplementedError
