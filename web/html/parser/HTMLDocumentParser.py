@@ -437,9 +437,48 @@ class HTMLDocumentParser:
 			elif (token.type == HTMLToken.TokenType.StartTag):
 				if (token.name == "html"):
 					raise NotImplementedError  # Handle case
-				elif (token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style", "template", "title"]):
+				elif (token.name == "template"):
 					# Handle case, Process the token using the rules for the "in head" insertion mode.
 					raise NotImplementedError
+				elif (token.name in ["noframes", "style"]):
+					element = self.__createElement(token)
+					self.__openElements.push(element)
+					self.__tokenizer.switchStateTo(
+						self.__tokenizer.State.RAWTEXT)
+					self.__originalInsertionMode = self.__currentInsertionMode
+					self.__switchModeTo(self.__Mode.Text)
+				elif (token.name in ["base", "basefont", "bgsound", "link"]):
+					# This kind of elements are not added to open stack.
+					_ = self.__createElement(token)
+				elif (token.name == "meta"):
+					# This kind of elements are not added to open stack.
+					element = self.__createElement(token)
+					if ("charset" in element.attributes):
+						# TODO: Handle charset attribute.
+						pass
+				elif (token.name == "title"):
+					element = self.__createElement(token)
+					self.__openElements.push(element)
+					self.__tokenizer.switchStateTo(
+						self.__tokenizer.State.RCDATA)
+					self.__originalInsertionMode = self.__currentInsertionMode
+					self.__switchModeTo(self.__Mode.Text)
+				elif (token.name == "script"):
+					# TODO: Add support for JS.
+					adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
+					element = cast(HTMLScriptElement, self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
+					element.parserDocument = self.__document
+					element.isNonBlocking = False
+
+					if (self.parsingFragment):
+						raise NotImplementedError
+					if (self.invokefWhileDocumentWrite):
+						raise NotImplementedError
+
+					self.__openElements.push(element)
+					self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+					self.__originalInsertionMode = self.__currentInsertionMode
+					self.__switchModeTo(self.__Mode.Text)
 				elif (token.name == "body"):
 					#TODO: handle parse error.
 					pass
