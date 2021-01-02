@@ -82,6 +82,8 @@ class HTMLDocumentParser:
 		
 		print("Token: ", token)
 		print("Input mode: ", self.__currentInsertionMode)
+		print("self.__openElements")
+		print("Elements: ", self.__openElements.elements())
 
 		switcher = self.__getModeSwitcher()
 		if (switcher != None):
@@ -195,7 +197,7 @@ class HTMLDocumentParser:
 			# https://html.spec.whatwg.org/multipage/parsing.html#has-an-element-in-scope
 
 	def __generateImpliedEndTags(self, exception: str = None) -> None:
-		while (self.__currentElement.name is not exception and  self.__currentElement.name in ["caption", "colgroup", "dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr"]):
+		while (self.__currentElement.name != exception and self.__currentElement.name in ["caption", "colgroup", "dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody", "td", "tfoot", "th", "thead", "tr"]):
 			self.__openElements.pop()
 
 	def __closeAPElement(self) -> None:
@@ -534,29 +536,24 @@ class HTMLDocumentParser:
 					if (self.__openElements.contains("template") is False):
 						self.__formElement = element
 				elif (token.name == "li"):
-
-					def done():
-						if(self.__openElements.hasInButtonScope("p")):
-							self.__closeAPElement()
-
-					def loop():
-						self.__generateImpliedEndTags("li")
-						if (self.__currentElement.name != "li"):
-							#TODO: Handle parse error.
-							pass
-						self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
-						done()
-
 					self.__framesetOK = False
-					node = self.__currentElement
-					if (self.__currentElement.name == "li"):
-						loop()
-					if (tagIsSpecial(node.name) and node.name not in ["address", "div", "p"]):
-						done()
-					else:
-						node = self.__openElements.elementBefore(node)
-						loop()
 					
+					for element in reversed(self.__openElements.elements()):
+						node = element
+						if (self.__currentElement.name == "li"):
+							self.__generateImpliedEndTags("li")
+							if(self.__currentElement.name == "li"):
+								#TODO: Handle parse error
+								pass
+							self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
+							break
+						
+						if (tagIsSpecial(node.name) and node.name not in ["address", "div", "p"]):
+							break
+
+					if (self.__openElements.hasInButtonScope("p")):
+						self.__closeAPElement()
+
 					element = self.__createElement(token)
 					self.__openElements.push(element)
 					
@@ -669,15 +666,16 @@ class HTMLDocumentParser:
 							self.__openElements.push(element)
 					self.__openElements.pop()
 				elif (token.name == "li"):
-					if (self.__openElements.hasInListItemScope(token.name)):
+					if (not self.__openElements.hasInListItemScope(token.name)):
 						#TODO: Handle parse rror.
+						return
+					
+					self.__generateImpliedEndTags(token.name)
+					if (self.__currentElement.name != "li"):
+						#TODO: Handle parse error.
 						pass
-					else:
-						self.__generateImpliedEndTags(token.name)
-						if (self.__currentElement.name != "li"):
-							#TODO: Handle parse error.
-							pass
-						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+					print("Removing 'li'")
+					self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
 				elif (token.name in ["dd", "dt"]):
 					# TODO: Handle case
 					raise NotImplementedError

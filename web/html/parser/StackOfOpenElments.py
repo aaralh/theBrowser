@@ -90,6 +90,8 @@ class StackOfOpenElments:
 
 	def popUntilElementWithAtagNameHasBeenPopped(self, tagName: str) -> None:
 		while (len(self.__openElements) > 0):
+			print("Current:", self.currentNode().name)
+			print("TagName: ", tagName)
 			if (self.currentNode().name == tagName):
 				self.pop()
 				break
