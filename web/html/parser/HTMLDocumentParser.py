@@ -76,7 +76,7 @@ class HTMLDocumentParser:
 		self.__tokenizer.run()
 
 	def __tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-		
+
 		switcher = self.__getModeSwitcher()
 		if (switcher != None):
 			switcher(token)

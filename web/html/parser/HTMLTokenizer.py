@@ -296,7 +296,6 @@ class HTMLTokenizer:
             if (charIsUppercaseAlpha(self.__currentInputChar) or charIsLowercaseAlpha(self.__currentInputChar)):
                 self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.EndTag))
                 self.__currentToken.name = ""
-                self.__emitCurrentToken()
                 self.__reconsumeIn(self.State.ScriptDataEndTagName)
             else:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
@@ -308,7 +307,6 @@ class HTMLTokenizer:
                 self.__reconsumeIn(self.State.ScriptData)
 
         def handleScriptDataEndTagName() -> None:
-
             def elseState() -> None:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.data = "<"
@@ -316,7 +314,7 @@ class HTMLTokenizer:
                 self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                 self.__currentToken.data = "/"
                 self.__emitCurrentToken()
-                for char in reversed(self.__temporaryBuffer):
+                for char in self.__temporaryBuffer:
                     self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
                     self.__currentToken.data = char
                     self.__emitCurrentToken()
@@ -335,16 +333,18 @@ class HTMLTokenizer:
             elif (self.__currentInputChar == ">"):
                 if (self.__currentToken.name == self.__lastEmittedStartTagName):
                     self.switchStateTo(self.State.Data)
+                    self.__emitCurrentToken()
                 else:
                     elseState()
             elif (charIsUppercaseAlpha(self.__currentInputChar)):
-                self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
                 self.__temporaryBuffer.append(self.__currentInputChar)
-            elif (charIsUppercaseAlpha(self.__currentInputChar)):
-                self.__currentToken.addCharToAttributeName(self.__currentInputChar)
+            elif (charIsLowercaseAlpha(self.__currentInputChar)):
+                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
                 self.__temporaryBuffer.append(self.__currentInputChar)
             else:
                 elseState()
+
         def handleScriptDataEscapeStart() -> None:
             raise NotImplementedError
 

@@ -82,3 +82,9 @@ class HTMLTag(HTMLToken):
 			return
 			
 		self.attributes[self.activeAttributeName] = self.attributes[self.activeAttributeName] + char
+
+	def appendCharToTokenName(self, char: str) -> None:
+		if self.name is None:
+			self.name = char
+		else:
+			self.name += char
