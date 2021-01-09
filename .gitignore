@@ -2,4 +2,3 @@ __pycache__
 .vscode
 *_venv
 *.html
-*.txt
