@@ -699,23 +699,26 @@ class HTMLDocumentParser:
 					# TODO: Run the adoption agency algorithm for the token.
 					self.__adoptionAgencyAlgorithm(token)
 				else:
-					node = self.__currentElement
+					node: Union[Element, None] = None
 
-					def loop(node: Element):
-						self.__generateImpliedEndTags(token.name)
-						if (node.name != self.__currentElement.name):
+					for element in reversed(self.__openElements.elements()):
+						node = element
+						if (node.name == token.name):
+							self.__generateImpliedEndTags(token.name)
+							if (node != self.__currentElement):
+								#TODO: Handle parse error.
+								pass
+
+							while (self.__currentElement.name != node.name):
+								self.__openElements.pop()
+
+							self.__openElements.pop()
+							break
+
+						if (tagIsSpecial(node.name)):
 							#TODO: Handle parse error.
-							pass
-						self.__openElements.popUntilElementWithAtagNameHasBeenPopped(node.name)
-						return
+							return
 
-					if (node.name == token.name):
-						loop(node)
-					elif (tagIsSpecial(node.name)):
-						#TODO: Handle parse error.
-						return
-					node = self.__currentElement
-					loop(node)
 
 			elif (token.type == HTMLToken.TokenType.EOF):
 				for node in self.__openElements.elements():
