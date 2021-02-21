@@ -9,7 +9,7 @@ if TYPE_CHECKING:
 class DocumentType(Node):
 	def __init__(self, documentToken: 'HTMLDoctype', document: 'Document'):
 		super(DocumentType, self).__init__(None, document)
-		self.name: str = documentToken.name if documentToken.name != None else ""
-		self.__publicId: str = documentToken.publicIdentifier if documentToken.publicIdentifier != None else ""
-		self.__systemId: str = documentToken.systemPublicIdentidier if documentToken.systemPublicIdentidier != None else ""
-		self.__forcedQuircks: bool = False
+		self.name: str = documentToken.name if documentToken.name is not None else ""
+		self._publicId: str = documentToken.publicIdentifier if documentToken.publicIdentifier is not None else ""
+		self._systemId: str = documentToken.systemPublicIdentidier if documentToken.systemPublicIdentidier is not None else ""
+		self._forcedQuircks: bool = False

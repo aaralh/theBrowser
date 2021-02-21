@@ -1,6 +1,5 @@
 from typing import Dict, List, Union
 
-
 singleCodePointEntities: Dict[str, int] = {
     "AElig;": 0x000C6,
     "AElig": 0x000C6,
@@ -2250,10 +2249,11 @@ def getNamedCharFromTable(namedChar: str) -> Union[int, List[int], None]:
     for key in doubleCodePointEntities.keys():
         if key.lower() == namedChar.lower():
             return doubleCodePointEntities.get(key)
-    
+
     return None
 
-def atleastOneNameStartsWith(namedChar: str) -> bool:
+
+def atLeastOneNameStartsWith(namedChar: str) -> bool:
     """
     Returns boolean based on if any key in named character 
     reference table starts with given string.
@@ -2265,5 +2265,5 @@ def atleastOneNameStartsWith(namedChar: str) -> bool:
     for key in doubleCodePointEntities.keys():
         if key.lower().startswith(namedChar.lower()):
             return True
-    
+
     return False

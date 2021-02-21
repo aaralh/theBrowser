@@ -10,7 +10,7 @@ if TYPE_CHECKING:
 ElementClass = type('Element', (), Element.__dict__)
 
 TAG_NAMES: Dict[str, Callable[[HTMLTag, Node, Document], ElementClass]] = {
-	"a": HTMLAElement,
+    "a": HTMLAElement,
     "abbr": HTMLAbbrElement,
     "acronym": HTMLAcronymElement,
     "address": HTMLAddressElement,

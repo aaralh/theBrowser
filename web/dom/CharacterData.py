@@ -2,51 +2,52 @@ from web.dom.Document import Document
 from web.dom.Node import Node
 from web.html.parser.utils import charIsWhitespace
 
+
 class CharacterData(Node):
-	
-	def __init__(self, data: str, parent: Node, document: Document):
-		super(CharacterData, self).__init__(parent, document)
-		self.data = data
-		self.length = len(data)
-	
-	def _updateLength(self) -> None:
-		self.length = len(self.data)
 
-	def substringData(self, offset: int, count: int) -> str:
-		lastIndex = offset + count
-		return self.data[offset:lastIndex]
+    def __init__(self, data: str, parent: Node, document: Document):
+        super(CharacterData, self).__init__(parent, document)
+        self.data = data
+        self.length = len(data)
 
-	def appendData(self, data: str) -> None:
-		self.data += data
-		self._updateLength()
+    def _updateLength(self) -> None:
+        self.length = len(self.data)
 
-	def insertData(self, offset: int, data: str) -> None:
-		self._updateLength()
-		pass
+    def substringData(self, offset: int, count: int) -> str:
+        lastIndex = offset + count
+        return self.data[offset:lastIndex]
 
-	def deleteData(self, offset: int, count: int) -> None:
-		self._updateLength()
-		pass
+    def appendData(self, data: str) -> None:
+        self.data += data
+        self._updateLength()
 
-	def replaceData(self, offset: int, count: int, data: str) -> None:
-		if (offset > self.length):
-			#TODO:Implement error
-			pass 
-		elif (offset + count > self.length):
-			count = self.length - offset
-		self._updateLength()
-		# TODO: Continue here
-		pass
+    def insertData(self, offset: int, data: str) -> None:
+        self._updateLength()
+        pass
 
-	def __str__(self) -> str:
-		return self.data
+    def deleteData(self, offset: int, count: int) -> None:
+        self._updateLength()
+        pass
 
-	def printTree(self, depth: int) -> str:
-		indentation = ""
+    def replaceData(self, offset: int, count: int, data: str) -> None:
+        if offset > self.length:
+            # TODO:Implement error
+            pass
+        elif offset + count > self.length:
+            count = self.length - offset
+        self._updateLength()
+        # TODO: Continue here
+        pass
 
-		for _ in range(depth):
-			indentation += "\t"
-		if (not self.data.isspace()):
-			return  f"{indentation}" + self.data + "\n"
-		else:
-			return ""
+    def __str__(self) -> str:
+        return self.data
+
+    def printTree(self, depth: int) -> str:
+        indentation = ""
+
+        for _ in range(depth):
+            indentation += "\t"
+        if not self.data.isspace():
+            return f"{indentation}" + self.data + "\n"
+        else:
+            return ""
