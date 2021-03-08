@@ -65,6 +65,7 @@ class HTMLDocumentParser:
         self.parsingFragment: bool = False
         self.invokefWhileDocumentWrite: bool = False
         self._formElement: Union[Element, None] = None
+        self.__cb: Union[Callable, None] = None
 
     @property
     def _currentElement(self) -> Node:
@@ -73,7 +74,8 @@ class HTMLDocumentParser:
         """
         return self._documentNode if self._openElements.isEmpty() else self._openElements.last()
 
-    def run(self) -> None:
+    def run(self, cb: Callable) -> None:
+        self.__cb = cb
         self._tokenizer.run()
 
     def _tokenHandler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
@@ -90,6 +92,7 @@ class HTMLDocumentParser:
         if token.type == HTMLToken.TokenType.EOF:
             print("The dom")
             print(self._documentNode)
+            self.__cb(self._documentNode)
 
     def _continueIn(self, mode: _Mode) -> None:
         self._switchModeTo(mode)
