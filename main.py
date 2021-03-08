@@ -1,6 +1,10 @@
 import tkinter
 import requests
+
+from web.dom.Node import Node
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
+from web.dom.DocumentType import DocumentType
+
 
 WIDTH, HEIGHT = 800, 600
 
@@ -22,8 +26,19 @@ class Browser:
         response = requests.get(url, headers=headers)
         return response.text
 
-    def renderDOM(self, dom):
-        print(dom)
+    def renderElement(self, element: Node):
+        for child in element.childNodes:
+            print("Child")
+            print(child)
+            print()
+            self.renderElement(child)
+
+    def renderDOM(self, dom: DocumentType):
+        for child in dom.childNodes:
+            print("Child")
+            print(child)
+            print()
+            self.renderElement(child)
         self.canvas.create_rectangle(10, 20, 400, 300, tags="playbutton")
         self.canvas.create_oval(100, 100, 150, 150)
         self.canvas.create_text(200, 150, text="Hi!")
