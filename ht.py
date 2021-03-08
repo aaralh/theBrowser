@@ -3,10 +3,13 @@ from web.html.parser.HTMLToken import HTMLToken
 from web.html.parser.HTMLTokenizer import  HTMLTokenizer
 import datetime
 
+def cb(dom):
+	print(dom)
+
 if __name__ == "__main__":
 	print(datetime.datetime.now())
-	with open("google_frontpage.html", "r") as htmlFile:
+	with open("./test_resources/test_html.html", "r") as htmlFile:
 		html = htmlFile.read()
 	parser = HTMLDocumentParser(html)
-	parser.run()
+	parser.run(cb)
 	print(datetime.datetime.now())
