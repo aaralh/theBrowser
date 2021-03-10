@@ -2,6 +2,7 @@ from web.dom.Node import Node
 from web.dom.Document import Document
 from web.dom.CharacterData import CharacterData
 
+
 class Text(CharacterData):
 
 	def __init__(self, document: Document, parent: Node, data=""):
