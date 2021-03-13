@@ -17,20 +17,20 @@ Browser made completely(or as much as possible) with Python and complies with th
 
 Bolded items are currently in WIP :construction:. List will be extended in more detail on the go.
 
-- [ ] :memo: **HTML Parsing**
+- [ ] 📝 **HTML Parsing**
     - [ ] **HTML tokenizer**
     - [ ] **HTML parser**
-- [ ] :memo: **CSS Parsing**
+- [ ] 📝 **CSS Parsing**
     - [ ] **CSS tokenizer**
     - [ ] CSS parser
-- [ ] :triangular_ruler: Style
+- [ ] 📐 Style
     - [ ] CSS cascade
     - [ ] Style computation
     - [ ] Render tree
     - [ ] Selector matching
-- [ ] :flower_playing_cards: Layout process
+- [ ] 🎴 Layout process
     - [ ] Layouts (Block, Flex, Grid)
-- [ ] :art: Rendering
-- [ ] :earth_americas: Networking
-- [ ] :framed_picture: Media
+- [ ] 🎨 Rendering
+- [ ] 🌍 **Networking**
+- [ ] 🖼️ Media
 - [ ] JavaScript
