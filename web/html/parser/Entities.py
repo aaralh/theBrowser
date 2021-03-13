@@ -1,4 +1,4 @@
-from typing import Dict, List, Union
+from typing import Dict, List, Union, cast
 
 singleCodePointEntities: Dict[str, int] = {
     "AElig;": 0x000C6,
@@ -2238,13 +2238,13 @@ doubleCodePointEntities: Dict[str, List[int]] = {
 }
 
 
-def getNamedCharFromTable(namedChar: str) -> Union[int, List[int], None]:
+def getNamedCharFromTable(namedChar: str) -> Union[List[int], None]:
     """
     Returns value for named char if one is found.
     """
     for key in singleCodePointEntities.keys():
         if key.lower() == namedChar.lower():
-            return singleCodePointEntities.get(key)
+            return [cast(int, singleCodePointEntities.get(key))]
 
     for key in doubleCodePointEntities.keys():
         if key.lower() == namedChar.lower():

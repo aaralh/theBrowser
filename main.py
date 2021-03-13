@@ -13,7 +13,7 @@ WIDTH, HEIGHT = 800, 600
 
 
 class Browser:
-    def __init__(self):
+    def __init__(self) -> None:
         self.window = tkinter.Tk()
         self.canvas = tkinter.Canvas(
             self.window,
@@ -23,14 +23,14 @@ class Browser:
         self.activeCanvas = self.canvas
         self.canvas.pack()
 
-    def load(self, url) -> str:
+    def load(self, url: str) -> str:
         headers = {
             "User-Agent": "theBrowser/0.01-alpha"
         }
         response = requests.get(url, headers=headers)
         return response.text
 
-    def parseStyle(self, styleStr: str):
+    def parseStyle(self, styleStr: str) -> dict:
         styleDict = {}
         items = styleStr.split(";")
         for item in items:
@@ -41,7 +41,7 @@ class Browser:
 
         return styleDict
 
-    def renderElement(self, element: Element):
+    def renderElement(self, element: Element) -> None:
         for child in element.childNodes:
             if isinstance(child, Element):
                 child = cast(Element, child)
@@ -56,15 +56,15 @@ class Browser:
                     # width = ''.join([i for i in width if i.isalpha()])
                     print(height)
                     print(width)
-                    self.activeCanvas.create_rectangle(10, 20, width, height, outline="red")
+                    self.activeCanvas.create_rectangle(10, 20, width, height, outline="red")  # type: ignore
 
             elif isinstance(child, Text):
                 child = cast(Text, child)
-                self.canvas.create_text(200, 150, text=child.wholeText)
+                self.canvas.create_text(200, 150, text=child.wholeText)  # type: ignore
 
             self.renderElement(child)
 
-    def renderDOM(self, dom: DocumentType):
+    def renderDOM(self, dom: DocumentType) -> None:
         for child in dom.childNodes:
             print("Child")
             print(child)
@@ -73,7 +73,7 @@ class Browser:
                 if isinstance(element, HTMLBodyElement):
                     self.renderElement(element)
 
-    def renderHtml(self, html: str):
+    def renderHtml(self, html: str) -> None:
         parser = HTMLDocumentParser(html)
         parser.run(self.renderDOM)
 

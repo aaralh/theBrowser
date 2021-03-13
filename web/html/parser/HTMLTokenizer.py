@@ -32,7 +32,7 @@ class HTMLTokenizer:
     def __createNewToken(
             self, tokenType: HTMLToken.TokenType
     ) -> Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]:
-        token = None
+        token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]
         if tokenType == HTMLToken.TokenType.DOCTYPE:
             token = HTMLDoctype()
         elif tokenType == HTMLToken.TokenType.Comment or tokenType == HTMLToken.TokenType.Character:
@@ -161,13 +161,14 @@ class HTMLTokenizer:
 
     def __nextCodePoint(self) -> Union[str, None]:
         if self.__cursor >= len(self.__html):
-            return
+            return None
         char = self.__html[self.__cursor]
         self.__cursor += 1
         return char
 
     def __flushTemporaryBuffer(self) -> None:
         if self.__currentToken is not None:
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
             self.__currentToken.addCharToAttributeValue("".join(self.__temporaryBuffer))
         else:
             for char in self.__temporaryBuffer:
@@ -273,6 +274,7 @@ class HTMLTokenizer:
     def handleRCDATAEndTagOpen(self) -> None:
         if charIsAlpha(self.__currentInputChar):
             self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
             self.__currentToken.name = ""
             self.__reconsumeIn(self.State.RCDATAEndTagName)
         else:
@@ -288,8 +290,9 @@ class HTMLTokenizer:
         print("Current char:", self.__currentInputChar)
         print("Current token:", self.__currentToken)
         print("Last emited token:", self.__lastEmittedStartTagName)
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
 
-        def elseCase():
+        def elseCase() -> None:
             self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
             self.__currentToken.data = "<"
             self.__emitCurrentToken()
@@ -842,20 +845,24 @@ class HTMLTokenizer:
         consumedCharacters: List[str] = [self.__currentInputChar]
         while atLeastOneNameStartsWith("".join(consumedCharacters)):
             nextChar = self.__nextCodePoint()
-            self.__currentInputChar = nextChar
-            consumedCharacters.append(nextChar)
-            if nextChar == ";":
-                break
+            if nextChar is not None:
+                self.__currentInputChar = nextChar
+                consumedCharacters.append(nextChar)
+                if nextChar == ";":
+                    break
         match = getNamedCharFromTable("".join(consumedCharacters))
         if match is not None:
             # TODO: Implement case.
             if self.__currentToken is not None:
                 self.__currentToken = cast(HTMLTag, self.__currentToken)
-                self.__currentToken.addCharToAttributeValue(chr(match))
+                for match_item in match:
+                    self.__currentToken.addCharToAttributeValue(chr(match_item))
             else:
                 self.__currentToken = cast(HTMLCommentOrCharacter,
                                            self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = chr(match)
+                for match_item in match:
+                    self.__currentToken.data = self.__currentToken.data + chr(match_item)\
+                                                if self.__currentToken.data is not None else chr(match_item)
                 self.__emitCurrentToken()
             self.switchStateTo(self.__returnState)
         else:
@@ -1056,12 +1063,12 @@ class HTMLTokenizer:
 
     def run(self) -> None:
         while self.__cursor < len(self.__html):
-            self.__currentInputChar = self.__nextCodePoint()
+            tokenPoint = self.__nextCodePoint()
+            if tokenPoint is None:
+                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+                self.__emitCurrentToken()
+            self.__currentInputChar = cast(str, tokenPoint)
             switcher = self.__getStateSwitcher()
             if switcher is not None:
                 switcher()
 
-        self.__currentInputChar = None
-        switcher = self.__getStateSwitcher()
-        if switcher is not None:
-            switcher()
