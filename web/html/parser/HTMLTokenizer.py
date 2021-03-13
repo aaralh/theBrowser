@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Union, Callable, Any, cast, List
+from typing import Union, Callable, Any, cast, List, Optional
 from HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
     charIsLowercaseAlpha, charIsSurrogate
@@ -12,20 +12,22 @@ class HTMLTokenizer:
         self.state = self.State.Data
         self.__html = html
         self.__cursor = 0
-        self.__currentInputChar: Union[str, None] = None
+        self.__currentInputChar: str = ""  # TODO: Basically initially is None, fix
         self.__returnState: Union[Any, None] = None
         self.__currentToken: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter, None] = None
         self.__tokenHandlerCb: Callable[[HTMLToken], None] = tokenHandlerCb
         self.__temporaryBuffer: List[str] = []
         self.__characterReferenceCode: int = 0
-        self.__lastEmittedStartTagName: str = None
+        self.__lastEmittedStartTagName: Optional[str] = None
 
     def __emitCurrentToken(self) -> None:
-        self.__tokenHandlerCb(self.__currentToken)
-        if self.__currentToken.type == HTMLToken.TokenType.StartTag:
-            self.__lastEmittedStartTagName = self.__currentToken.name
-        self.__currentToken = None
-        print("Current state: ", self.state)
+        if self.__currentToken is not None:
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+            self.__tokenHandlerCb(self.__currentToken)
+            if self.__currentToken.type == HTMLToken.TokenType.StartTag:
+                self.__lastEmittedStartTagName = self.__currentToken.name
+            self.__currentToken = None
+            print("Current state: ", self.state)
 
     def __createNewToken(
             self, tokenType: HTMLToken.TokenType
@@ -174,865 +176,880 @@ class HTMLTokenizer:
                 self.__emitCurrentToken()
         self.__temporaryBuffer = []
 
-    def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
-        def handleData() -> None:
-            if self.__currentInputChar == "&":
-                self.__returnState = self.State.Data
-                self.switchStateTo(self.State.CharacterReference)
-            elif self.__currentInputChar == "<":
-                self.switchStateTo(self.State.TagOpen)
-            elif self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = self.__currentInputChar
-                self.__continueIn(self.State.Data)
-                self.__emitCurrentToken()
+    def handleData(self) -> None:
+        if self.__currentInputChar == "&":
+            self.__returnState = self.State.Data
+            self.switchStateTo(self.State.CharacterReference)
+        elif self.__currentInputChar == "<":
+            self.switchStateTo(self.State.TagOpen)
+        elif self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = self.__currentInputChar
+            self.__continueIn(self.State.Data)
+            self.__emitCurrentToken()
 
-        def handleRCDATA() -> None:
-            if self.__currentInputChar == "&":
-                self.__returnState = self.State.RCDATA
-                self.switchStateTo(self.State.CharacterReference)
-            elif self.__currentInputChar == "<":
-                self.switchStateTo(self.State.RCDATALessThanSign)
-            elif self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = self.__currentInputChar
-                self.__emitCurrentToken()
+    def handleRCDATA(self) -> None:
+        if self.__currentInputChar == "&":
+            self.__returnState = self.State.RCDATA
+            self.switchStateTo(self.State.CharacterReference)
+        elif self.__currentInputChar == "<":
+            self.switchStateTo(self.State.RCDATALessThanSign)
+        elif self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = self.__currentInputChar
+            self.__emitCurrentToken()
 
-        def handleRAWTEXT() -> None:
-            if self.__currentInputChar == "<":
-                self.switchStateTo(self.State.RAWTEXTLessThanSign)
-            elif self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = self.__currentInputChar
-                self.__emitCurrentToken()
+    def handleRAWTEXT(self) -> None:
+        if self.__currentInputChar == "<":
+            self.switchStateTo(self.State.RAWTEXTLessThanSign)
+        elif self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = self.__currentInputChar
+            self.__emitCurrentToken()
 
-        def handleScriptData() -> None:
-            if self.__currentInputChar == "<":
-                self.switchStateTo(self.State.ScriptDataLessThanSign)
-            elif self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = self.__currentInputChar
-                self.__emitCurrentToken()
+    def handleScriptData(self) -> None:
+        if self.__currentInputChar == "<":
+            self.switchStateTo(self.State.ScriptDataLessThanSign)
+        elif self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = self.__currentInputChar
+            self.__emitCurrentToken()
 
-        def handlePLAINTEXT() -> None:
-            raise NotImplementedError
+    def handlePLAINTEXT(self) -> None:
+        raise NotImplementedError
 
-        def handleTagOpen() -> None:
-            if self.__currentInputChar == "!":
-                self.__reconsumeIn(self.State.MarkupDeclarationOpen)
-            elif self.__currentInputChar == "/":
-                self.switchStateTo(self.State.EndTagOpen)
-            elif self.__currentInputChar.isalpha():
-                self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.StartTag))
-                self.__reconsumeIn(self.State.TagName)
-
-        def handleEndTagOpen() -> None:
-            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+    def handleTagOpen(self) -> None:
+        if self.__currentInputChar == "!":
+            self.__reconsumeIn(self.State.MarkupDeclarationOpen)
+        elif self.__currentInputChar == "/":
+            self.switchStateTo(self.State.EndTagOpen)
+        elif self.__currentInputChar.isalpha():
+            self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.StartTag))
             self.__reconsumeIn(self.State.TagName)
 
-        def handleTagName() -> None:
-            if self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            elif charIsWhitespace(self.__currentInputChar):
-                self.switchStateTo(self.State.BeforeAttributeName)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLTag, self.__currentToken)
-                if self.__currentToken.name is not None and self.__currentInputChar is not None:
-                    self.__currentToken.name += self.__currentInputChar
-                else:
-                    self.__currentToken.name = self.__currentInputChar
-                self.__continueIn(self.State.TagName)
+    def handleEndTagOpen(self) -> None:
+        self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+        self.__reconsumeIn(self.State.TagName)
 
-        def handleRCDATALessThanSign() -> None:
-            if self.__currentInputChar == "/":
-                self.__temporaryBuffer = []
-                self.switchStateTo(self.State.RCDATAEndTagOpen)
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RCDATA)
-
-        def handleRCDATAEndTagOpen() -> None:
-            if charIsAlpha(self.__currentInputChar):
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
-                self.__currentToken.name = ""
-                self.__reconsumeIn(self.State.RCDATAEndTagName)
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RCDATA)
-
-        def handleRCDATAEndTagName() -> None:
-            print("Current char:", self.__currentInputChar)
-            print("Current token:", self.__currentToken)
-            print("Last emited token:", self.__lastEmittedStartTagName)
-
-            def elseCase():
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-
-                for char in self.__temporaryBuffer:
-                    self.__currentToken = cast(HTMLCommentOrCharacter,
-                                              self.__createNewToken(HTMLToken.TokenType.Character))
-                    self.__currentToken.data = char
-                    self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RCDATA)
-
-            if charIsWhitespace(self.__currentInputChar):
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.BeforeAttributeName)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == "/":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.SelfClosingStartTag)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == ">":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.Data)
-                    self.__emitCurrentToken()
-                else:
-                    elseCase()
-            elif charIsUppercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            elif charIsLowercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            else:
-                elseCase()
-
-        def handleRAWTEXTLessThanSign() -> None:
-            if self.__currentInputChar == "/":
-                self.__temporaryBuffer = []
-                self.switchStateTo(self.State.RAWTEXTEndTagOpen)
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RAWTEXT)
-
-        def handleRAWTEXTEndTagOpen() -> None:
-            if charIsAlpha(self.__currentInputChar):
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
-                self.__currentToken.name = ""
-                self.__reconsumeIn(self.State.RAWTEXTEndTagName)
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RAWTEXT)
-
-        def handleRAWTEXTEndTagName() -> None:
-            def elseCase():
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-
-                for char in self.__temporaryBuffer:
-                    self.__currentToken = cast(HTMLCommentOrCharacter,
-                                              self.__createNewToken(HTMLToken.TokenType.Character))
-                    self.__currentToken.data = char
-                    self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.RAWTEXT)
-
-            if charIsWhitespace(self.__currentInputChar):
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.BeforeAttributeName)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == "/":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.SelfClosingStartTag)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == ">":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.Data)
-                    self.__emitCurrentToken()
-                else:
-                    elseCase()
-            elif charIsUppercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            elif charIsLowercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            else:
-                elseCase()
-
-        def handleScriptDataLessThanSign() -> None:
-            if self.__currentInputChar == "/":
-                self.__temporaryBuffer = []
-                self.switchStateTo(self.State.ScriptDataEndTagOpen)
-            elif self.__currentInputChar == "!":
-                self.switchStateTo(self.State.ScriptDataEscapeStart)
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "!"
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.ScriptData)
-
-        def handleScriptDataEndTagOpen() -> None:
-            if charIsUppercaseAlpha(self.__currentInputChar) or charIsLowercaseAlpha(self.__currentInputChar):
-                self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.EndTag))
-                self.__currentToken.name = ""
-                self.__reconsumeIn(self.State.ScriptDataEndTagName)
-            else:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.ScriptData)
-
-        def handleScriptDataEndTagName() -> None:
-            def elseCase() -> None:
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "<"
-                self.__emitCurrentToken()
-                self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
-                self.__currentToken.data = "/"
-                self.__emitCurrentToken()
-                for char in self.__temporaryBuffer:
-                    self.__currentToken = cast(HTMLCommentOrCharacter,
-                                              self.__createNewToken(HTMLToken.TokenType.Character))
-                    self.__currentToken.data = char
-                    self.__emitCurrentToken()
-                self.__reconsumeIn(self.State.ScriptData)
-
-            if charIsWhitespace(self.__currentInputChar):
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.BeforeAttributeName)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == "/":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.SelfClosingStartTag)
-                else:
-                    elseCase()
-            elif self.__currentInputChar == ">":
-                if self.__currentToken.name == self.__lastEmittedStartTagName:
-                    self.switchStateTo(self.State.Data)
-                    self.__emitCurrentToken()
-                else:
-                    elseCase()
-            elif charIsUppercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            elif charIsLowercaseAlpha(self.__currentInputChar):
-                self.__currentToken.appendCharToTokenName(self.__currentInputChar)
-                self.__temporaryBuffer.append(self.__currentInputChar)
-            else:
-                elseCase()
-
-        def handleScriptDataEscapeStart() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapeStartDash() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscaped() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapedDash() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapedDashDash() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapedLessThanSign() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapedEndTagOpen() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataEscapedEndTagName() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscapeStart() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscaped() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscapedDash() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscapedDashDash() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscapedLessThanSign() -> None:
-            raise NotImplementedError
-
-        def handleScriptDataDoubleEscapeEnd() -> None:
-            raise NotImplementedError
-
-        def handleBeforeAttributeName() -> None:
+    def handleTagName(self) -> None:
+        if self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        elif charIsWhitespace(self.__currentInputChar):
+            self.switchStateTo(self.State.BeforeAttributeName)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
             self.__currentToken = cast(HTMLTag, self.__currentToken)
-
-            if self.__currentInputChar is None:
-                self.__reconsumeIn(self.State.AfterAttributeName)
-            elif charIsWhitespace(self.__currentInputChar):
-                self.__continueIn(self.State.BeforeAttributeName)
+            if self.__currentToken.name is not None and self.__currentInputChar is not None:
+                self.__currentToken.name += self.__currentInputChar
             else:
-                self.__currentToken.createNewAttribute()
-                self.__reconsumeIn(self.State.AttributeName)
+                self.__currentToken.name = self.__currentInputChar
+            self.__continueIn(self.State.TagName)
 
-        def handleAttributeName() -> None:
-            self.__currentToken = cast(HTMLTag, self.__currentToken)
-
-            if (
-                    self.__currentInputChar is None
-                    or charIsWhitespace(self.__currentInputChar)
-                    or self.__currentInputChar == "/"
-                    or self.__currentInputChar == ">"
-            ):
-                self.__reconsumeIn(self.State.AfterAttributeName)
-            elif self.__currentInputChar == "=":
-                self.switchStateTo(self.State.BeforeAttributeValue)
-            elif self.__currentInputChar.isupper() and self.__currentInputChar.isalpha():
-                self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
-            else:
-                self.__currentToken.addCharToAttributeName(self.__currentInputChar)
-                self.__continueIn(self.State.AttributeName)
-
-        def handleAfterAttributeName() -> None:
-            if charIsWhitespace(self.__currentInputChar):
-                pass
-            elif self.__currentInputChar == "/":
-                self.switchStateTo(self.State.SelfClosingStartTag)
-            elif self.__currentInputChar == "=":
-                self.switchStateTo(self.State.BeforeAttributeValue)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar is None:
-                raise NotImplementedError
-            else:
-                self.__currentToken.createNewAttribute()
-                self.__reconsumeIn(self.State.AttributeName)
-
-        def handleBeforeAttributeValue() -> None:
-            if charIsWhitespace(self.__currentInputChar):
-                self.__continueIn(self.State.BeforeAttributeValue)
-            elif self.__currentInputChar == '"':
-                self.switchStateTo(self.State.AttributeValueDoubleQuoted)
-            elif self.__currentInputChar == "'":
-                self.switchStateTo(self.State.AttributeValueSingleQuoted)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__reconsumeIn(self.State.AttributeValueUnquoted)
-
-        def handleAttributeValueDoubleQuoted() -> None:
-            self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar == '"':
-                self.switchStateTo(self.State.AfterAttributeValueQuoted)
-            elif self.__currentInputChar == "&":
-                self.__returnState = self.State.AttributeValueDoubleQuoted
-                self.switchStateTo(self.State.CharacterReference)
-            else:
-                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.State.AttributeValueDoubleQuoted)
-
-        def handleAttributeValueSingleQuoted() -> None:
-            self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar == "'":
-                self.switchStateTo(self.State.AfterAttributeValueQuoted)
-            elif self.__currentInputChar == "&":
-                self.__returnState = self.State.AttributeValueSingleQuoted
-                self.switchStateTo(self.State.CharacterReference)
-            else:
-                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.State.AttributeValueSingleQuoted)
-
-        def handleAttributeValueUnquoted() -> None:
-            self.__currentToken = cast(HTMLTag, self.__currentToken)
-            if self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            elif charIsWhitespace(self.__currentInputChar):
-                self.switchStateTo(self.State.BeforeAttributeName)
-            elif self.__currentInputChar == "&":
-                self.__returnState = self.State.AttributeValueUnquoted
-                self.switchStateTo(self.State.CharacterReference)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
-                self.__continueIn(self.State.AttributeValueUnquoted)
-
-        def handleAfterAttributeValueQuoted() -> None:
-            if self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            elif charIsWhitespace(self.__currentInputChar):
-                self.switchStateTo(self.State.BeforeAttributeName)
-            elif self.__currentInputChar == "/":
-                self.switchStateTo(self.State.SelfClosingStartTag)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__reconsumeIn(self.State.BeforeAttributeName)
-
-        def handleSelfClosingStartTag() -> None:
-            if self.__currentInputChar == ">":
-                self.__currentToken.selfClosing = True
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar is None:
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                self.__reconsumeIn(self.State.BeforeAttributeName)
-
-        def handleBogusComment() -> None:
-            raise NotImplementedError
-
-        def handleMarkupDeclarationOpen() -> None:
-            if self.__nextCharactersAre("--"):
-                self.__consumeCharacters("--")
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Comment)
-                self.switchStateTo(self.State.CommentStart)
-            elif self.__nextCharactersAre("DOCTYPE"):
-                self.__consumeCharacters("DOCTYPE")
-                self.switchStateTo(self.State.DOCTYPE)
-
-        def handleCommentStart() -> None:
-
-            if self.__currentInputChar == "-":
-                self.switchStateTo(self.State.CommentStartDash)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__reconsumeIn(self.State.Comment)
-
-        def handleCommentStartDash() -> None:
-            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if self.__currentInputChar == "-":
-                self.switchStateTo(self.State.CommentEnd)
-            elif self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar is None:
-                self.__emitCurrentToken()
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                if self.__currentToken.data is not None:
-                    self.__currentToken.data += "-"
-                else:
-                    self.__currentToken.data = "-"
-                self.__reconsumeIn(self.State.Comment)
-
-        def handleComment() -> None:
-            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if self.__currentInputChar == "-":
-                self.switchStateTo(self.State.CommentEndDash)
-            elif self.__currentInputChar is None:
-                self.__emitCurrentToken()
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                if self.__currentToken.data is not None:
-                    self.__currentToken.data += self.__currentInputChar
-                else:
-                    self.__currentToken.data = self.__currentInputChar
-                self.__continueIn(self.State.Comment)
-
-        def handleCommentLessThanSign() -> None:
-            raise NotImplementedError
-
-        def handleCommentLessThanSignBang() -> None:
-            raise NotImplementedError
-
-        def handleCommentLessThanSignBangDash() -> None:
-            raise NotImplementedError
-
-        def handleCommentLessThanSignBangDashDash() -> None:
-            raise NotImplementedError
-
-        def handleCommentEndDash() -> None:
-            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if self.__currentInputChar == "-":
-                self.switchStateTo(self.State.CommentEnd)
-            elif self.__currentInputChar is None:
-                self.__emitCurrentToken()
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                if self.__currentToken.data is not None:
-                    self.__currentToken.data += "-"
-                else:
-                    self.__currentToken.data = "-"
-                self.__reconsumeIn(self.State.Comment)
-
-        def handleCommentEnd() -> None:
-            self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
-            if self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            elif self.__currentInputChar == "-":
-                if self.__currentToken.data is not None:
-                    self.__currentToken.data += "-"
-                else:
-                    self.__currentToken.data = "-"
-                self.__continueIn(self.State.CommentEnd)
-            elif self.__currentInputChar is None:
-                self.__emitCurrentToken()
-                self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
-                self.__emitCurrentToken()
-            else:
-                if self.__currentToken.data is not None:
-                    self.__currentToken.data += "-"
-                else:
-                    self.__currentToken.data = "-"
-                self.__reconsumeIn(self.State.Comment)
-
-        def handleCommentEndBang() -> None:
-            raise NotImplementedError
-
-        def handleDOCTYPE() -> None:
-            if charIsWhitespace(cast(str, self.__currentInputChar)):
-                self.switchStateTo(self.State.BeforeDOCTYPEName)
-
-        def handleBeforeDOCTYPEName() -> None:
-            if charIsWhitespace(cast(str, self.__currentInputChar)):
-                self.__ignoreCharacterAndContinueTo(self.State.BeforeDOCTYPEName)
-            else:
-                self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))
-                if self.__currentToken.name is not None and self.__currentInputChar is not None:
-                    self.__currentToken.name += self.__currentInputChar
-                else:
-                    self.__currentToken.name = self.__currentInputChar
-
-                self.switchStateTo(self.State.DOCTYPEName)
-
-        def handleDOCTYPEName() -> None:
-            self.__currentToken = cast(HTMLDoctype, self.__currentToken)
-            if self.__currentInputChar == ">":
-                self.switchStateTo(self.State.Data)
-                self.__emitCurrentToken()
-            else:
-                self.__currentToken.name = self.__currentToken.name + str(self.__currentInputChar)
-                self.__continueIn(self.State.DOCTYPEName)
-
-        def handleAfterDOCTYPEName() -> None:
-            raise NotImplementedError
-
-        def handleAfterDOCTYPEPublicKeyword() -> None:
-            raise NotImplementedError
-
-        def handleBeforeDOCTYPEPublicIdentifier() -> None:
-            raise NotImplementedError
-
-        def handleDOCTYPEPublicIdentifierDoubleQuoted() -> None:
-            raise NotImplementedError
-
-        def handleDOCTYPEPublicIdentifierSingleQuoted() -> None:
-            raise NotImplementedError
-
-        def handleAfterDOCTYPEPublicIdentifier() -> None:
-            raise NotImplementedError
-
-        def handleBetweenDOCTYPEPublicAndSystemIdentifiers() -> None:
-            raise NotImplementedError
-
-        def handleAfterDOCTYPESystemKeyword() -> None:
-            raise NotImplementedError
-
-        def handleBeforeDOCTYPESystemIdentifier() -> None:
-            raise NotImplementedError
-
-        def handleDOCTYPESystemIdentifierDoubleQuoted() -> None:
-            raise NotImplementedError
-
-        def handleDOCTYPESystemIdentifierSingleQuoted() -> None:
-            raise NotImplementedError
-
-        def handleAfterDOCTYPESystemIdentifier() -> None:
-            raise NotImplementedError
-
-        def handleBogusDOCTYPE() -> None:
-            raise NotImplementedError
-
-        def handleCDATASection() -> None:
-            raise NotImplementedError
-
-        def handleCDATASectionBracket() -> None:
-            raise NotImplementedError
-
-        def handleCDATASectionEnd() -> None:
-            raise NotImplementedError
-
-        def handleCharacterReference() -> None:
-            self.__temporaryBuffer.append("&")
-            if self.__currentInputChar.isalnum():
-                self.__reconsumeIn(self.State.NamedCharacterReference)
-            elif self.__currentInputChar == "#":
-                self.__temporaryBuffer.append(self.__currentInputChar)
-                self.switchStateTo(self.State.NumericCharacterReference)
-            else:
-                self.__flushTemporaryBuffer()
-                self.__reconsumeIn(self.__returnState)
-
-        def handleNamedCharacterReference() -> None:
-            consumedCharacters: List[str] = [self.__currentInputChar]
-            while atLeastOneNameStartsWith("".join(consumedCharacters)):
-                nextChar = self.__nextCodePoint()
-                self.__currentInputChar = nextChar
-                consumedCharacters.append(nextChar)
-                if nextChar == ";":
-                    break
-            match = getNamedCharFromTable("".join(consumedCharacters))
-            if match is not None:
-                # TODO: Implement case.
-                if self.__currentToken is not None:
-                    self.__currentToken.addCharToAttributeValue(chr(match))
-                else:
-                    self.__currentToken = cast(HTMLCommentOrCharacter,
-                                              self.__createNewToken(HTMLToken.TokenType.Character))
-                    self.__currentToken.data = chr(match)
-                    self.__emitCurrentToken()
-                self.switchStateTo(self.__returnState)
-            else:
-                self.__temporaryBuffer.extend(consumedCharacters)
-                self.__flushTemporaryBuffer()
-                self.__reconsumeIn(self.State.AmbiguousAmpersand)
-
-        def handleAmbiguousAmpersand() -> None:
-            if self.__currentInputChar.isalnum():
-                self.__temporaryBuffer.append(self.__currentInputChar)
-                self.__flushTemporaryBuffer()
-            elif self.__currentInputChar == ";":
-                self.__reconsumeIn(self.__returnState)
-            else:
-                self.__reconsumeIn(self.__returnState)
-
-        def handleNumericCharacterReference() -> None:
-            characterReferenceCode = 0
-
-            if self.__currentInputChar == "X" or self.__currentInputChar == "x":
-                self.__temporaryBuffer.append(self.__currentInputChar)
-                self.switchStateTo(self.State.HexadecimalCharacterReferenceStart)
-            else:
-                self.__reconsumeIn(self.State.DecimalCharacterReferenceStart)
-
-        def handleHexadecimalCharacterReferenceStart() -> None:
-            raise NotImplementedError
-
-        def handleDecimalCharacterReferenceStart() -> None:
-            if self.__currentInputChar.isdigit():
-                self.__reconsumeIn(self.State.HexadecimalCharacterReference)
-            else:
-                # TODO: handle parse error.
-                self.__flushTemporaryBuffer()
-                self.__reconsumeIn(self.__returnState)
-
-        def handleHexadecimalCharacterReference() -> None:
-            if self.__currentInputChar.isdigit():
-                self.__characterReferenceCode *= 16
-                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0030
-            elif charIsUppercaseAlpha(self.__currentInputChar):
-                self.__characterReferenceCode *= 16
-                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0037
-            elif charIsLowercaseAlpha(self.__currentInputChar):
-                self.__characterReferenceCode *= 16
-                self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0057
-            elif self.__currentInputChar == ";":
-                self.switchStateTo(self.State.NumericCharacterReferenceEnd)
-            else:
-                # TODO: Handle parse error.
-                self.__reconsumeIn(self.state.NumericCharacterReferenceEnd)
-
-        def handleDecimalCharacterReference() -> None:
-            raise NotImplementedError
-
-        def handleNumericCharacterReferenceEnd() -> None:
-            if self.__characterReferenceCode == 0:
-                # TODO: handle parse error.
-                self.__characterReferenceCode = 0xFFFD
-            elif self.__characterReferenceCode > 0x10ffff:
-                # TODO: handle parse error.
-                self.__characterReferenceCode = 0xFFFD
-            elif charIsSurrogate(self.__characterReferenceCode):
-                # TODO: handle parse error.
-                self.__characterReferenceCode = 0xFFFD
-            elif charIsNoncharacter(self.__characterReferenceCode):
-                # TODO: Handle parse error.
-                pass
-            elif self.__characterReferenceCode == 0x0D or (
-                    charIsControl(self.__characterReferenceCode) and not charIsWhitespace(
-                    chr(self.characterReferenceCode))):
-                conversionTable = {
-                    0x80: 0x20AC,
-                    0x82: 0x201A,
-                    0x83: 0x0192,
-                    0x84: 0x201E,
-                    0x85: 0x2026,
-                    0x86: 0x2020,
-                    0x87: 0x2021,
-                    0x88: 0x02C6,
-                    0x89: 0x2030,
-                    0x8A: 0x0160,
-                    0x8B: 0x2039,
-                    0x8C: 0x0152,
-                    0x8E: 0x017D,
-                    0x91: 0x2018,
-                    0x92: 0x2019,
-                    0x93: 0x201C,
-                    0x94: 0x201D,
-                    0x95: 0x2022,
-                    0x96: 0x2013,
-                    0x97: 0x2014,
-                    0x98: 0x02DC,
-                    0x99: 0x2122,
-                    0x9A: 0x0161,
-                    0x9B: 0x203A,
-                    0x9C: 0x0153,
-                    0x9E: 0x017E,
-                    0x9F: 0x0178,
-                }
-                value = conversionTable.get(self.__characterReferenceCode, None)
-                if value is not None:
-                    self.__characterReferenceCode = value
-
+    def handleRCDATALessThanSign(self) -> None:
+        if self.__currentInputChar == "/":
             self.__temporaryBuffer = []
-            self.__temporaryBuffer.append(chr(self.__characterReferenceCode))
+            self.switchStateTo(self.State.RCDATAEndTagOpen)
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RCDATA)
+
+    def handleRCDATAEndTagOpen(self) -> None:
+        if charIsAlpha(self.__currentInputChar):
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+            self.__currentToken.name = ""
+            self.__reconsumeIn(self.State.RCDATAEndTagName)
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RCDATA)
+
+    def handleRCDATAEndTagName(self) -> None:
+        print("Current char:", self.__currentInputChar)
+        print("Current token:", self.__currentToken)
+        print("Last emited token:", self.__lastEmittedStartTagName)
+
+        def elseCase():
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+
+            for char in self.__temporaryBuffer:
+                self.__currentToken = cast(HTMLCommentOrCharacter,
+                                           self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = char
+                self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RCDATA)
+
+        if charIsWhitespace(self.__currentInputChar):
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.BeforeAttributeName)
+            else:
+                elseCase()
+        elif self.__currentInputChar == "/":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.SelfClosingStartTag)
+            else:
+                elseCase()
+        elif self.__currentInputChar == ">":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.Data)
+                self.__emitCurrentToken()
+            else:
+                elseCase()
+        elif charIsUppercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        elif charIsLowercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar)
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        else:
+            elseCase()
+
+    def handleRAWTEXTLessThanSign(self) -> None:
+        if self.__currentInputChar == "/":
+            self.__temporaryBuffer = []
+            self.switchStateTo(self.State.RAWTEXTEndTagOpen)
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RAWTEXT)
+
+    def handleRAWTEXTEndTagOpen(self) -> None:
+        if charIsAlpha(self.__currentInputChar):
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EndTag)
+            self.__currentToken = cast(HTMLTag, self.__currentToken)
+            self.__currentToken.name = ""
+            self.__reconsumeIn(self.State.RAWTEXTEndTagName)
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RAWTEXT)
+
+    def handleRAWTEXTEndTagName(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+        def elseCase() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+
+            for char in self.__temporaryBuffer:
+                self.__currentToken = cast(HTMLCommentOrCharacter,
+                                           self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = char
+                self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.RAWTEXT)
+
+        if charIsWhitespace(self.__currentInputChar):
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.BeforeAttributeName)
+            else:
+                elseCase()
+        elif self.__currentInputChar == "/":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.SelfClosingStartTag)
+            else:
+                elseCase()
+        elif self.__currentInputChar == ">":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.Data)
+                self.__emitCurrentToken()
+            else:
+                elseCase()
+        elif charIsUppercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        elif charIsLowercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar)
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        else:
+            elseCase()
+
+    def handleScriptDataLessThanSign(self) -> None:
+        if self.__currentInputChar == "/":
+            self.__temporaryBuffer = []
+            self.switchStateTo(self.State.ScriptDataEndTagOpen)
+        elif self.__currentInputChar == "!":
+            self.switchStateTo(self.State.ScriptDataEscapeStart)
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "!"
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.ScriptData)
+
+    def handleScriptDataEndTagOpen(self) -> None:
+        if charIsUppercaseAlpha(self.__currentInputChar) or charIsLowercaseAlpha(self.__currentInputChar):
+            self.__currentToken = cast(HTMLTag, self.__createNewToken(HTMLToken.TokenType.EndTag))
+            self.__currentToken.name = ""
+            self.__reconsumeIn(self.State.ScriptDataEndTagName)
+        else:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.ScriptData)
+
+    def handleScriptDataEndTagName(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+        def elseCase() -> None:
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "<"
+            self.__emitCurrentToken()
+            self.__currentToken = cast(HTMLCommentOrCharacter, self.__createNewToken(HTMLToken.TokenType.Character))
+            self.__currentToken.data = "/"
+            self.__emitCurrentToken()
+            for char in self.__temporaryBuffer:
+                self.__currentToken = cast(HTMLCommentOrCharacter,
+                                           self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = char
+                self.__emitCurrentToken()
+            self.__reconsumeIn(self.State.ScriptData)
+
+        if charIsWhitespace(self.__currentInputChar):
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.BeforeAttributeName)
+            else:
+                elseCase()
+        elif self.__currentInputChar == "/":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.SelfClosingStartTag)
+            else:
+                elseCase()
+        elif self.__currentInputChar == ">":
+            if self.__currentToken.name == self.__lastEmittedStartTagName:
+                self.switchStateTo(self.State.Data)
+                self.__emitCurrentToken()
+            else:
+                elseCase()
+        elif charIsUppercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar.lower())
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        elif charIsLowercaseAlpha(self.__currentInputChar):
+            self.__currentToken.appendCharToTokenName(self.__currentInputChar)
+            self.__temporaryBuffer.append(self.__currentInputChar)
+        else:
+            elseCase()
+
+    def handleScriptDataEscapeStart(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapeStartDash(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscaped(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapedDash(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapedDashDash(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapedLessThanSign(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapedEndTagOpen(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataEscapedEndTagName(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscapeStart(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscaped(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscapedDash(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscapedDashDash(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscapedLessThanSign(self) -> None:
+        raise NotImplementedError
+
+    def handleScriptDataDoubleEscapeEnd(self) -> None:
+        raise NotImplementedError
+
+    def handleBeforeAttributeName(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+        if self.__currentInputChar is None:
+            self.__reconsumeIn(self.State.AfterAttributeName)
+        elif charIsWhitespace(self.__currentInputChar):
+            self.__continueIn(self.State.BeforeAttributeName)
+        else:
+            self.__currentToken.createNewAttribute()
+            self.__reconsumeIn(self.State.AttributeName)
+
+    def handleAttributeName(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+        if (
+                self.__currentInputChar is None
+                or charIsWhitespace(self.__currentInputChar)
+                or self.__currentInputChar == "/"
+                or self.__currentInputChar == ">"
+        ):
+            self.__reconsumeIn(self.State.AfterAttributeName)
+        elif self.__currentInputChar == "=":
+            self.switchStateTo(self.State.BeforeAttributeValue)
+        elif self.__currentInputChar.isupper() and self.__currentInputChar.isalpha():
+            self.__currentToken.addCharToAttributeName(self.__currentInputChar.lower())
+        else:
+            self.__currentToken.addCharToAttributeName(self.__currentInputChar)
+            self.__continueIn(self.State.AttributeName)
+
+    def handleAfterAttributeName(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+
+        if charIsWhitespace(self.__currentInputChar):
+            pass
+        elif self.__currentInputChar == "/":
+            self.switchStateTo(self.State.SelfClosingStartTag)
+        elif self.__currentInputChar == "=":
+            self.switchStateTo(self.State.BeforeAttributeValue)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar is None:
+            raise NotImplementedError
+        else:
+            self.__currentToken.createNewAttribute()
+            self.__reconsumeIn(self.State.AttributeName)
+
+    def handleBeforeAttributeValue(self) -> None:
+        if charIsWhitespace(self.__currentInputChar):
+            self.__continueIn(self.State.BeforeAttributeValue)
+        elif self.__currentInputChar == '"':
+            self.switchStateTo(self.State.AttributeValueDoubleQuoted)
+        elif self.__currentInputChar == "'":
+            self.switchStateTo(self.State.AttributeValueSingleQuoted)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
+            self.__reconsumeIn(self.State.AttributeValueUnquoted)
+
+    def handleAttributeValueDoubleQuoted(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+        if self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar == '"':
+            self.switchStateTo(self.State.AfterAttributeValueQuoted)
+        elif self.__currentInputChar == "&":
+            self.__returnState = self.State.AttributeValueDoubleQuoted
+            self.switchStateTo(self.State.CharacterReference)
+        else:
+            self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+            self.__continueIn(self.State.AttributeValueDoubleQuoted)
+
+    def handleAttributeValueSingleQuoted(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+        if self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar == "'":
+            self.switchStateTo(self.State.AfterAttributeValueQuoted)
+        elif self.__currentInputChar == "&":
+            self.__returnState = self.State.AttributeValueSingleQuoted
+            self.switchStateTo(self.State.CharacterReference)
+        else:
+            self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+            self.__continueIn(self.State.AttributeValueSingleQuoted)
+
+    def handleAttributeValueUnquoted(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+        if self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        elif charIsWhitespace(self.__currentInputChar):
+            self.switchStateTo(self.State.BeforeAttributeName)
+        elif self.__currentInputChar == "&":
+            self.__returnState = self.State.AttributeValueUnquoted
+            self.switchStateTo(self.State.CharacterReference)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken.addCharToAttributeValue(self.__currentInputChar)
+            self.__continueIn(self.State.AttributeValueUnquoted)
+
+    def handleAfterAttributeValueQuoted(self) -> None:
+        if self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        elif charIsWhitespace(self.__currentInputChar):
+            self.switchStateTo(self.State.BeforeAttributeName)
+        elif self.__currentInputChar == "/":
+            self.switchStateTo(self.State.SelfClosingStartTag)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
+            self.__reconsumeIn(self.State.BeforeAttributeName)
+
+    def handleSelfClosingStartTag(self) -> None:
+        self.__currentToken = cast(HTMLTag, self.__currentToken)
+        if self.__currentInputChar == ">":
+            self.__currentToken.selfClosing = True
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar is None:
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            self.__reconsumeIn(self.State.BeforeAttributeName)
+
+    def handleBogusComment(self) -> None:
+        raise NotImplementedError
+
+    def handleMarkupDeclarationOpen(self) -> None:
+        if self.__nextCharactersAre("--"):
+            self.__consumeCharacters("--")
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.Comment)
+            self.switchStateTo(self.State.CommentStart)
+        elif self.__nextCharactersAre("DOCTYPE"):
+            self.__consumeCharacters("DOCTYPE")
+            self.switchStateTo(self.State.DOCTYPE)
+
+    def handleCommentStart(self) -> None:
+
+        if self.__currentInputChar == "-":
+            self.switchStateTo(self.State.CommentStartDash)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
+            self.__reconsumeIn(self.State.Comment)
+
+    def handleCommentStartDash(self) -> None:
+        self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
+        if self.__currentInputChar == "-":
+            self.switchStateTo(self.State.CommentEnd)
+        elif self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar is None:
+            self.__emitCurrentToken()
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            if self.__currentToken.data is not None:
+                self.__currentToken.data += "-"
+            else:
+                self.__currentToken.data = "-"
+            self.__reconsumeIn(self.State.Comment)
+
+    def handleComment(self) -> None:
+        self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
+        if self.__currentInputChar == "-":
+            self.switchStateTo(self.State.CommentEndDash)
+        elif self.__currentInputChar is None:
+            self.__emitCurrentToken()
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            if self.__currentToken.data is not None:
+                self.__currentToken.data += self.__currentInputChar
+            else:
+                self.__currentToken.data = self.__currentInputChar
+            self.__continueIn(self.State.Comment)
+
+    def handleCommentLessThanSign(self) -> None:
+        raise NotImplementedError
+
+    def handleCommentLessThanSignBang(self) -> None:
+        raise NotImplementedError
+
+    def handleCommentLessThanSignBangDash(self) -> None:
+        raise NotImplementedError
+
+    def handleCommentLessThanSignBangDashDash(self) -> None:
+        raise NotImplementedError
+
+    def handleCommentEndDash(self) -> None:
+        self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
+        if self.__currentInputChar == "-":
+            self.switchStateTo(self.State.CommentEnd)
+        elif self.__currentInputChar is None:
+            self.__emitCurrentToken()
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            if self.__currentToken.data is not None:
+                self.__currentToken.data += "-"
+            else:
+                self.__currentToken.data = "-"
+            self.__reconsumeIn(self.State.Comment)
+
+    def handleCommentEnd(self) -> None:
+        self.__currentToken = cast(HTMLCommentOrCharacter, self.__currentToken)
+        if self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        elif self.__currentInputChar == "-":
+            if self.__currentToken.data is not None:
+                self.__currentToken.data += "-"
+            else:
+                self.__currentToken.data = "-"
+            self.__continueIn(self.State.CommentEnd)
+        elif self.__currentInputChar is None:
+            self.__emitCurrentToken()
+            self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+            self.__emitCurrentToken()
+        else:
+            if self.__currentToken.data is not None:
+                self.__currentToken.data += "-"
+            else:
+                self.__currentToken.data = "-"
+            self.__reconsumeIn(self.State.Comment)
+
+    def handleCommentEndBang(self) -> None:
+        raise NotImplementedError
+
+    def handleDOCTYPE(self) -> None:
+        if charIsWhitespace(self.__currentInputChar):
+            self.switchStateTo(self.State.BeforeDOCTYPEName)
+
+    def handleBeforeDOCTYPEName(self) -> None:
+        if charIsWhitespace(self.__currentInputChar):
+            self.__ignoreCharacterAndContinueTo(self.State.BeforeDOCTYPEName)
+        else:
+            self.__currentToken = cast(HTMLDoctype, self.__createNewToken(HTMLToken.TokenType.DOCTYPE))
+            if self.__currentToken.name is not None and self.__currentInputChar is not None:
+                self.__currentToken.name += self.__currentInputChar
+            else:
+                self.__currentToken.name = self.__currentInputChar
+
+            self.switchStateTo(self.State.DOCTYPEName)
+
+    def handleDOCTYPEName(self) -> None:
+        self.__currentToken = cast(HTMLDoctype, self.__currentToken)
+        if self.__currentInputChar == ">":
+            self.switchStateTo(self.State.Data)
+            self.__emitCurrentToken()
+        else:
+            self.__currentToken.name = self.__currentToken.name + str(self.__currentInputChar)\
+                                        if self.__currentToken.name else str(self.__currentInputChar)
+            self.__continueIn(self.State.DOCTYPEName)
+
+    def handleAfterDOCTYPEName(self) -> None:
+        raise NotImplementedError
+
+    def handleAfterDOCTYPEPublicKeyword(self) -> None:
+        raise NotImplementedError
+
+    def handleBeforeDOCTYPEPublicIdentifier(self) -> None:
+        raise NotImplementedError
+
+    def handleDOCTYPEPublicIdentifierDoubleQuoted(self) -> None:
+        raise NotImplementedError
+
+    def handleDOCTYPEPublicIdentifierSingleQuoted(self) -> None:
+        raise NotImplementedError
+
+    def handleAfterDOCTYPEPublicIdentifier(self) -> None:
+        raise NotImplementedError
+
+    def handleBetweenDOCTYPEPublicAndSystemIdentifiers(self) -> None:
+        raise NotImplementedError
+
+    def handleAfterDOCTYPESystemKeyword(self) -> None:
+        raise NotImplementedError
+
+    def handleBeforeDOCTYPESystemIdentifier(self) -> None:
+        raise NotImplementedError
+
+    def handleDOCTYPESystemIdentifierDoubleQuoted(self) -> None:
+        raise NotImplementedError
+
+    def handleDOCTYPESystemIdentifierSingleQuoted(self) -> None:
+        raise NotImplementedError
+
+    def handleAfterDOCTYPESystemIdentifier(self) -> None:
+        raise NotImplementedError
+
+    def handleBogusDOCTYPE(self) -> None:
+        raise NotImplementedError
+
+    def handleCDATASection(self) -> None:
+        raise NotImplementedError
+
+    def handleCDATASectionBracket(self) -> None:
+        raise NotImplementedError
+
+    def handleCDATASectionEnd(self) -> None:
+        raise NotImplementedError
+
+    def handleCharacterReference(self) -> None:
+        self.__temporaryBuffer.append("&")
+        self.__returnState = cast(HTMLTokenizer.State, self.__returnState)
+        if self.__currentInputChar.isalnum():
+            self.__reconsumeIn(self.State.NamedCharacterReference)
+        elif self.__currentInputChar == "#":
+            self.__temporaryBuffer.append(self.__currentInputChar)
+            self.switchStateTo(self.State.NumericCharacterReference)
+        else:
             self.__flushTemporaryBuffer()
+            self.__reconsumeIn(self.__returnState)
+
+    def handleNamedCharacterReference(self) -> None:
+        self.__returnState = cast(HTMLTokenizer.State, self.__returnState)
+        consumedCharacters: List[str] = [self.__currentInputChar]
+        while atLeastOneNameStartsWith("".join(consumedCharacters)):
+            nextChar = self.__nextCodePoint()
+            self.__currentInputChar = nextChar
+            consumedCharacters.append(nextChar)
+            if nextChar == ";":
+                break
+        match = getNamedCharFromTable("".join(consumedCharacters))
+        if match is not None:
+            # TODO: Implement case.
+            if self.__currentToken is not None:
+                self.__currentToken = cast(HTMLTag, self.__currentToken)
+                self.__currentToken.addCharToAttributeValue(chr(match))
+            else:
+                self.__currentToken = cast(HTMLCommentOrCharacter,
+                                           self.__createNewToken(HTMLToken.TokenType.Character))
+                self.__currentToken.data = chr(match)
+                self.__emitCurrentToken()
+            self.switchStateTo(self.__returnState)
+        else:
+            self.__temporaryBuffer.extend(consumedCharacters)
+            self.__flushTemporaryBuffer()
+            self.__reconsumeIn(self.State.AmbiguousAmpersand)
+
+    def handleAmbiguousAmpersand(self) -> None:
+        self.__returnState = cast(HTMLTokenizer.State, self.__returnState)
+        if self.__currentInputChar.isalnum():
+            self.__temporaryBuffer.append(self.__currentInputChar)
+            self.__flushTemporaryBuffer()
+        elif self.__currentInputChar == ";":
+            self.__reconsumeIn(self.__returnState)
+        else:
+            self.__reconsumeIn(self.__returnState)
+
+    def handleNumericCharacterReference(self) -> None:
+        if self.__currentInputChar == "X" or self.__currentInputChar == "x":
+            self.__temporaryBuffer.append(self.__currentInputChar)
+            self.switchStateTo(self.State.HexadecimalCharacterReferenceStart)
+        else:
+            self.__reconsumeIn(self.State.DecimalCharacterReferenceStart)
+
+    def handleHexadecimalCharacterReferenceStart(self) -> None:
+        raise NotImplementedError
+
+    def handleDecimalCharacterReferenceStart(self) -> None:
+        if self.__currentInputChar.isdigit():
+            self.__reconsumeIn(self.State.HexadecimalCharacterReference)
+        else:
+            # TODO: handle parse error.
+            self.__flushTemporaryBuffer()
+            if self.__returnState is not None:
+                self.__reconsumeIn(self.__returnState)
+
+    def handleHexadecimalCharacterReference(self) -> None:
+        if self.__currentInputChar.isdigit():
+            self.__characterReferenceCode *= 16
+            self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0030
+        elif charIsUppercaseAlpha(self.__currentInputChar):
+            self.__characterReferenceCode *= 16
+            self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0037
+        elif charIsLowercaseAlpha(self.__currentInputChar):
+            self.__characterReferenceCode *= 16
+            self.__characterReferenceCode += ord(self.__currentInputChar) - 0x0057
+        elif self.__currentInputChar == ";":
+            self.switchStateTo(self.State.NumericCharacterReferenceEnd)
+        else:
+            # TODO: Handle parse error.
+            self.__reconsumeIn(self.State.NumericCharacterReferenceEnd)
+
+    def handleDecimalCharacterReference(self) -> None:
+        raise NotImplementedError
+
+    def handleNumericCharacterReferenceEnd(self) -> None:
+        if self.__characterReferenceCode == 0:
+            # TODO: handle parse error.
+            self.__characterReferenceCode = 0xFFFD
+        elif self.__characterReferenceCode > 0x10ffff:
+            # TODO: handle parse error.
+            self.__characterReferenceCode = 0xFFFD
+        elif charIsSurrogate(self.__characterReferenceCode):
+            # TODO: handle parse error.
+            self.__characterReferenceCode = 0xFFFD
+        elif charIsNoncharacter(self.__characterReferenceCode):
+            # TODO: Handle parse error.
+            pass
+        elif self.__characterReferenceCode == 0x0D or (
+                charIsControl(self.__characterReferenceCode) and not
+                charIsWhitespace(chr(self.__characterReferenceCode))):
+
+            conversionTable = {
+                0x80: 0x20AC,
+                0x82: 0x201A,
+                0x83: 0x0192,
+                0x84: 0x201E,
+                0x85: 0x2026,
+                0x86: 0x2020,
+                0x87: 0x2021,
+                0x88: 0x02C6,
+                0x89: 0x2030,
+                0x8A: 0x0160,
+                0x8B: 0x2039,
+                0x8C: 0x0152,
+                0x8E: 0x017D,
+                0x91: 0x2018,
+                0x92: 0x2019,
+                0x93: 0x201C,
+                0x94: 0x201D,
+                0x95: 0x2022,
+                0x96: 0x2013,
+                0x97: 0x2014,
+                0x98: 0x02DC,
+                0x99: 0x2122,
+                0x9A: 0x0161,
+                0x9B: 0x203A,
+                0x9C: 0x0153,
+                0x9E: 0x017E,
+                0x9F: 0x0178,
+            }
+            value = conversionTable.get(self.__characterReferenceCode, None)
+            if value is not None:
+                self.__characterReferenceCode = value
+
+        self.__temporaryBuffer = []
+        self.__temporaryBuffer.append(chr(self.__characterReferenceCode))
+        self.__flushTemporaryBuffer()
+        if self.__returnState is not None:
             self.switchStateTo(self.__returnState)
 
+    def __getStateSwitcher(self) -> Union[Callable[[], None], None]:
+
         switcher = {
-            self.State.Data: handleData,
-            self.State.RCDATA: handleRCDATA,
-            self.State.RAWTEXT: handleRAWTEXT,
-            self.State.ScriptData: handleScriptData,
-            self.State.PLAINTEXT: handlePLAINTEXT,
-            self.State.TagOpen: handleTagOpen,
-            self.State.EndTagOpen: handleEndTagOpen,
-            self.State.TagName: handleTagName,
-            self.State.RCDATALessThanSign: handleRCDATALessThanSign,
-            self.State.RCDATAEndTagOpen: handleRCDATAEndTagOpen,
-            self.State.RCDATAEndTagName: handleRCDATAEndTagName,
-            self.State.RAWTEXTLessThanSign: handleRAWTEXTLessThanSign,
-            self.State.RAWTEXTEndTagOpen: handleRAWTEXTEndTagOpen,
-            self.State.RAWTEXTEndTagName: handleRAWTEXTEndTagName,
-            self.State.ScriptDataLessThanSign: handleScriptDataLessThanSign,
-            self.State.ScriptDataEndTagOpen: handleScriptDataEndTagOpen,
-            self.State.ScriptDataEndTagName: handleScriptDataEndTagName,
-            self.State.ScriptDataEscapeStart: handleScriptDataEscapeStart,
-            self.State.ScriptDataEscapeStartDash: handleScriptDataEscapeStartDash,
-            self.State.ScriptDataEscaped: handleScriptDataEscaped,
-            self.State.ScriptDataEscapedDash: handleScriptDataEscapedDash,
-            self.State.ScriptDataEscapedDashDash: handleScriptDataEscapedDashDash,
-            self.State.ScriptDataEscapedLessThanSign: handleScriptDataEscapedLessThanSign,
-            self.State.ScriptDataEscapedEndTagOpen: handleScriptDataEscapedEndTagOpen,
-            self.State.ScriptDataEscapedEndTagName: handleScriptDataEscapedEndTagName,
-            self.State.ScriptDataDoubleEscapeStart: handleScriptDataDoubleEscapeStart,
-            self.State.ScriptDataDoubleEscaped: handleScriptDataDoubleEscaped,
-            self.State.ScriptDataDoubleEscapedDash: handleScriptDataDoubleEscapedDash,
-            self.State.ScriptDataDoubleEscapedDashDash: handleScriptDataDoubleEscapedDashDash,
-            self.State.ScriptDataDoubleEscapedLessThanSign: handleScriptDataDoubleEscapedLessThanSign,
-            self.State.ScriptDataDoubleEscapeEnd: handleScriptDataDoubleEscapeEnd,
-            self.State.BeforeAttributeName: handleBeforeAttributeName,
-            self.State.AttributeName: handleAttributeName,
-            self.State.AfterAttributeName: handleAfterAttributeName,
-            self.State.BeforeAttributeValue: handleBeforeAttributeValue,
-            self.State.AttributeValueDoubleQuoted: handleAttributeValueDoubleQuoted,
-            self.State.AttributeValueSingleQuoted: handleAttributeValueSingleQuoted,
-            self.State.AttributeValueUnquoted: handleAttributeValueUnquoted,
-            self.State.AfterAttributeValueQuoted: handleAfterAttributeValueQuoted,
-            self.State.SelfClosingStartTag: handleSelfClosingStartTag,
-            self.State.BogusComment: handleBogusComment,
-            self.State.MarkupDeclarationOpen: handleMarkupDeclarationOpen,
-            self.State.CommentStart: handleCommentStart,
-            self.State.CommentStartDash: handleCommentStartDash,
-            self.State.Comment: handleComment,
-            self.State.CommentLessThanSign: handleCommentLessThanSign,
-            self.State.CommentLessThanSignBang: handleCommentLessThanSignBang,
-            self.State.CommentLessThanSignBangDash: handleCommentLessThanSignBangDash,
-            self.State.CommentLessThanSignBangDashDash: handleCommentLessThanSignBangDashDash,
-            self.State.CommentEndDash: handleCommentEndDash,
-            self.State.CommentEnd: handleCommentEnd,
-            self.State.CommentEndBang: handleCommentEndBang,
-            self.State.DOCTYPE: handleDOCTYPE,
-            self.State.BeforeDOCTYPEName: handleBeforeDOCTYPEName,
-            self.State.DOCTYPEName: handleDOCTYPEName,
-            self.State.AfterDOCTYPEName: handleAfterDOCTYPEName,
-            self.State.AfterDOCTYPEPublicKeyword: handleAfterDOCTYPEPublicKeyword,
-            self.State.BeforeDOCTYPEPublicIdentifier: handleBeforeDOCTYPEPublicIdentifier,
-            self.State.DOCTYPEPublicIdentifierDoubleQuoted: handleDOCTYPEPublicIdentifierDoubleQuoted,
-            self.State.DOCTYPEPublicIdentifierSingleQuoted: handleDOCTYPEPublicIdentifierSingleQuoted,
-            self.State.AfterDOCTYPEPublicIdentifier: handleAfterDOCTYPEPublicIdentifier,
-            self.State.BetweenDOCTYPEPublicAndSystemIdentifiers: handleBetweenDOCTYPEPublicAndSystemIdentifiers,
-            self.State.AfterDOCTYPESystemKeyword: handleAfterDOCTYPESystemKeyword,
-            self.State.BeforeDOCTYPESystemIdentifier: handleBeforeDOCTYPESystemIdentifier,
-            self.State.DOCTYPESystemIdentifierDoubleQuoted: handleDOCTYPESystemIdentifierDoubleQuoted,
-            self.State.DOCTYPESystemIdentifierSingleQuoted: handleDOCTYPESystemIdentifierSingleQuoted,
-            self.State.AfterDOCTYPESystemIdentifier: handleAfterDOCTYPESystemIdentifier,
-            self.State.BogusDOCTYPE: handleBogusDOCTYPE,
-            self.State.CDATASection: handleCDATASection,
-            self.State.CDATASectionBracket: handleCDATASectionBracket,
-            self.State.CDATASectionEnd: handleCDATASectionEnd,
-            self.State.CharacterReference: handleCharacterReference,
-            self.State.NamedCharacterReference: handleNamedCharacterReference,
-            self.State.AmbiguousAmpersand: handleAmbiguousAmpersand,
-            self.State.NumericCharacterReference: handleNumericCharacterReference,
-            self.State.HexadecimalCharacterReferenceStart: handleHexadecimalCharacterReferenceStart,
-            self.State.DecimalCharacterReferenceStart: handleDecimalCharacterReferenceStart,
-            self.State.HexadecimalCharacterReference: handleHexadecimalCharacterReference,
-            self.State.DecimalCharacterReference: handleDecimalCharacterReference,
-            self.State.NumericCharacterReferenceEnd: handleNumericCharacterReferenceEnd,
+            self.State.Data: self.handleData,
+            self.State.RCDATA: self.handleRCDATA,
+            self.State.RAWTEXT: self.handleRAWTEXT,
+            self.State.ScriptData: self.handleScriptData,
+            self.State.PLAINTEXT: self.handlePLAINTEXT,
+            self.State.TagOpen: self.handleTagOpen,
+            self.State.EndTagOpen: self.handleEndTagOpen,
+            self.State.TagName: self.handleTagName,
+            self.State.RCDATALessThanSign: self.handleRCDATALessThanSign,
+            self.State.RCDATAEndTagOpen: self.handleRCDATAEndTagOpen,
+            self.State.RCDATAEndTagName: self.handleRCDATAEndTagName,
+            self.State.RAWTEXTLessThanSign: self.handleRAWTEXTLessThanSign,
+            self.State.RAWTEXTEndTagOpen: self.handleRAWTEXTEndTagOpen,
+            self.State.RAWTEXTEndTagName: self.handleRAWTEXTEndTagName,
+            self.State.ScriptDataLessThanSign: self.handleScriptDataLessThanSign,
+            self.State.ScriptDataEndTagOpen: self.handleScriptDataEndTagOpen,
+            self.State.ScriptDataEndTagName: self.handleScriptDataEndTagName,
+            self.State.ScriptDataEscapeStart: self.handleScriptDataEscapeStart,
+            self.State.ScriptDataEscapeStartDash: self.handleScriptDataEscapeStartDash,
+            self.State.ScriptDataEscaped: self.handleScriptDataEscaped,
+            self.State.ScriptDataEscapedDash: self.handleScriptDataEscapedDash,
+            self.State.ScriptDataEscapedDashDash: self.handleScriptDataEscapedDashDash,
+            self.State.ScriptDataEscapedLessThanSign: self.handleScriptDataEscapedLessThanSign,
+            self.State.ScriptDataEscapedEndTagOpen: self.handleScriptDataEscapedEndTagOpen,
+            self.State.ScriptDataEscapedEndTagName: self.handleScriptDataEscapedEndTagName,
+            self.State.ScriptDataDoubleEscapeStart: self.handleScriptDataDoubleEscapeStart,
+            self.State.ScriptDataDoubleEscaped: self.handleScriptDataDoubleEscaped,
+            self.State.ScriptDataDoubleEscapedDash: self.handleScriptDataDoubleEscapedDash,
+            self.State.ScriptDataDoubleEscapedDashDash: self.handleScriptDataDoubleEscapedDashDash,
+            self.State.ScriptDataDoubleEscapedLessThanSign: self.handleScriptDataDoubleEscapedLessThanSign,
+            self.State.ScriptDataDoubleEscapeEnd: self.handleScriptDataDoubleEscapeEnd,
+            self.State.BeforeAttributeName: self.handleBeforeAttributeName,
+            self.State.AttributeName: self.handleAttributeName,
+            self.State.AfterAttributeName: self.handleAfterAttributeName,
+            self.State.BeforeAttributeValue: self.handleBeforeAttributeValue,
+            self.State.AttributeValueDoubleQuoted: self.handleAttributeValueDoubleQuoted,
+            self.State.AttributeValueSingleQuoted: self.handleAttributeValueSingleQuoted,
+            self.State.AttributeValueUnquoted: self.handleAttributeValueUnquoted,
+            self.State.AfterAttributeValueQuoted: self.handleAfterAttributeValueQuoted,
+            self.State.SelfClosingStartTag: self.handleSelfClosingStartTag,
+            self.State.BogusComment: self.handleBogusComment,
+            self.State.MarkupDeclarationOpen: self.handleMarkupDeclarationOpen,
+            self.State.CommentStart: self.handleCommentStart,
+            self.State.CommentStartDash: self.handleCommentStartDash,
+            self.State.Comment: self.handleComment,
+            self.State.CommentLessThanSign: self.handleCommentLessThanSign,
+            self.State.CommentLessThanSignBang: self.handleCommentLessThanSignBang,
+            self.State.CommentLessThanSignBangDash: self.handleCommentLessThanSignBangDash,
+            self.State.CommentLessThanSignBangDashDash: self.handleCommentLessThanSignBangDashDash,
+            self.State.CommentEndDash: self.handleCommentEndDash,
+            self.State.CommentEnd: self.handleCommentEnd,
+            self.State.CommentEndBang: self.handleCommentEndBang,
+            self.State.DOCTYPE: self.handleDOCTYPE,
+            self.State.BeforeDOCTYPEName: self.handleBeforeDOCTYPEName,
+            self.State.DOCTYPEName: self.handleDOCTYPEName,
+            self.State.AfterDOCTYPEName: self.handleAfterDOCTYPEName,
+            self.State.AfterDOCTYPEPublicKeyword: self.handleAfterDOCTYPEPublicKeyword,
+            self.State.BeforeDOCTYPEPublicIdentifier: self.handleBeforeDOCTYPEPublicIdentifier,
+            self.State.DOCTYPEPublicIdentifierDoubleQuoted: self.handleDOCTYPEPublicIdentifierDoubleQuoted,
+            self.State.DOCTYPEPublicIdentifierSingleQuoted: self.handleDOCTYPEPublicIdentifierSingleQuoted,
+            self.State.AfterDOCTYPEPublicIdentifier: self.handleAfterDOCTYPEPublicIdentifier,
+            self.State.BetweenDOCTYPEPublicAndSystemIdentifiers: self.handleBetweenDOCTYPEPublicAndSystemIdentifiers,
+            self.State.AfterDOCTYPESystemKeyword: self.handleAfterDOCTYPESystemKeyword,
+            self.State.BeforeDOCTYPESystemIdentifier: self.handleBeforeDOCTYPESystemIdentifier,
+            self.State.DOCTYPESystemIdentifierDoubleQuoted: self.handleDOCTYPESystemIdentifierDoubleQuoted,
+            self.State.DOCTYPESystemIdentifierSingleQuoted: self.handleDOCTYPESystemIdentifierSingleQuoted,
+            self.State.AfterDOCTYPESystemIdentifier: self.handleAfterDOCTYPESystemIdentifier,
+            self.State.BogusDOCTYPE: self.handleBogusDOCTYPE,
+            self.State.CDATASection: self.handleCDATASection,
+            self.State.CDATASectionBracket: self.handleCDATASectionBracket,
+            self.State.CDATASectionEnd: self.handleCDATASectionEnd,
+            self.State.CharacterReference: self.handleCharacterReference,
+            self.State.NamedCharacterReference: self.handleNamedCharacterReference,
+            self.State.AmbiguousAmpersand: self.handleAmbiguousAmpersand,
+            self.State.NumericCharacterReference: self.handleNumericCharacterReference,
+            self.State.HexadecimalCharacterReferenceStart: self.handleHexadecimalCharacterReferenceStart,
+            self.State.DecimalCharacterReferenceStart: self.handleDecimalCharacterReferenceStart,
+            self.State.HexadecimalCharacterReference: self.handleHexadecimalCharacterReference,
+            self.State.DecimalCharacterReference: self.handleDecimalCharacterReference,
+            self.State.NumericCharacterReferenceEnd: self.handleNumericCharacterReferenceEnd,
         }
 
         return switcher.get(self.state, None)

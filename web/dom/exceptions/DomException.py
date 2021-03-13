@@ -2,7 +2,7 @@ from enum import Enum
 
 
 class DomException(BaseException):
-    class _ErrorCode(Enum):
+    class __ErrorCode(Enum):
         NONE = 0  # Error is not recognized.
         INDEX_SIZE_ERR = 1
         DOMSTRING_SIZE_ERR = 2
@@ -74,5 +74,5 @@ class DomException(BaseException):
         }
         return error_codes.get(self.name, "NONE")
 
-    def code(self) -> int:
+    def code(self) -> __ErrorCode:
         return self.__ErrorCode[self.__get_error()]

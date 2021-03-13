@@ -104,8 +104,9 @@ class HTMLDocumentParser:
         """
         self.__currentInsertionMode = newMode
 
-    def __reconsumeIn(self, newMode: __Mode,
-                     token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+    def __reconsumeIn(self,
+                      newMode: __Mode,
+                      token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         """
         Switch state without consuming next character.
         """
@@ -251,598 +252,597 @@ class HTMLDocumentParser:
 
         return adjustedLocation
 
-    def __getModeSwitcher(self) -> Union[Callable[[HTMLToken], None], None]:
+    def handleInitial(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.DOCTYPE:
+            token = cast(HTMLDoctype, token)
+            documentNode = DocumentType(token, self.__document)
+            self.__documentNode = documentNode
+            # TODO: Handle quircks mode.
+            self.__switchModeTo(self.__Mode.BeforeHTML)
 
-        def handleInitial(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.DOCTYPE:
-                token = cast(HTMLDoctype, token)
-                documentNode = DocumentType(token, self.__document)
-                self.__documentNode = documentNode
-                # TODO: Handle quircks mode.
-                self.__switchModeTo(self.__Mode.BeforeHTML)
-
-        def handleBeforeHTML(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.StartTag:
-                token = cast(HTMLTag, token)
-                if token.name == "html":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__switchModeTo(self.__Mode.BeforeHead)
-                else:
-                    token = HTMLTag(HTMLToken.TokenType.StartTag)
-                    token.name = "html"
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__switchModeTo(self.__Mode.BeforeHead)
-
-        def handleBeforeHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.Character:
-                if charIsWhitespace(token.data):
-                    self.__continueIn(self.__Mode.BeforeHead)
-            elif token.type == HTMLToken.TokenType.Comment:
-                self.__insertComment(token)
-            elif token.type == HTMLToken.TokenType.DOCTYPE:
-                self.__continueIn(self.__Mode.BeforeHead)
-            elif token.type == HTMLToken.TokenType.StartTag:
-                token = cast(HTMLTag, token)
-                if token.name == "head":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__switchModeTo(self.__Mode.InHead)
+    def handleBeforeHTML(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name == "html":
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__switchModeTo(self.__Mode.BeforeHead)
             else:
                 token = HTMLTag(HTMLToken.TokenType.StartTag)
-                token.name = "head"
+                token.name = "html"
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__switchModeTo(self.__Mode.BeforeHead)
+
+    def handleBeforeHead(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.Character:
+            if charIsWhitespace(token.data):
+                self.__continueIn(self.__Mode.BeforeHead)
+        elif token.type == HTMLToken.TokenType.Comment:
+            self.__insertComment(token)
+        elif token.type == HTMLToken.TokenType.DOCTYPE:
+            self.__continueIn(self.__Mode.BeforeHead)
+        elif token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name == "head":
                 element = self.__createElement(token)
                 self.__openElements.push(element)
                 self.__switchModeTo(self.__Mode.InHead)
+        else:
+            token = HTMLTag(HTMLToken.TokenType.StartTag)
+            token.name = "head"
+            element = self.__createElement(token)
+            self.__openElements.push(element)
+            self.__switchModeTo(self.__Mode.InHead)
 
-        def handleInHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.Character:
-                if charIsWhitespace(token.data):
-                    self.__insertCharacter(token)
-            elif token.type == HTMLToken.TokenType.Comment:
-                token = cast(HTMLCommentOrCharacter, token)
-                comment = Comment(token.data)
-                self.__currentElement.appendChild(comment)
-            elif token.type == HTMLToken.TokenType.DOCTYPE:
-                pass
-            elif token.type == HTMLToken.TokenType.StartTag:
-                token = cast(HTMLTag, token)
-                if token.name == "html":
-                    # TODO: Handle using the "in body"
-                    raise NotImplementedError
-                elif token.name in ["base", "basefont", "bgsound", "link"]:
-                    # This kind of elements are not added to open stack.
-                    _ = self.__createElement(token)
-                elif token.name == "meta":
-                    # This kind of elements are not added to open stack.
-                    element = self.__createElement(token)
-                    if "charset" in element.attributes:
-                        # TODO: Handle charset attribute.
-                        pass
-
-                elif token.name == "title":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(
-                        self.__tokenizer.State.RCDATA)
-                    print("Assigning insertion mode:", self.__currentInsertionMode)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-                elif (token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"]):
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(
-                        self.__tokenizer.State.RAWTEXT)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-                elif token.name == "noscript" and not self.__scripting:
-                    _ = self.__createElement(token)
-                    self.__switchModeTo(self.__Mode.InHeadNoscript)
-                elif token.name == "script":
-                    # TODO: Add support for JS.
-                    adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
-                    element = cast(HTMLScriptElement,
-                                   self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
-                    element.parserDocument = self.__document
-                    element.isNonBlocking = False
-
-                    if self.parsingFragment:
-                        raise NotImplementedError
-                    if self.invokefWhileDocumentWrite:
-                        raise NotImplementedError
-
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-
-                elif token.name == "template":
-                    # TODO: Handle case.
-                    raise NotImplementedError
-                else:
-                    # Ignores "head" and any other tag.
+    def handleInHead(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.Character:
+            if charIsWhitespace(token.data):
+                self.__insertCharacter(token)
+        elif token.type == HTMLToken.TokenType.Comment:
+            token = cast(HTMLCommentOrCharacter, token)
+            comment = Comment(token.data)
+            self.__currentElement.appendChild(comment)
+        elif token.type == HTMLToken.TokenType.DOCTYPE:
+            pass
+        elif token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name == "html":
+                # TODO: Handle using the "in body"
+                raise NotImplementedError
+            elif token.name in ["base", "basefont", "bgsound", "link"]:
+                # This kind of elements are not added to open stack.
+                _ = self.__createElement(token)
+            elif token.name == "meta":
+                # This kind of elements are not added to open stack.
+                element = self.__createElement(token)
+                if "charset" in element.attributes:
+                    # TODO: Handle charset attribute.
                     pass
 
-            elif token.type == HTMLToken.TokenType.EndTag:
-                if token.name == "head":
-                    self.__openElements.pop()
-                    self.__switchModeTo(self.__Mode.AfterHead)
-                elif token.name in ["body", "html", "br"]:
-                    self.__openElements.pop()
-                    self.__reconsumeIn(self.__Mode.AfterHead, token)
-                elif token.name == "template":
-                    # TODO: Handle case.
+            elif token.name == "title":
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(
+                    self.__tokenizer.State.RCDATA)
+                print("Assigning insertion mode:", self.__currentInsertionMode)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+            elif (token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"]):
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(
+                    self.__tokenizer.State.RAWTEXT)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+            elif token.name == "noscript" and not self.__scripting:
+                _ = self.__createElement(token)
+                self.__switchModeTo(self.__Mode.InHeadNoscript)
+            elif token.name == "script":
+                # TODO: Add support for JS.
+                adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
+                element = cast(HTMLScriptElement,
+                               self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
+                element.parserDocument = self.__document
+                element.isNonBlocking = False
+
+                if self.parsingFragment:
                     raise NotImplementedError
+                if self.invokefWhileDocumentWrite:
+                    raise NotImplementedError
+
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+
+            elif token.name == "template":
+                # TODO: Handle case.
+                raise NotImplementedError
             else:
+                # Ignores "head" and any other tag.
+                pass
+
+        elif token.type == HTMLToken.TokenType.EndTag:
+            if token.name == "head":
+                self.__openElements.pop()
+                self.__switchModeTo(self.__Mode.AfterHead)
+            elif token.name in ["body", "html", "br"]:
                 self.__openElements.pop()
                 self.__reconsumeIn(self.__Mode.AfterHead, token)
+            elif token.name == "template":
+                # TODO: Handle case.
+                raise NotImplementedError
+        else:
+            self.__openElements.pop()
+            self.__reconsumeIn(self.__Mode.AfterHead, token)
 
-        def handleInHeadNoscript(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.DOCTYPE:
-                pass
-            elif token.type == HTMLToken.TokenType.StartTag:
-                token = cast(HTMLTag, token)
-                if token.name == "html":
-                    # TODO: Handle using the "in body".
-                    raise NotImplementedError
-            elif token.type == HTMLToken.TokenType.EndTag:
-                token = cast(HTMLTag, token)
-                if token.name == "noscript":
-                    self.__openElements.pop()
-                    self.__switchModeTo(self.__Mode.InHead)
-                elif token.name == "br":
-                    self.__openElements.pop()
-                else:
-                    pass
-            elif token.type == HTMLToken.TokenType.Character:
-                if charIsWhitespace(token.data):
-                    # TODO:Insert the character
-                    raise NotImplementedError
-            elif token.type == HTMLToken.TokenType.Comment:
-                token = cast(HTMLCommentOrCharacter, token)
-                comment = Comment(token.data)
-                self.__currentElement.appendChild(comment)
-            elif token.type == HTMLToken.TokenType.StartTag:
-                if token.name in ["basefont", "bgsound", "link", "meta", "noframes", "style"]:
-                    # TODO: Implement handling.
-                    raise NotImplementedError
-                elif token.name in ["head", "noscrip"]:
-                    pass
-            else:
+    def handleInHeadNoscript(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.DOCTYPE:
+            pass
+        elif token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name == "html":
+                # TODO: Handle using the "in body".
+                raise NotImplementedError
+        elif token.type == HTMLToken.TokenType.EndTag:
+            token = cast(HTMLTag, token)
+            if token.name == "noscript":
                 self.__openElements.pop()
-
-        def handleAfterHead(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.Character:
-                if charIsWhitespace(token.data):
-                    self.__insertCharacter(token)
-            elif token.type == HTMLToken.TokenType.Comment:
-                self.__insertComment(token)
-            elif token.type == HTMLToken.TokenType.DOCTYPE:
-                pass  # Ignore token
-            elif token.type == HTMLToken.TokenType.StartTag:
-                token = cast(HTMLTag, token)
-                if token.name == "html":
-                    # TODO: Handle using the "in body".
-                    raise NotImplementedError
-                elif token.name == "body":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__switchModeTo(self.__Mode.InBody)
-                elif token.name == "frameset":
-                    raise NotImplementedError  # TODO: Handle case.
-                elif (token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style",
-                                     "template", "title"]):
-                    raise NotImplementedError  # TODO: Handle case.
-                elif token.name == "head":
-                    pass  # Ignroe token.
-            elif token.type == HTMLToken.TokenType.EndTag:
-                if token.name == "template":
-                    # TODO: Handle case, Process the token using the rules for the "in head" insertion mode.
-                    raise NotImplementedError
-                elif token.name in ["body", "html", "br"]:
-                    _token = HTMLTag(HTMLToken.TokenType.StartTag)
-                    _token.name = "body"
-                    element = self.__createElement(_token)
-                    self.__openElements.push(element)
-                    self.__framesetOK = False
-                    self.__reconsumeIn(self.__Mode.InBody, token)
-                else:
-                    pass  # Ignore token.
+                self.__switchModeTo(self.__Mode.InHead)
+            elif token.name == "br":
+                self.__openElements.pop()
             else:
+                pass
+        elif token.type == HTMLToken.TokenType.Character:
+            if charIsWhitespace(token.data):
+                # TODO:Insert the character
+                raise NotImplementedError
+        elif token.type == HTMLToken.TokenType.Comment:
+            token = cast(HTMLCommentOrCharacter, token)
+            comment = Comment(token.data)
+            self.__currentElement.appendChild(comment)
+        elif token.type == HTMLToken.TokenType.StartTag:
+            if token.name in ["basefont", "bgsound", "link", "meta", "noframes", "style"]:
+                # TODO: Implement handling.
+                raise NotImplementedError
+            elif token.name in ["head", "noscrip"]:
+                pass
+        else:
+            self.__openElements.pop()
+
+    def handleAfterHead(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.Character:
+            if charIsWhitespace(token.data):
+                self.__insertCharacter(token)
+        elif token.type == HTMLToken.TokenType.Comment:
+            self.__insertComment(token)
+        elif token.type == HTMLToken.TokenType.DOCTYPE:
+            pass  # Ignore token
+        elif token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name == "html":
+                # TODO: Handle using the "in body".
+                raise NotImplementedError
+            elif token.name == "body":
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__switchModeTo(self.__Mode.InBody)
+            elif token.name == "frameset":
+                raise NotImplementedError  # TODO: Handle case.
+            elif (token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style",
+                                 "template", "title"]):
+                raise NotImplementedError  # TODO: Handle case.
+            elif token.name == "head":
+                pass  # Ignroe token.
+        elif token.type == HTMLToken.TokenType.EndTag:
+            if token.name == "template":
+                # TODO: Handle case, Process the token using the rules for the "in head" insertion mode.
+                raise NotImplementedError
+            elif token.name in ["body", "html", "br"]:
                 _token = HTMLTag(HTMLToken.TokenType.StartTag)
                 _token.name = "body"
                 element = self.__createElement(_token)
                 self.__openElements.push(element)
+                self.__framesetOK = False
                 self.__reconsumeIn(self.__Mode.InBody, token)
-
-        def handleInBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.Character:
-                if token.data is None:
-                    pass  # Ignore token.
-                elif charIsWhitespace(token.data):
-                    # TODO: Reconstruct the active formatting elements, if any.
-                    self.__insertCharacter(token)
-                else:
-                    # TODO: Reconstruct the active formatting elements, if any.
-                    self.__insertCharacter(token)
-                    self.__framesetOK = False
-            elif token.type == HTMLToken.TokenType.Comment:
-                self.__insertComment(token)
-            elif token.type == HTMLToken.TokenType.DOCTYPE:
+            else:
                 pass  # Ignore token.
-            elif token.type == HTMLToken.TokenType.StartTag:
-                if token.name == "html":
-                    raise NotImplementedError  # Handle case
-                elif token.name == "template":
-                    # Handle case, Process the token using the rules for the "in head" insertion mode.
-                    raise NotImplementedError
-                elif token.name in ["noframes", "style"]:
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(
-                        self.__tokenizer.State.RAWTEXT)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-                elif token.name in ["base", "basefont", "bgsound", "link"]:
-                    # This kind of elements are not added to open stack.
-                    _ = self.__createElement(token)
-                elif token.name == "meta":
-                    # This kind of elements are not added to open stack.
-                    element = self.__createElement(token)
-                    if "charset" in element.attributes:
-                        # TODO: Handle charset attribute.
-                        pass
-                elif token.name == "title":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(
-                        self.__tokenizer.State.RCDATA)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-                elif token.name == "script":
-                    # TODO: Add support for JS.
-                    adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
-                    element = cast(HTMLScriptElement,
-                                   self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
-                    element.parserDocument = self.__document
-                    element.isNonBlocking = False
+        else:
+            _token = HTMLTag(HTMLToken.TokenType.StartTag)
+            _token.name = "body"
+            element = self.__createElement(_token)
+            self.__openElements.push(element)
+            self.__reconsumeIn(self.__Mode.InBody, token)
 
-                    if self.parsingFragment:
-                        raise NotImplementedError
-                    if self.invokefWhileDocumentWrite:
-                        raise NotImplementedError
-
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__switchModeTo(self.__Mode.Text)
-                elif token.name == "body":
-                    # TODO: handle parse error.
+    def handleInBody(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.Character:
+            if token.data is None:
+                pass  # Ignore token.
+            elif charIsWhitespace(token.data):
+                # TODO: Reconstruct the active formatting elements, if any.
+                self.__insertCharacter(token)
+            else:
+                # TODO: Reconstruct the active formatting elements, if any.
+                self.__insertCharacter(token)
+                self.__framesetOK = False
+        elif token.type == HTMLToken.TokenType.Comment:
+            self.__insertComment(token)
+        elif token.type == HTMLToken.TokenType.DOCTYPE:
+            pass  # Ignore token.
+        elif token.type == HTMLToken.TokenType.StartTag:
+            if token.name == "html":
+                raise NotImplementedError  # Handle case
+            elif token.name == "template":
+                # Handle case, Process the token using the rules for the "in head" insertion mode.
+                raise NotImplementedError
+            elif token.name in ["noframes", "style"]:
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(
+                    self.__tokenizer.State.RAWTEXT)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+            elif token.name in ["base", "basefont", "bgsound", "link"]:
+                # This kind of elements are not added to open stack.
+                _ = self.__createElement(token)
+            elif token.name == "meta":
+                # This kind of elements are not added to open stack.
+                element = self.__createElement(token)
+                if "charset" in element.attributes:
+                    # TODO: Handle charset attribute.
                     pass
-                elif token.name == "frameset":
-                    raise NotImplementedError  # Handle case
-                elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir",
-                                     "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup",
-                                     "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
-                    if self.__openElements.hasInButtonScope("p"):
-                        self.__openElements.pop()
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                elif token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                    if self.__openElements.hasInButtonScope("p"):
-                        self.__openElements.pop()
-                    elif self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                        self.__openElements.pop()
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                elif token.name in ["pre", "listing"]:
-                    raise NotImplementedError  # TODO: Handle case
-                elif token.name == "form":
-                    if self.__formElement is not None and self.__openElements.contains("template") is False:
-                        # TODO: Handle parse error.
-                        pass
-                    elif self.__openElements.hasInButtonScope("p"):
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped("p")
+            elif token.name == "title":
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(
+                    self.__tokenizer.State.RCDATA)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+            elif token.name == "script":
+                # TODO: Add support for JS.
+                adjustedInsertionLocation = self.__findAppropriatePlaceForInsertingNode()
+                element = cast(HTMLScriptElement,
+                               self.__createElementWihtAdjustedLocation(token, adjustedInsertionLocation))
+                element.parserDocument = self.__document
+                element.isNonBlocking = False
 
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
+                if self.parsingFragment:
+                    raise NotImplementedError
+                if self.invokefWhileDocumentWrite:
+                    raise NotImplementedError
 
-                    if self.__openElements.contains("template") is False:
-                        self.__formElement = element
-                elif token.name == "li":
-                    self.__framesetOK = False
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__switchModeTo(self.__Mode.Text)
+            elif token.name == "body":
+                # TODO: handle parse error.
+                pass
+            elif token.name == "frameset":
+                raise NotImplementedError  # Handle case
+            elif (token.name in ["address", "article", "aside", "blockquote", "center", "details", "dialog", "dir",
+                                 "div", "dl", "fieldset", "figcaption", "figure", "footer", "header", "hgroup",
+                                 "main", "menu", "nav", "ol", "p", "section", "summary", "ul"]):
+                if self.__openElements.hasInButtonScope("p"):
+                    self.__openElements.pop()
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+            elif token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                if self.__openElements.hasInButtonScope("p"):
+                    self.__openElements.pop()
+                elif self.__currentElement.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                    self.__openElements.pop()
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+            elif token.name in ["pre", "listing"]:
+                raise NotImplementedError  # TODO: Handle case
+            elif token.name == "form":
+                if self.__formElement is not None and self.__openElements.contains("template") is False:
+                    # TODO: Handle parse error.
+                    pass
+                elif self.__openElements.hasInButtonScope("p"):
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped("p")
 
-                    for element in reversed(self.__openElements.elements()):
-                        node = element
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+
+                if self.__openElements.contains("template") is False:
+                    self.__formElement = element
+            elif token.name == "li":
+                self.__framesetOK = False
+
+                for element in reversed(self.__openElements.elements()):
+                    node = element
+                    if self.__currentElement.name == "li":
+                        self.__generateImpliedEndTags("li")
                         if self.__currentElement.name == "li":
-                            self.__generateImpliedEndTags("li")
-                            if self.__currentElement.name == "li":
-                                # TODO: Handle parse error
-                                pass
-                            self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
-                            break
+                            # TODO: Handle parse error
+                            pass
+                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
+                        break
 
-                        if tagIsSpecial(node.name) and node.name not in ["address", "div", "p"]:
-                            break
+                    if tagIsSpecial(node.name) and node.name not in ["address", "div", "p"]:
+                        break
 
-                    if self.__openElements.hasInButtonScope("p"):
-                        self.__closeAPElement()
+                if self.__openElements.hasInButtonScope("p"):
+                    self.__closeAPElement()
 
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
+                element = self.__createElement(token)
+                self.__openElements.push(element)
 
-                elif token.name in ["dd", "dt"]:
-                    self.__framesetOK = False
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    # TODO: Handle case
-                    raise NotImplementedError
-                elif token.name == "plaintext":
-                    if self.__openElements.hasInButtonScope("p"):
-                        self.__openElements.pop()
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    self.__tokenizer.switchStateTo(
-                        self.__tokenizer.State.PLAINTEXT)
-                elif token.name == "button":
-                    if self.__openElements.hasInScope(token.name):
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
-                    # TODO: Reconstruct the active formatting elements, if any.
-                    self.__framesetOK = False
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                elif token.name == "a":
-                    if self.__openElements.hasInScope(token.name):
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
-
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                elif (token.name in ["b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt",
-                                     "u"]):
-                    # TODO: Reconstruct the active formatting elements, if any and add handling to all tother places too
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                elif token.name == "nobr":
-                    if self.__openElements.hasInScope(token.name):
-                        # TODO: run the adoption agency algorithm for the token
-                        raise NotImplementedError
-                    self.__createElement(token)
-                # TODO: Push onto the list of active formatting elements that element. Add this handling to other places too.
-                elif token.name in ["area", "br", "embed", "img", "keygen", "wbr"]:
-                    # TODO: Construct active elements.
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
+            elif token.name in ["dd", "dt"]:
+                self.__framesetOK = False
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                # TODO: Handle case
+                raise NotImplementedError
+            elif token.name == "plaintext":
+                if self.__openElements.hasInButtonScope("p"):
                     self.__openElements.pop()
-                elif token.name == "textarea":
-                    element = self.__createElement(token)
-                    self.__openElements.push(element)
-                    # TODO: Handle new line
-                    self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
-                    self.__originalInsertionMode = self.__currentInsertionMode
-                    self.__framesetOK = False
-                    self.__switchModeTo(self.__Mode.Text)
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__tokenizer.switchStateTo(
+                    self.__tokenizer.State.PLAINTEXT)
+            elif token.name == "button":
+                if self.__openElements.hasInScope(token.name):
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+                # TODO: Reconstruct the active formatting elements, if any.
+                self.__framesetOK = False
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+            elif token.name == "a":
+                if self.__openElements.hasInScope(token.name):
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+            elif (token.name in ["b", "big", "code", "em", "font", "i", "s", "small", "strike", "strong", "tt",
+                                 "u"]):
+                # TODO: Reconstruct the active formatting elements, if any and add handling to all tother places too
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+            elif token.name == "nobr":
+                if self.__openElements.hasInScope(token.name):
+                    # TODO: run the adoption agency algorithm for the token
+                    raise NotImplementedError
+                self.__createElement(token)
+            # TODO: Push onto the list of active formatting elements that element. Add this handling to other places too.
+            elif token.name in ["area", "br", "embed", "img", "keygen", "wbr"]:
+                # TODO: Construct active elements.
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                self.__openElements.pop()
+            elif token.name == "textarea":
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+                # TODO: Handle new line
+                self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
+                self.__originalInsertionMode = self.__currentInsertionMode
+                self.__framesetOK = False
+                self.__switchModeTo(self.__Mode.Text)
+            else:
+                # TODO: Construct active elements.
+                element = self.__createElement(token)
+                self.__openElements.push(element)
+        elif token.type == HTMLToken.TokenType.EndTag:
+            if token.name == "template":
+                # Handle case, Process the token using the rules for the "in head" insertion mode.
+                raise NotImplementedError
+            elif token.name == "body":
+                print("Closing body element")
+                openBodyElement = self.__openElements.lastElementWithTagName(token.name)
+                if openBodyElement is None:
+                    print("No body tag in open stack")
+                    pass  # Ignore token.
+                # TODO: handle the else case.
                 else:
-                    # TODO: Construct active elements.
+                    self.__switchModeTo(self.__Mode.AfterBody)
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+                    # TODO: Implement the popping functionality.
+                    self.__switchModeTo(self.__Mode.AfterBody)
+            elif token.name == "html":
+                self.__reconsumeIn(self.__Mode.AfterBody, token)
+            elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details",
+                                 "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer",
+                                 "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section",
+                                 "summary", "ul"]):
+                if not self.__openElements.hasInScope(token.name):
+                    pass
+                else:
+                    # TODO: Generate implied end tags
+                    if not self.__openElements.currentNode().name == token.name:
+                        # TODO: Handle parse error
+                        pass
+
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
+            elif token.name == "form":
+                if self.__openElements.contains("template") is False:
+                    node = self.__formElement
+                    self.__formElement = None
+                    if node is None or self.__openElements.hasInScope(node.name) is False:
+                        # TODO: Handle parse error.
+                        return
+                    self.__generateImpliedEndTags()
+                    if self.__currentElement != node:
+                        # TODO: Handle parse error
+                        pass
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped(node.name)
+                else:
+                    if self.__openElements.hasInScope("form"):
+                        # TODO: Handle parse error.
+                        return
+                    self.__generateImpliedEndTags()
+                    if self.__currentElement.name != "form":
+                        # TODO: Handle parse error
+                        pass
+                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped("form")
+
+            elif token.name == "p":
+                if not self.__openElements.hasInButtonScope("p"):
                     element = self.__createElement(token)
                     self.__openElements.push(element)
-            elif token.type == HTMLToken.TokenType.EndTag:
-                if token.name == "template":
-                    # Handle case, Process the token using the rules for the "in head" insertion mode.
-                    raise NotImplementedError
-                elif token.name == "body":
-                    print("Closing body element")
-                    openBodyElement = self.__openElements.lastElementWithTagName(token.name)
-                    if openBodyElement is None:
-                        print("No body tag in open stack")
-                        pass  # Ignore token.
-                    # TODO: handle the else case.
-                    else:
-                        self.__switchModeTo(self.__Mode.AfterBody)
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
-                        # TODO: Implement the popping functionality.
-                        self.__switchModeTo(self.__Mode.AfterBody)
-                elif token.name == "html":
-                    self.__reconsumeIn(self.__Mode.AfterBody, token)
-                elif (token.name in ["address", "article", "aside", "blockquote", "button", "center", "details",
-                                     "dialog", "dir", "div", "dl", "fieldset", "figcaption", "figure", "footer",
-                                     "header", "hgroup", "listing", "main", "menu", "nav", "ol", "pre", "section",
-                                     "summary", "ul"]):
-                    if not self.__openElements.hasInScope(token.name):
-                        pass
-                    else:
-                        # TODO: Generate implied end tags
-                        if not self.__openElements.currentNode().name == token.name:
-                            # TODO: Handle parse error
-                            pass
-
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(token.name)
-                elif token.name == "form":
-                    if self.__openElements.contains("template") is False:
-                        node = self.__formElement
-                        self.__formElement = None
-                        if node is None or self.__openElements.hasInScope(node.name) is False:
-                            # TODO: Handle parse error.
-                            return
-                        self.__generateImpliedEndTags()
-                        if self.__currentElement != node:
-                            # TODO: Handle parse error
-                            pass
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped(node.name)
-                    else:
-                        if self.__openElements.hasInScope("form"):
-                            # TODO: Handle parse error.
-                            return
-                        self.__generateImpliedEndTags()
-                        if self.__currentElement.name != "form":
-                            # TODO: Handle parse error
-                            pass
-                        self.__openElements.popUntilElementWithAtagNameHasBeenPopped("form")
-
-                elif token.name == "p":
-                    if not self.__openElements.hasInButtonScope("p"):
-                        element = self.__createElement(token)
-                        self.__openElements.push(element)
-                    self.__openElements.pop()
-                elif token.name == "li":
-                    if not self.__openElements.hasInListItemScope(token.name):
-                        # TODO: Handle parse rror.
-                        return
-
-                    self.__generateImpliedEndTags(token.name)
-                    if self.__currentElement.name != "li":
-                        # TODO: Handle parse error.
-                        pass
-                    print("Removing 'li'")
-                    self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
-                elif token.name in ["dd", "dt"]:
-                    # TODO: Handle case
-                    raise NotImplementedError
-                elif token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
-                    if not self.__openElements.hasInScope(token.name):
-                        raise NotImplementedError  # TODO: handle parse error.
-                        return
-
-                    if self.__currentElement.name != token.name:
-                        raise NotImplementedError  # TODO: handle parse error.
-
-                    while not self.__openElements.isEmpty():
-                        poppedElement = self.__openElements.pop()
-                        if poppedElement.name == token.name:
-                            break
+                self.__openElements.pop()
+            elif token.name == "li":
+                if not self.__openElements.hasInListItemScope(token.name):
+                    # TODO: Handle parse rror.
                     return
-                elif token.name == "sarcasm":
-                    # TODO: Handle case
-                    raise NotImplementedError
-                elif (token.name in ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike",
-                                     "strong", "tt", "u"]):
-                    # TODO: Run the adoption agency algorithm for the token.
-                    self.__adoptionAgencyAlgorithm(token)
-                else:
 
-                    for element in reversed(self.__openElements.elements()):
-                        node = element
-                        if node.name == token.name:
-                            self.__generateImpliedEndTags(token.name)
-                            if node != self.__currentElement:
-                                # TODO: Handle parse error.
-                                pass
+                self.__generateImpliedEndTags(token.name)
+                if self.__currentElement.name != "li":
+                    # TODO: Handle parse error.
+                    pass
+                print("Removing 'li'")
+                self.__openElements.popUntilElementWithAtagNameHasBeenPopped("li")
+            elif token.name in ["dd", "dt"]:
+                # TODO: Handle case
+                raise NotImplementedError
+            elif token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
+                if not self.__openElements.hasInScope(token.name):
+                    raise NotImplementedError  # TODO: handle parse error.
+                    return
 
-                            while self.__currentElement.name != node.name:
-                                self.__openElements.pop()
+                if self.__currentElement.name != token.name:
+                    raise NotImplementedError  # TODO: handle parse error.
 
-                            self.__openElements.pop()
-                            break
-
-                        if tagIsSpecial(node.name):
-                            # TODO: Handle parse error.
-                            return
-
-
-            elif token.type == HTMLToken.TokenType.EOF:
-                for node in self.__openElements.elements():
-                    if node.name not in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody",
-                                         "td", "tfoot", "th", "thead", "tr", "body", "html"]:
-                        # TODO: Handle parse error.
+                while not self.__openElements.isEmpty():
+                    poppedElement = self.__openElements.pop()
+                    if poppedElement.name == token.name:
                         break
                 return
-
-        def handleText(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.Character:
-                self.__insertCharacter(token)
-            elif token.type == HTMLToken.TokenType.EOF:
-                if self.__currentElement.name == "script":
-                    # TODO: Mark the script element as "already started".
-                    pass
-                self.__openElements.pop()
-                self.__reconsumeIn(self.__originalInsertionMode, token)
-            elif token.type == HTMLToken.TokenType.EndTag and token.name == "script":
-                # TODO: flush_character_insertions()
-                script = self.__currentElement
-                self.__openElements.pop()
-                self.__switchModeTo(self.__originalInsertionMode)
-            # TODO: HAndle rest of the case.
+            elif token.name == "sarcasm":
+                # TODO: Handle case
+                raise NotImplementedError
+            elif (token.name in ["a", "b", "big", "code", "em", "font", "i", "nobr", "s", "small", "strike",
+                                 "strong", "tt", "u"]):
+                # TODO: Run the adoption agency algorithm for the token.
+                self.__adoptionAgencyAlgorithm(token)
             else:
-                self.__openElements.pop()
+
+                for element in reversed(self.__openElements.elements()):
+                    node = element
+                    if node.name == token.name:
+                        self.__generateImpliedEndTags(token.name)
+                        if node != self.__currentElement:
+                            # TODO: Handle parse error.
+                            pass
+
+                        while self.__currentElement.name != node.name:
+                            self.__openElements.pop()
+
+                        self.__openElements.pop()
+                        break
+
+                    if tagIsSpecial(node.name):
+                        # TODO: Handle parse error.
+                        return
+
+        elif token.type == HTMLToken.TokenType.EOF:
+            for node in self.__openElements.elements():
+                if node.name not in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody",
+                                     "td", "tfoot", "th", "thead", "tr", "body", "html"]:
+                    # TODO: Handle parse error.
+                    break
+            return
+
+    def handleText(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.Character:
+            self.__insertCharacter(token)
+        elif token.type == HTMLToken.TokenType.EOF:
+            if self.__currentElement.name == "script":
+                # TODO: Mark the script element as "already started".
+                pass
+            self.__openElements.pop()
+            if self.__originalInsertionMode is not None:
+                self.__reconsumeIn(self.__originalInsertionMode, token)
+        elif token.type == HTMLToken.TokenType.EndTag and token.name == "script":
+            # TODO: flush_character_insertions()
+            script = self.__currentElement
+            self.__openElements.pop()
+            if self.__originalInsertionMode is not None:
+                self.__switchModeTo(self.__originalInsertionMode)
+        # TODO: HAndle rest of the case.
+        else:
+            self.__openElements.pop()
+            if self.__originalInsertionMode is not None:
                 self.__switchModeTo(self.__originalInsertionMode)
 
-        def handleInTable() -> None:
-            return
+    def handleInTable(self) -> None:
+        return
 
-        def handleInTableText() -> None:
-            return
+    def handleInTableText(self) -> None:
+        return
 
-        def handleInCaption() -> None:
-            return
+    def handleInCaption(self) -> None:
+        return
 
-        def handleInColumnGroup() -> None:
-            return
+    def handleInColumnGroup(self) -> None:
+        return
 
-        def handleInTableBody() -> None:
-            return
+    def handleInTableBody(self) -> None:
+        return
 
-        def handleInRow() -> None:
-            return
+    def handleInRow(self) -> None:
+        return
 
-        def handleInCell() -> None:
-            return
+    def handleInCell(self) -> None:
+        return
 
-        def handleInSelect() -> None:
-            return
+    def handleInSelect(self) -> None:
+        return
 
-        def handleInSelectInTable() -> None:
-            return
+    def handleInSelectInTable(self) -> None:
+        return
 
-        def handleInTemplate() -> None:
-            return
+    def handleInTemplate(self) -> None:
+        return
 
-        def handleAfterBody(token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-            if token.type == HTMLToken.TokenType.EOF:
-                self.__openElements.popAllElements()
-            return
+    def handleAfterBody(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
+        if token.type == HTMLToken.TokenType.EOF:
+            self.__openElements.popAllElements()
+        return
 
-        def handleInFrameset() -> None:
-            return
+    def handleInFrameset(self) -> None:
+        return
 
-        def handleAfterFrameset() -> None:
-            return
+    def handleAfterFrameset(self) -> None:
+        return
 
-        def handleAfterAfterBody() -> None:
-            return
+    def handleAfterAfterBody(self) -> None:
+        return
 
-        def handleAfterAfterFrameset() -> None:
-            return
+    def handleAfterAfterFrameset(self) -> None:
+        return
+
+    def __getModeSwitcher(self) -> Optional[Any]:  # TODO: Check typing
 
         switcher = {
-            self.__Mode.Initial: handleInitial,
-            self.__Mode.BeforeHTML: handleBeforeHTML,
-            self.__Mode.BeforeHead: handleBeforeHead,
-            self.__Mode.InHead: handleInHead,
-            self.__Mode.InHeadNoscript: handleInHeadNoscript,
-            self.__Mode.AfterHead: handleAfterHead,
-            self.__Mode.InBody: handleInBody,
-            self.__Mode.Text: handleText,
-            self.__Mode.InTable: handleInTable,
-            self.__Mode.InTableText: handleInTableText,
-            self.__Mode.InCaption: handleInCaption,
-            self.__Mode.InColumnGroup: handleInColumnGroup,
-            self.__Mode.InTableBody: handleInTableBody,
-            self.__Mode.InRow: handleInRow,
-            self.__Mode.InCell: handleInCell,
-            self.__Mode.InSelect: handleInSelect,
-            self.__Mode.InSelectInTable: handleInSelectInTable,
-            self.__Mode.InTemplate: handleInTemplate,
-            self.__Mode.AfterBody: handleAfterBody,
-            self.__Mode.InFrameset: handleInFrameset,
-            self.__Mode.AfterFrameset: handleAfterFrameset,
-            self.__Mode.AfterAfterBody: handleAfterAfterBody,
-            self.__Mode.AfterAfterFrameset: handleAfterAfterFrameset,
+            self.__Mode.Initial: self.handleInitial,
+            self.__Mode.BeforeHTML: self.handleBeforeHTML,
+            self.__Mode.BeforeHead: self.handleBeforeHead,
+            self.__Mode.InHead: self.handleInHead,
+            self.__Mode.InHeadNoscript: self.handleInHeadNoscript,
+            self.__Mode.AfterHead: self.handleAfterHead,
+            self.__Mode.InBody: self.handleInBody,
+            self.__Mode.Text: self.handleText,
+            self.__Mode.InTable: self.handleInTable,
+            self.__Mode.InTableText: self.handleInTableText,
+            self.__Mode.InCaption: self.handleInCaption,
+            self.__Mode.InColumnGroup: self.handleInColumnGroup,
+            self.__Mode.InTableBody: self.handleInTableBody,
+            self.__Mode.InRow: self.handleInRow,
+            self.__Mode.InCell: self.handleInCell,
+            self.__Mode.InSelect: self.handleInSelect,
+            self.__Mode.InSelectInTable: self.handleInSelectInTable,
+            self.__Mode.InTemplate: self.handleInTemplate,
+            self.__Mode.AfterBody: self.handleAfterBody,
+            self.__Mode.InFrameset: self.handleInFrameset,
+            self.__Mode.AfterFrameset: self.handleAfterFrameset,
+            self.__Mode.AfterAfterBody: self.handleAfterAfterBody,
+            self.__Mode.AfterAfterFrameset: self.handleAfterAfterFrameset,
         }
 
-        return switcher.get(self.__currentInsertionMode, None)
+        return switcher.get(self.__currentInsertionMode)
 
     def currentInsertionMode(self) -> __Mode:
         return self.__currentInsertionMode
-
-    def nextToken(self) -> Union[HTMLToken, None]:
-        return

@@ -1,5 +1,5 @@
 from enum import Enum, auto
-from typing import Union, Dict
+from typing import Optional, Dict
 from dataclasses import dataclass, field
 
 
@@ -13,10 +13,10 @@ class HTMLToken:
         EOF = auto()
 
     @property
-    def type(self) -> Union[TokenType, None]:
+    def type(self) -> Optional[TokenType]:
         return self.__type
 
-    def __init__(self, tokenType: Union[TokenType, None]) -> None:
+    def __init__(self, tokenType: Optional[TokenType]) -> None:
         self.__type = tokenType
 
     def __str__(self) -> str:
@@ -27,9 +27,9 @@ class HTMLDoctype(HTMLToken):
 
     def __init__(self) -> None:
         super(HTMLDoctype, self).__init__(HTMLToken.TokenType.DOCTYPE)
-        self.name: Union[str, None] = None
-        self.publicIdentifier: Union[str, None] = None
-        self.systemPublicIdentidier: Union[str, None] = None
+        self.name: Optional[str] = None
+        self.publicIdentifier: Optional[str] = None
+        self.systemPublicIdentidier: Optional[str] = None
         self.forcedQuircks: bool = False
 
     def __str__(self) -> str:
@@ -43,7 +43,7 @@ class HTMLCommentOrCharacter(HTMLToken):
 
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         super(HTMLCommentOrCharacter, self).__init__(tokenType)
-        self.data: Union[str, None] = None
+        self.data: Optional[str] = None
 
     def __str__(self) -> str:
         return f"type: {self.type}, name: {self.data}"
@@ -53,8 +53,8 @@ class HTMLTag(HTMLToken):
 
     def __init__(self, tokenType: HTMLToken.TokenType) -> None:
         super(HTMLTag, self).__init__(tokenType)
-        self.activeAttributeName: Union[str, None] = None
-        self.name: Union[str, None] = None
+        self.activeAttributeName: Optional[str] = None
+        self.name: Optional[str] = None
         self.selfClosing: bool = False
         self.attributes: Dict[str, str] = {}
 
