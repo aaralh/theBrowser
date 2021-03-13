@@ -5,12 +5,12 @@ from web.dom.Document import Document
 class Node:
 
     def __init__(self, parent: Union['Node', None], document: Document):
-        self._parentNode: Union[Node, None] = parent
-        self._childNodes: List[Node] = []
-        self._nodeName: Union[str, None] = None
-        self._document: Union[Document, None] = document
+        self.__parentNode: Union[Node, None] = parent
+        self.__childNodes: List[Node] = []
+        self.__nodeName: Union[str, None] = None
+        self.__document: Union[Document, None] = document
 
-    def __str__(self):
+    def __str__(self) -> str:
         treeString = "*Document*\n"
 
         for node in self.childNodes:
@@ -20,38 +20,38 @@ class Node:
 
     @property
     def name(self) -> Union[str, None]:
-        return self._nodeName
+        return self.__nodeName
 
     @name.setter
     def name(self, newName: str) -> None:
-        self._nodeName = newName
+        self.__nodeName = newName
 
     @property
     def parentNode(self) -> Union['Node', None]:
-        return self._parentNode
+        return self.__parentNode
 
     @parentNode.setter
     def parentNode(self, parent: 'Node') -> None:
-        self._parentNode = parent
+        self.__parentNode = parent
 
     def appendChild(self, node: 'Node') -> None:
-        self._childNodes.append(node)
+        self.__childNodes.append(node)
 
     def appendChildBeforeElement(self, node: 'Node', insertBefore: 'Node') -> None:
-        index = self._childNodes.index(insertBefore)
-        self._childNodes.insert(index, node)
+        index = self.__childNodes.index(insertBefore)
+        self.__childNodes.insert(index, node)
 
     def removeChild(self, node: 'Node') -> None:
-        self._childNodes.remove(node)
+        self.__childNodes.remove(node)
 
     @property
-    def childNodes(self):
-        return self._childNodes
+    def childNodes(self) -> List['Node']:
+        return self.__childNodes
 
     @property
     def document(self) -> Union[Document, None]:
-        return self._document
+        return self.__document
 
     @document.setter
     def document(self, document: Document) -> None:
-        self._document = document
+        self.__document = document

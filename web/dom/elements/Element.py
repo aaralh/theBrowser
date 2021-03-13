@@ -1,18 +1,18 @@
-from typing import Dict, Union
+from typing import Dict, Union, Optional
 from web.dom.Document import Document
 from web.html.parser.HTMLToken import HTMLCommentOrCharacter, HTMLDoctype, HTMLTag, HTMLToken
 from web.dom.Node import Node
 
 
 class Element(Node):
-    def __init__(self, token: HTMLTag, parent: Node, document: Document, namespace: str = ""):
+    def __init__(self, token: HTMLTag, parent: Node, document: Document, namespace: str = "") -> None:
         super(Element, self).__init__(parent, document)
-        self._localName = token.name
-        self._is = token.attributes.get("id", None)
-        self._attributes = token.attributes
-        self._namespace: str = namespace
+        self.__localName: Optional[str] = token.name
+        self.__id = token.attributes.get("id", None)
+        self.__attributes: Dict[str, str] = token.attributes
+        self.__namespace: str = namespace
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.printTree()
 
     def printTree(self, depth: int = 0) -> str:
@@ -34,12 +34,12 @@ class Element(Node):
 
     @property
     def namespace(self) -> str:
-        return self._namespace
+        return self.__namespace
 
     @property
-    def name(self) -> str:
-        return self._localName
+    def name(self) -> Optional[str]:
+        return self.__localName
 
     @property
     def attributes(self) -> Dict[str, str]:
-        return self._attributes
+        return self.__attributes

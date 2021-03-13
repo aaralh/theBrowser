@@ -14,13 +14,13 @@ class HTMLToken:
 
     @property
     def type(self) -> Union[TokenType, None]:
-        return self._type
+        return self.__type
 
     def __init__(self, tokenType: Union[TokenType, None]) -> None:
-        self._type = tokenType
+        self.__type = tokenType
 
     def __str__(self) -> str:
-        return f"type: {self._type}"
+        return f"type: {self.__type}"
 
 
 class HTMLDoctype(HTMLToken):

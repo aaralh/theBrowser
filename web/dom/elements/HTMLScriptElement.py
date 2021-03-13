@@ -3,23 +3,23 @@ from web.dom.Document import Document
 from web.dom.elements.Element import Element
 
 class HTMLScriptElement(Element):
-	def __init__(self, *args, **kwargs):
+	def __init__(self, *args: str, **kwargs: int) -> None:
 		super(HTMLScriptElement, self).__init__(*args, **kwargs)
-		self._parserDocument: Union[Document, None] = None
-		self._isNonBlocking: bool = False
+		self.__parserDocument: Union[Document, None] = None
+		self.__isNonBlocking: bool = False
 
 	@property
 	def parserDocument(self) -> Document:
-		return self._parserDocument
+		return self.__parserDocument
 
 	@parserDocument.setter
 	def parserDocument(self, document: Document) -> None:
-		self._parserDocument = document
+		self.__parserDocument = document
 
 	@property
 	def isNonBlocking(self) -> bool:
-		return self._isNonBlocking
+		return self.__isNonBlocking
 
-	@parserDocument.setter
+	@isNonBlocking.setter
 	def isNonBlocking(self, isBlocking: bool) -> None:
-		self._isNonBlocking = isBlocking
+		self.__isNonBlocking = isBlocking

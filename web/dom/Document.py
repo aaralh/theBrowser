@@ -6,27 +6,27 @@ if TYPE_CHECKING:
 
 
 class Document:
-    def __init__(self):
-        self._head: Union['Element', None] = None
-        self._forms: Union['Element', None] = None
-        self._title: Union[str, None] = None
+    def __init__(self) -> None:
+        self.__head: Union['Element', None] = None
+        self.__forms: Union['Element', None] = None
+        self.__title: Union[str, None] = None
 
     @property
     def head(self) -> Union['Element', None]:
-        return self._head
+        return self.__head
 
     @head.setter
     def head(self, node: 'Element') -> None:
-        self._head = node
+        self.__head = node
 
     @property
     def title(self) -> Union['Element', None]:
-        return self._title
+        return self.__title
 
     @title.setter
     def title(self, title: str) -> None:
-        self._title = title
+        self.__title = title
 
     @property
     def forms(self) -> Union['Element', None]:
-        return self._forms
+        return self.__forms

@@ -34,7 +34,7 @@ class DomException(BaseException):
         self.name = name
         self.message = message
 
-    def _get_error(self) -> str:
+    def __get_error(self) -> str:
         error_codes = {
             "IndexSizeError": "INDEX_SIZE_ERR",
             "DOMStringSizeError": "DOMSTRING_SIZE_ERR",
@@ -75,4 +75,4 @@ class DomException(BaseException):
         return error_codes.get(self.name, "NONE")
 
     def code(self) -> int:
-        return self._ErrorCode[self._get_error()]
+        return self.__ErrorCode[self.__get_error()]

@@ -1,7 +1,7 @@
 class ParserUtils:
 
     @staticmethod
-    def isSpecialtag(tagName: str, namespace: str):
+    def isSpecialtag(tagName: str, namespace: str) -> bool:
 
         if namespace == "html":
             return tagName in ["address", "applet", "area", "article", "aside", "base", "basefont", "bgsound",
