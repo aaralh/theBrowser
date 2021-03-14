@@ -1,9 +1,9 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List, Optional
-from HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
+from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
+from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
     charIsLowercaseAlpha, charIsSurrogate
-from Entities import getNamedCharFromTable, atLeastOneNameStartsWith
+from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
 
 
 class HTMLTokenizer:
@@ -1071,4 +1071,7 @@ class HTMLTokenizer:
             switcher = self.__getStateSwitcher()
             if switcher is not None:
                 switcher()
+
+        self.__currentToken = self.__createNewToken(HTMLToken.TokenType.EOF)
+        self.__emitCurrentToken()
 

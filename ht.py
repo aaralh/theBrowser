@@ -5,8 +5,10 @@ from web.html.parser.HTMLToken import HTMLToken
 from web.html.parser.HTMLTokenizer import  HTMLTokenizer
 import datetime
 
+
 def cb(dom: Any) -> None:
 	print(dom)
+
 
 if __name__ == "__main__":
 	print(datetime.datetime.now())

@@ -1,5 +1,5 @@
 from typing import Callable, TYPE_CHECKING, Dict
-import web.dom.elements as elements
+from web.dom import elements
 from web.dom.Node import Node
 from web.html.parser.HTMLToken import HTMLTag
 from web.dom.Document import Document
@@ -7,7 +7,7 @@ from web.dom.Document import Document
 if TYPE_CHECKING:
     from web.dom.elements.Element import Element
 
-TAG_NAMES: Dict[str, Callable[[HTMLTag, Node, Document], Element]] = {
+TAG_NAMES: Dict[str, Callable[[HTMLTag, Node, Document], "Element"]] = {
     "a": elements.HTMLAElement,
     "abbr": elements.HTMLAbbrElement,
     "acronym": elements.HTMLAcronymElement,
