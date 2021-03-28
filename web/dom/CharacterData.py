@@ -11,7 +11,7 @@ class CharacterData(Node):
         self.length = len(data)
 
     def __str__(self) -> str:
-        return self.__data
+        return f"<TEXT>{self.__data}</TEXT>"
 
     def __updateLength(self) -> None:
         self.length = len(self.__data)
@@ -52,6 +52,6 @@ class CharacterData(Node):
         for _ in range(depth):
             indentation += "\t"
         if not self.__data.isspace():
-            return f"{indentation}" + self.__data + "\n"
+            return f"{indentation}" + f"<TEXT>{self.__data}</TEXT>" + "\n"
         else:
             return ""
