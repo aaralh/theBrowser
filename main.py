@@ -15,13 +15,13 @@ WIDTH, HEIGHT = 800, 600
 class Browser:
     def __init__(self) -> None:
         self.window = tkinter.Tk()
-        self.canvas = tkinter.Canvas(
+        self.main_frame = tkinter.Frame(
             self.window,
             width=WIDTH,
             height=HEIGHT
         )
-        self.activeCanvas = self.canvas
-        self.canvas.pack()
+        self.activeElement = self.main_frame
+        self.main_frame.pack()
 
     def load(self, url: str) -> str:
         headers = {
@@ -56,11 +56,13 @@ class Browser:
                     # width = ''.join([i for i in width if i.isalpha()])
                     print(height)
                     print(width)
-                    self.activeCanvas.create_rectangle(10, 20, width, height, outline="red")  # type: ignore
+                    self.main_frame = tkinter.Frame(self.main_frame, height=height, width=width, highlightbackground="red", highlightthickness=1)
+                    self.main_frame.pack()# type: ignore
 
             elif isinstance(child, Text):
                 child = cast(Text, child)
-                self.canvas.create_text(200, 150, text=child.wholeText)  # type: ignore
+                text_widget = tkinter.Label(self.main_frame, text=child.wholeText)  # type: ignore
+                text_widget.pack()
 
             self.renderElement(child)
 
@@ -81,6 +83,8 @@ class Browser:
 if __name__ == "__main__":
     import sys
     browser = Browser()
-    html = browser.load(sys.argv[1])
+    #  html = browser.load(sys.argv[1])
+    with open("./test_resources/test_html.html", "r") as htmlFile:
+        html = htmlFile.read()
     browser.renderHtml(html)
     tkinter.mainloop()

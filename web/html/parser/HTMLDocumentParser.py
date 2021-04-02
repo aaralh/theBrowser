@@ -90,8 +90,6 @@ class HTMLDocumentParser:
             switcher(token)
 
         if token.type == HTMLToken.TokenType.EOF:
-            print("The dom")
-            print(self.__documentNode)
             if self.__notifyCb:
                 self.__notifyCb(self.__documentNode)
 
