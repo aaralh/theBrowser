@@ -323,7 +323,7 @@ class HTMLDocumentParser:
             elif token.name == "title":
                 element = self.__createElement(token)
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(
+                self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.RCDATA)
                 print("Assigning insertion mode:", self.__currentInsertionMode)
                 self.__originalInsertionMode = self.__currentInsertionMode
@@ -331,7 +331,7 @@ class HTMLDocumentParser:
             elif (token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"]):
                 element = self.__createElement(token)
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(
+                self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.RAWTEXT)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__switchModeTo(self.__Mode.Text)
@@ -352,7 +352,7 @@ class HTMLDocumentParser:
                     raise NotImplementedError
 
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+                self.__tokenizer.switch_state_to(self.__tokenizer.State.ScriptData)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__switchModeTo(self.__Mode.Text)
 
@@ -479,7 +479,7 @@ class HTMLDocumentParser:
             elif token.name in ["noframes", "style"]:
                 element = self.__createElement(token)
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(
+                self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.RAWTEXT)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__switchModeTo(self.__Mode.Text)
@@ -495,7 +495,7 @@ class HTMLDocumentParser:
             elif token.name == "title":
                 element = self.__createElement(token)
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(
+                self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.RCDATA)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__switchModeTo(self.__Mode.Text)
@@ -513,7 +513,7 @@ class HTMLDocumentParser:
                     raise NotImplementedError
 
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(self.__tokenizer.State.ScriptData)
+                self.__tokenizer.switch_state_to(self.__tokenizer.State.ScriptData)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__switchModeTo(self.__Mode.Text)
             elif token.name == "body":
@@ -582,7 +582,7 @@ class HTMLDocumentParser:
                     self.__openElements.pop()
                 element = self.__createElement(token)
                 self.__openElements.push(element)
-                self.__tokenizer.switchStateTo(
+                self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.PLAINTEXT)
             elif token.name == "button":
                 if self.__openElements.hasInScope(token.name):
@@ -617,7 +617,7 @@ class HTMLDocumentParser:
                 element = self.__createElement(token)
                 self.__openElements.push(element)
                 # TODO: Handle new line
-                self.__tokenizer.switchStateTo(self.__tokenizer.State.RCDATA)
+                self.__tokenizer.switch_state_to(self.__tokenizer.State.RCDATA)
                 self.__originalInsertionMode = self.__currentInsertionMode
                 self.__framesetOK = False
                 self.__switchModeTo(self.__Mode.Text)
