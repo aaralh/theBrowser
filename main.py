@@ -14,14 +14,11 @@ WIDTH, HEIGHT = 800, 600
 
 class Browser:
     def __init__(self) -> None:
-        self.window = tkinter.Tk()
-        self.main_frame = tkinter.Frame(
-            self.window,
-            width=WIDTH,
-            height=HEIGHT
-        )
-        self.activeElement = self.main_frame
-        self.main_frame.pack()
+        self.window = tkinter.Tk(className='theBrowser')
+        self.window.geometry(f"{WIDTH}x{HEIGHT}")
+        self.main_frame = tkinter.Frame(self.window)
+        self.active_element = self.main_frame
+        self.main_frame.pack(side=tkinter.LEFT, anchor=tkinter.N)
 
     def load(self, url: str) -> str:
         headers = {
@@ -46,23 +43,30 @@ class Browser:
             if isinstance(child, Element):
                 child = cast(Element, child)
                 print(child.attributes)
-                styleDict = self.parseStyle(child.attributes.get("style", ""))
-                print("styleDict")
-                print(styleDict)
-                if styleDict:
-                    height = styleDict.get("height", 30).replace("px", "")
+                style_dict = self.parseStyle(child.attributes.get("style", ""))
+                print("style_dict")
+                print(style_dict)
+                if style_dict:
+                    height = style_dict.get("height", "0").replace("px", "")
                     # height = ''.join([i for i in height if i.isalpha()])
-                    width = styleDict.get("width", 60).replace("px", "")
+                    width = style_dict.get("width", "0").replace("px", "")
+                    border_color = style_dict.get("border-color", "")
+                    border_width = style_dict.get("border-width", "").replace("px", "")
                     # width = ''.join([i for i in width if i.isalpha()])
                     print(height)
                     print(width)
-                    self.main_frame = tkinter.Frame(self.main_frame, height=height, width=width, highlightbackground="red", highlightthickness=1)
-                    self.main_frame.pack()# type: ignore
+                    self.active_element = tkinter.Frame(
+                        self.active_element,
+                        height=height,
+                        width=width,
+                        highlightbackground=border_color,
+                        highlightthickness=border_width)
+                    self.active_element.pack(side=tkinter.LEFT, anchor=tkinter.N, pady=0, padx=0)# type: ignore
 
             elif isinstance(child, Text):
                 child = cast(Text, child)
-                text_widget = tkinter.Label(self.main_frame, text=child.wholeText)  # type: ignore
-                text_widget.pack()
+                text_widget = tkinter.Label(self.active_element, text=child.wholeText)  # type: ignore
+                text_widget.pack(side=tkinter.LEFT, anchor=tkinter.N)
 
             self.renderElement(child)
 

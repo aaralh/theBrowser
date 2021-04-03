@@ -1,8 +1,9 @@
 from typing import List, Union
 from web.dom.Document import Document
+from web.dom.events.EventTarget import EventTarget
 
 
-class Node:
+class Node(EventTarget):
 
     def __init__(self, parent: Union['Node', None], document: Document):
         self.__parentNode: Union[Node, None] = parent
