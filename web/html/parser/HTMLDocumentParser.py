@@ -149,7 +149,7 @@ class HTMLDocumentParser:
             self.__current_element.appendChild(text_node)
 
     def __insert_comment(self, token: HTMLCommentOrCharacter) -> None:
-        comment = Comment(token.data)
+        comment = Comment(token.data, self.__current_element, self.__document)
         comment.parentNode = self.__current_element
         self.__current_element.appendChild(comment)
         self.__continue_in(self.__Mode.BeforeHead)
@@ -299,7 +299,7 @@ class HTMLDocumentParser:
                 self.__insert_character(token)
         elif token.type == HTMLToken.TokenType.Comment:
             token = cast(HTMLCommentOrCharacter, token)
-            comment = Comment(token.data)
+            comment = Comment(token.data, self.__current_element, self.__document)
             self.__current_element.appendChild(comment)
         elif token.type == HTMLToken.TokenType.DOCTYPE:
             pass
@@ -398,7 +398,7 @@ class HTMLDocumentParser:
                 raise NotImplementedError
         elif token.type == HTMLToken.TokenType.Comment:
             token = cast(HTMLCommentOrCharacter, token)
-            comment = Comment(token.data)
+            comment = Comment(token.data, self.__current_element, self.__document)
             self.__current_element.appendChild(comment)
         elif token.type == HTMLToken.TokenType.StartTag:
             if token.name in ["basefont", "bgsound", "link", "meta", "noframes", "style"]:
