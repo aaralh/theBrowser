@@ -1,5 +1,5 @@
 import tkinter
-from tkinter.constants import LEFT
+from tkinter.constants import END, LEFT
 import requests
 
 from web.dom.Node import Node
@@ -8,6 +8,7 @@ from web.dom.elements.Element import Element
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.DocumentType import DocumentType
 from time import sleep
+from widgets.ScrollableFrame import ScrollableFrame
 
 from typing import cast
 """ import os
@@ -23,9 +24,24 @@ class Browser:
     def __init__(self) -> None:
         self.window = tkinter.Tk(className='theBrowser')
         self.window.geometry(f"{WIDTH}x{HEIGHT}")
-        self.main_frame = tkinter.Frame(self.window, padx=0, pady=0)
+        self.search_bar = tkinter.Text(self.window, height=1)
+        self.search_bar.grid(column=0, row=1)
+        self.search_bar.bind("<Key>", self.check_key)
+        self.search_button = tkinter.Button(text="GO!", command=self.loadWebpage)
+        self.search_button.grid(column=1, row=1)
+        self.test = tkinter.Frame(self.window, height=60, width=60, bd=2)
+        self.test.grid(column=0, row=2)
+        self.scrollable_frame = ScrollableFrame(self.test)
+        self.scrollable_frame.grid(column=0, row=1)
+        self.main_frame = tkinter.Frame(self.scrollable_frame.scrollable_frame)
+        self.main_frame.grid(column=0, row=0)
         self.active_element = self.main_frame
-        self.main_frame.grid(column=0, row=1)
+
+    def check_key(self, event):
+        # Ignore the 'Return' key
+        if event.keysym == "Return":
+            self.loadWebpage()
+            return "break"
 
     def load(self, url: str) -> str:
         headers = {
@@ -48,6 +64,7 @@ class Browser:
     def renderElement(self, element: Element, active_element: tkinter.Frame, counter: int) -> None:
         _active_element = active_element
         for child in element.childNodes:
+            print("child: ", child)
             if isinstance(child, Element):
                 child = cast(Element, child)
                 style_dict = self.parseStyle(child.attributes.get("style", ""))
@@ -59,19 +76,15 @@ class Browser:
                     border_width = style_dict.get("border-width", "").replace("px", "")
                     # width = ''.join([i for i in width if i.isalpha()])
 
-                    row, _ = _active_element.grid_size()
-                    _active_element = tkinter.Frame(
-                        _active_element,
-                       """  height=height,
-                        width=width,
-                        highlightbackground=border_color,
-                        highlightthickness=border_width """)
-                    _active_element.grid(column=0, row=counter)# type: ignore
-                    counter = 0
+                    e = tkinter.Frame(_active_element)
+                    e.grid(column=0, row=counter)# type: ignore
+                    self.renderElement(child, e, 1)
+
 
             elif isinstance(child, Text):
                 child = cast(Text, child)
-                row, _ = _active_element.grid_size()
+                if child.data.isspace():
+                    continue
                 text_widget = tkinter.Label(_active_element, text=child.data, justify=LEFT, wraplength=800)  # type: ignore
                 text_widget.grid(column=0, row=counter)
             
@@ -82,31 +95,35 @@ class Browser:
 
 
     def renderDOM(self, dom: DocumentType) -> None:
-        print("dom")
-        print(dom)
         for child in dom.childNodes:
-            print("Child")
-            print(child)
-            print()
             for element in child.childNodes:
                 if isinstance(element, HTMLBodyElement):
-                    self.renderElement(element, self.active_element, 0)
+                    self.renderElement(element, self.active_element, 1)
 
     def renderHtml(self, html: str) -> None:
         parser = HTMLDocumentParser(html)
         parser.run(self.renderDOM)
+
+    def loadWebpage(self) -> None:
+        url = self.search_bar.get("1.0", END)
+        html = self.load(url.strip())
+        for child in self.main_frame.winfo_children():
+             child.destroy()
+        self.active_element = self.main_frame
+        self.renderHtml(html)
+
 
 
 if __name__ == "__main__":
     import sys
     browser = Browser()
 
-    if sys.argv[1]:
-        html = browser.load(sys.argv[1])
-    else:
-        with open("./test_resources/test_html.html", "r") as htmlFile:
-            html = htmlFile.read()
-    browser.renderHtml(html)
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
+        html = browser.load(url)
+        browser.search_bar.delete(1.0, END)
+        browser.search_bar.insert(END, url)
+        browser.renderHtml(html)
 
     tkinter.mainloop()
 
