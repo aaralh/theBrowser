@@ -15,6 +15,22 @@ class Element(Node):
     def __str__(self) -> str:
         return self.printTree()
 
+    def to_string(self) -> str:
+        return self.get_contents()
+
+    def get_contents(self) -> str:
+
+        treeString = f"<{self.name} {self.attributes}>"
+        for node in self.childNodes:
+            treeString += node.get_contents()
+
+        if self.childNodes:
+            treeString += f"</{self.name}>"
+        else:
+            treeString += f"</{self.name}>"
+
+        return treeString
+
     def printTree(self, depth: int = 0) -> str:
         indentation = ""
         for _ in range(depth):

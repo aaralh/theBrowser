@@ -55,3 +55,9 @@ class CharacterData(Node):
             return f"{indentation}" + f"<TEXT>{self.__data}</TEXT>" + "\n"
         else:
             return ""
+
+    def get_contents(self) -> str:
+        if not self.__data.isspace():
+            return f"<TEXT>{self.__data.strip()}</TEXT>" + "\n"
+        else:
+            return ""
