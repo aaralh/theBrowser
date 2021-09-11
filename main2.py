@@ -1,49 +1,82 @@
 import tkinter
-from tkinter.constants import RIGHT, VERTICAL, Y
+from tkinter.constants import END, RIGHT, VERTICAL, Y
+from typing import List
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import Text, HTMLBodyElement
 import requests
+from PIL import Image, ImageTk
+
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
+EMOJIS_PATH = "resources/emojis/"
+
 
 class Browser:
     def __init__(self):
-        self.window = tkinter.Tk()
+        self.window = tkinter.Tk(className='theBrowser')
+        self.window.rowconfigure(0, weight=1)
+        self.window.columnconfigure(0, weight=1)
+        self.window.rowconfigure(1, weight=1000)
+        self.window.columnconfigure(1, weight=1)
+        self.search_bar = tkinter.Text(self.window, height=1)
+        self.search_bar.grid(column=0, row=0, sticky="news")
+        self.search_bar.bind("<Key>", self.check_key)
+        self.search_button = tkinter.Button(text="GO!", command=self.loadWebpage)
+        self.search_button.grid(column=1, row=0, sticky="news")
         self.canvas = tkinter.Canvas(
             self.window, 
             width=WIDTH,
             height=HEIGHT
         )
-        self.canvas.pack(side="left", fill="both", expand=True)
+        self.canvas.grid(column=0, row=1, columnspan=2, sticky="news")
         self.scroll = 0
         self.content_height = 0
         self.current_content = ""
+        self.used_resources = []
+        self.supported_emojis = self.init_emojis()
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
-        vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
+        """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
-        vbar.config(command=self.handle_scroll)
+        vbar.config(command=self.handle_scroll) """
+
+    def check_key(self, event):
+        # Ignore the 'Return' key
+        if event.keysym == "Return":
+            self.loadWebpage()
+            return "break"
+
+    def init_emojis(self) -> List[str]:
+        from os import listdir
+        from os.path import isfile, join
+        supported_emojis = [f.strip(".png") for f in listdir(EMOJIS_PATH) if isfile(join(EMOJIS_PATH, f))]
+        return supported_emojis
 
     def handle_resize(self, event) -> None:
         global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
-        self.canvas.config(height=HEIGHT, width=WIDTH)
+        #self.canvas.config(height=HEIGHT, width=WIDTH)
         self.display_list = layout(self.current_content)
+        self.used_resources = []
         self.draw()
 
     def load(self, url):
+        self.scroll = 0
         headers = {
             "User-Agent": "theBrowser/0.01-alpha"
         }
         response = requests.get(url, headers=headers)
         parser = HTMLDocumentParser(response.text)
         parser.run(self.raster)
-       
+    
+    def loadWebpage(self) -> None:
+        url = self.search_bar.get("1.0", END)
+        self.load(url.strip())
 
     def raster(self, dom: DocumentType):
         text = lex(lex2(dom))
@@ -79,12 +112,20 @@ class Browser:
         
         self.draw()
 
+    def is_emoji(self, unicode) -> bool:
+        return unicode in self.supported_emojis
+
     def draw(self):
         self.canvas.delete("all")
         for x, y, c in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            self.canvas.create_text(x, y - self.scroll, text=c)
+            if self.is_emoji('{:X}'.format(ord(c))):
+                img = ImageTk.PhotoImage(Image.open(f"{EMOJIS_PATH}{'{:X}'.format(ord(c))}.png").resize((16, 16)))
+                self.used_resources.append(img)
+                self.canvas.create_image(x, y - self.scroll, image=img)
+            else:
+                self.canvas.create_text(x, y - self.scroll, text=c)
             
         self.content_height = self.display_list[-1][1]
 
@@ -123,7 +164,24 @@ def lex2(dom: DocumentType) -> str:
             if isinstance(element, HTMLBodyElement):
                return element.get_contents()
 
+def conver_images():
+    from os import listdir
+    from os.path import isfile, join
+    supported_emojis = [f.strip(".png") for f in listdir(EMOJIS_PATH) if isfile(join(EMOJIS_PATH, f))]
+    for emoji in supported_emojis:
+        uri = EMOJIS_PATH + emoji
+        print(uri)
+        im = PIL.Image.open(uri)
+        im.convert('RGBA').save(f"{EMOJIS_PATH}{emoji.replace('.png', '.gif')}", "GIF")
+
 if __name__ == "__main__":
     import sys
-    Browser().load(sys.argv[1])
+    browser = Browser()
+    if len(sys.argv) > 1:
+        url = sys.argv[1]
+        browser.load(url)
+        browser.search_bar.delete(1.0, END)
+        browser.search_bar.insert(END, url)
     tkinter.mainloop()
+
+
