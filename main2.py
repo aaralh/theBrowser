@@ -57,10 +57,11 @@ class Browser:
         return supported_emojis
 
     def handle_resize(self, event) -> None:
+        if event.widget != self.window:
+            return
         global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
-        #self.canvas.config(height=HEIGHT, width=WIDTH)
         self.display_list = layout(self.current_content)
         self.used_resources = []
         self.draw()
@@ -126,8 +127,9 @@ class Browser:
                 self.canvas.create_image(x, y - self.scroll, image=img)
             else:
                 self.canvas.create_text(x, y - self.scroll, text=c)
-            
-        self.content_height = self.display_list[-1][1]
+        
+        if len(self.display_list):
+            self.content_height = self.display_list[-1][1]
 
 
 def layout(text: str):
@@ -164,15 +166,6 @@ def lex2(dom: DocumentType) -> str:
             if isinstance(element, HTMLBodyElement):
                return element.get_contents()
 
-def conver_images():
-    from os import listdir
-    from os.path import isfile, join
-    supported_emojis = [f.strip(".png") for f in listdir(EMOJIS_PATH) if isfile(join(EMOJIS_PATH, f))]
-    for emoji in supported_emojis:
-        uri = EMOJIS_PATH + emoji
-        print(uri)
-        im = PIL.Image.open(uri)
-        im.convert('RGBA').save(f"{EMOJIS_PATH}{emoji.replace('.png', '.gif')}", "GIF")
 
 if __name__ == "__main__":
     import sys
