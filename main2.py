@@ -1,5 +1,6 @@
 import tkinter
-from tkinter.constants import END, RIGHT, VERTICAL, Y
+from tkinter.constants import END
+from tkinter.font import Font
 from typing import List
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
@@ -40,6 +41,11 @@ class Browser:
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
+        self.font = Font(
+            family="Times",
+            weight="normal",
+            size=16,
+        )
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
@@ -62,7 +68,7 @@ class Browser:
         global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
-        self.display_list = layout(self.current_content)
+        self.layout(self.current_content)
         self.used_resources = []
         self.draw()
 
@@ -82,7 +88,7 @@ class Browser:
     def raster(self, dom: DocumentType):
         text = lex(lex2(dom))
         self.current_content = text
-        self.display_list = layout(text)
+        self.layout(text)
         self.draw()
 
     def handle_scroll(self, direction):
@@ -116,36 +122,42 @@ class Browser:
     def is_emoji(self, unicode) -> bool:
         return unicode in self.supported_emojis
 
+    def layout(self, text: str):
+        self.display_list = []
+        cursor_x, cursor_y = HSTEP, VSTEP
+        for word in text.split():
+            w = self.font.measure(word)
+            if cursor_x + w >= WIDTH - HSTEP:
+                cursor_y += self.font.metrics("linespace") * 1.2
+                cursor_x = HSTEP
+            self.display_list.append((cursor_x, cursor_y, word))
+            cursor_x += w + self.font.measure(" ")
+
     def draw(self):
         self.canvas.delete("all")
-        for x, y, c in self.display_list:
+        for x, y, word in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
-            if self.is_emoji('{:X}'.format(ord(c))):
-                img = ImageTk.PhotoImage(Image.open(f"{EMOJIS_PATH}{'{:X}'.format(ord(c))}.png").resize((16, 16)))
-                self.used_resources.append(img)
-                self.canvas.create_image(x, y - self.scroll, image=img)
+            
+            if not set(list(word)).isdisjoint(set(self.supported_emojis)):
+                self.canvas.create_text(x, y - self.scroll, text=word, font=self.font, anchor='nw')
             else:
-                self.canvas.create_text(x, y - self.scroll, text=c)
+                for c in word:
+                    if self.is_emoji('{:X}'.format(ord(c))):
+                        img = ImageTk.PhotoImage(Image.open(f"{EMOJIS_PATH}{'{:X}'.format(ord(c))}.png").resize((16, 16)))
+                        self.used_resources.append(img)
+                        self.canvas.create_image(x, y - self.scroll, image=img, anchor='nw')
+                    else:
+                        self.canvas.create_text(x, y - self.scroll, text=c, font=self.font, anchor='nw')
+                    w = self.font.measure(c)
+                    x += w
+                
         
         if len(self.display_list):
             self.content_height = self.display_list[-1][1]
 
 
-def layout(text: str):
-    display_list = []
-    cursor_x, cursor_y = HSTEP, VSTEP
-    for c in text:
-        if c == "\n":
-            cursor_y += VSTEP
-            cursor_x = HSTEP
-            continue
-        display_list.append((cursor_x, cursor_y, c))
-        cursor_x += HSTEP
-        if cursor_x >= WIDTH - HSTEP:
-            cursor_y += VSTEP
-            cursor_x = HSTEP
-    return display_list
+
 
 def lex(body):
     text = ""
