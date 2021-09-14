@@ -1,7 +1,7 @@
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
-from typing import List
+from typing import List, Tuple
 from web.dom import elements
 from web.dom.elements.Element import Element
 from web.dom.DocumentType import DocumentType
@@ -9,11 +9,18 @@ from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import Text, HTMLBodyElement
 import requests
 from PIL import Image, ImageTk
+from dataclasses import dataclass
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
 EMOJIS_PATH = "resources/emojis/"
+
+
+@dataclass
+class DOMElement():
+    element: Element
+    font: Font
 
 
 class Browser:
@@ -43,11 +50,6 @@ class Browser:
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
-        self.font = Font(
-            family="Times",
-            weight="normal",
-            size=16,
-        )
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
@@ -124,27 +126,49 @@ class Browser:
     def is_emoji(self, unicode) -> bool:
         return unicode in self.supported_emojis
 
-    def layout(self, elements: List[Element]):
+    def layout(self, elements: List[DOMElement]):
         self.display_list = []
         cursor_x, cursor_y = HSTEP, VSTEP
+        previous_was_div = True
+        previous_was_header = False
         for element in elements:
-            if isinstance(element, Text):
-                for word in element.data.split():
-                    w = self.font.measure(word)
+            if isinstance(element.element, Text):
+                if previous_was_header:
+                    cursor_y += element.font.metrics("linespace") * 1.2
+                    cursor_x = HSTEP
+                for word in element.element.data.split():
+                    w = element.font.measure(word)
                     if cursor_x + w >= WIDTH - HSTEP:
-                        cursor_y += self.font.metrics("linespace") * 1.2
+                        cursor_y += element.font.metrics("linespace") * 1.2
                         cursor_x = HSTEP
-                    self.display_list.append((cursor_x, cursor_y, word))
-                    cursor_x += w + self.font.measure(" ")
+                    self.display_list.append((cursor_x, cursor_y, word, element.font))
+                    cursor_x += w + element.font.measure(" ")
+                    previous_was_div = False
+                if previous_was_header:
+                    cursor_y += (element.font.metrics("linespace") * 1.2)*2
+                    cursor_x = HSTEP
+                previous_was_header = False
+
+            elif element.element.name == "div":
+                if previous_was_div:
+                    continue
+                cursor_y += element.font.metrics("linespace") * 1.2
+                cursor_x = HSTEP
+                previous_was_div = True
+            elif element.element.name == "h2":
+                cursor_y += element.font.metrics("linespace") * 1.2
+                cursor_x = HSTEP
+                previous_was_header = True
+
 
     def draw(self):
         self.canvas.delete("all")
-        for x, y, word in self.display_list:
+        for x, y, word, font in self.display_list:
             if y > self.scroll + HEIGHT: continue
             if y + VSTEP < self.scroll: continue
             
             if not set(list(word)).isdisjoint(set(self.supported_emojis)):
-                self.canvas.create_text(x, y - self.scroll, text=word, font=self.font, anchor='nw')
+                self.canvas.create_text(x, y - self.scroll, text=word, font=font, anchor='nw')
             else:
                 for c in word:
                     if self.is_emoji('{:X}'.format(ord(c))):
@@ -152,8 +176,8 @@ class Browser:
                         self.used_resources.append(img)
                         self.canvas.create_image(x, y - self.scroll, image=img, anchor='nw')
                     else:
-                        self.canvas.create_text(x, y - self.scroll, text=c, font=self.font, anchor='nw')
-                    w = self.font.measure(c)
+                        self.canvas.create_text(x, y - self.scroll, text=c, font=font, anchor='nw')
+                    w = font.measure(c)
                     x += w
                 
         
@@ -189,18 +213,40 @@ def get_body(dom: DocumentType) -> HTMLBodyElement:
             if isinstance(element, HTMLBodyElement):
                return element
 
-def lex_next_gen(body: HTMLBodyElement) -> List[Element]:
+def lex_next_gen(body: HTMLBodyElement) -> List[DOMElement]:
     out = []
+    weight = "normal"
+    style = "roman"
+    font = Font(
+        size=16,
+        weight=weight,
+        slant=style,
+    )
     for child in body.childNodes:
-        out += parse_contents(child)
+        out += parse_contents(child, font)
     return out
 
+def get_font_weight_and_style(element: Element) -> Tuple:
+    style = None
+    weight = None
 
+    if element.name == "i":
+        style = "italic"
+    elif element.name == "b" or element.name == "strong":
+        weight = "bold"
 
-def parse_contents(element: Element) -> List[Element]:
-    out = [element]
+    return (style, weight)
+
+def parse_contents(element: Element, font: Font) -> List[DOMElement]:
+    _font = font.copy()
+    out = [DOMElement(element, _font)]
+    style, weight = get_font_weight_and_style(element)
+    if style:
+        _font.config(style=style)
+    if weight:
+        _font.config(weight=weight)
     for child in element.childNodes:
-         out += parse_contents(child)
+         out += parse_contents(child, _font)
     return out
 
     
