@@ -2,6 +2,8 @@ import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
 from typing import List
+from web.dom import elements
+from web.dom.elements.Element import Element
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import Text, HTMLBodyElement
@@ -86,9 +88,9 @@ class Browser:
         self.load(url.strip())
 
     def raster(self, dom: DocumentType):
-        text = lex(lex2(dom))
-        self.current_content = text
-        self.layout(text)
+        elements = lex_next_gen(get_body(dom))
+        self.current_content = elements
+        self.layout(elements)
         self.draw()
 
     def handle_scroll(self, direction):
@@ -122,16 +124,18 @@ class Browser:
     def is_emoji(self, unicode) -> bool:
         return unicode in self.supported_emojis
 
-    def layout(self, text: str):
+    def layout(self, elements: List[Element]):
         self.display_list = []
         cursor_x, cursor_y = HSTEP, VSTEP
-        for word in text.split():
-            w = self.font.measure(word)
-            if cursor_x + w >= WIDTH - HSTEP:
-                cursor_y += self.font.metrics("linespace") * 1.2
-                cursor_x = HSTEP
-            self.display_list.append((cursor_x, cursor_y, word))
-            cursor_x += w + self.font.measure(" ")
+        for element in elements:
+            if isinstance(element, Text):
+                for word in element.data.split():
+                    w = self.font.measure(word)
+                    if cursor_x + w >= WIDTH - HSTEP:
+                        cursor_y += self.font.metrics("linespace") * 1.2
+                        cursor_x = HSTEP
+                    self.display_list.append((cursor_x, cursor_y, word))
+                    cursor_x += w + self.font.measure(" ")
 
     def draw(self):
         self.canvas.delete("all")
@@ -177,6 +181,29 @@ def lex2(dom: DocumentType) -> str:
         for element in child.childNodes:
             if isinstance(element, HTMLBodyElement):
                return element.get_contents()
+
+
+def get_body(dom: DocumentType) -> HTMLBodyElement:
+    for child in dom.childNodes:
+        for element in child.childNodes:
+            if isinstance(element, HTMLBodyElement):
+               return element
+
+def lex_next_gen(body: HTMLBodyElement) -> List[Element]:
+    out = []
+    for child in body.childNodes:
+        out += parse_contents(child)
+    return out
+
+
+
+def parse_contents(element: Element) -> List[Element]:
+    out = [element]
+    for child in element.childNodes:
+         out += parse_contents(child)
+    return out
+
+    
 
 
 if __name__ == "__main__":
