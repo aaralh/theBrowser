@@ -740,7 +740,13 @@ class HTMLDocumentParser:
                 if node.name not in ["dd", "dt", "li", "optgroup", "option", "p", "rb", "rp", "rt", "rtc", "tbody",
                                      "td", "tfoot", "th", "thead", "tr", "body", "html"]:
                     # TODO: Handle parse error.
-                    break
+                    raise NotImplementedError()
+                    
+            # TODO: This is a hack, check if valid
+            self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("body")
+            # TODO: Implement the popping functionality.
+            self.__reconsumeIn(self.__Mode.AfterBody, token)
+
             return
 
     def handle_text(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:

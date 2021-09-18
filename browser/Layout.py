@@ -30,6 +30,9 @@ class Layout:
         self.line = []
 
         for element in elements:
+            if element.element.name == "script":
+                continue
+
             self.layout(element)
 
         self.flush()

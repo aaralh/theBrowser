@@ -29,7 +29,7 @@ class Browser:
         self.search_bar = tkinter.Text(self.window, height=1)
         self.search_bar.grid(column=0, row=0, sticky="news")
         self.search_bar.bind("<Key>", self.check_key)
-        self.search_button = tkinter.Button(text="GO!", command=self.loadWebpage)
+        self.search_button = tkinter.Button(text="GO!", command=self.load_webpage)
         self.search_button.grid(column=1, row=0, sticky="news")
         self.canvas = tkinter.Canvas(
             self.window, 
@@ -42,6 +42,7 @@ class Browser:
         self.current_content: List[DOMElement] = []
         self.used_resources = []
         self.display_list = []
+        self.re_draw_timeout = None
         self.supported_emojis = self.init_emojis()
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
@@ -54,7 +55,7 @@ class Browser:
     def check_key(self, event):
         # Ignore the 'Return' key
         if event.keysym == "Return":
-            self.loadWebpage()
+            self.load_webpage()
             return "break"
 
     def init_emojis(self) -> List[str]:
@@ -66,9 +67,16 @@ class Browser:
     def handle_resize(self, event) -> None:
         if event.widget != self.window:
             return
+        if self.re_draw_timeout != None:
+            self.window.after_cancel(self.re_draw_timeout)
+            self.re_draw_timeout = None
         global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
+        self.re_draw_timeout = self.window.after(10, self.redraw)
+        
+    def redraw(self) -> None:
+        self.re_draw_timeout = None
         self.display_list = Layout(self.current_content, HSTEP, VSTEP, WIDTH).display_list
         self.used_resources = []
         self.draw()
@@ -82,7 +90,7 @@ class Browser:
         parser = HTMLDocumentParser(response.text)
         parser.run(self.raster)
     
-    def loadWebpage(self) -> None:
+    def load_webpage(self) -> None:
         url = self.search_bar.get("1.0", END)
         self.load(url.strip())
 
