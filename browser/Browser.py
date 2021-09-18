@@ -6,10 +6,9 @@ from typing import List, Tuple
 from web.dom.elements.Element import Element
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
-from web.dom.elements import Text, HTMLBodyElement
+from web.dom.elements import HTMLBodyElement
 import requests
 from PIL import Image, ImageTk
-from dataclasses import dataclass
 
 WIDTH, HEIGHT = 800, 600
 HSTEP, VSTEP = 13, 18
