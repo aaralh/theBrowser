@@ -32,7 +32,8 @@ class Browser:
         self.canvas = tkinter.Canvas(
             self.window, 
             width=WIDTH,
-            height=HEIGHT
+            height=HEIGHT,
+            bg="white"
         )
         self.canvas.grid(column=0, row=1, columnspan=2, sticky="news")
         self.scroll = 0
