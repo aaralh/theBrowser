@@ -27,11 +27,11 @@ Bolded items are currently in WIP :construction:. List will be extended in more 
 - [ ] 📐 Style
     - [ ] CSS cascade
     - [ ] Style computation
-    - [ ] Render tree
+    - [ ] **Render tree** :construction:
     - [ ] Selector matching
 - [ ] 🎴 Layout process
-    - [ ] Layouts (Block, Flex, Grid)
-- [ ] 🎨 Rendering
+    - [ ] **Layouts** (Block, Flex, Grid):construction:
+- [ ] 🎨 **Rendering**:construction:
 - [ ] 🌍 **Networking**:construction:
 - [ ] 🖼️ Media
 - [ ] JavaScript
