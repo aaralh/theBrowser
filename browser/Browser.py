@@ -84,7 +84,7 @@ class Browser:
     def load(self, url):
         self.scroll = 0
         headers = {
-            "User-Agent": "theBrowser/0.01-alpha"
+            "User-Agent": "theBrowser/0.02-alpha"
         }
         response = requests.get(url, headers=headers)
         parser = HTMLDocumentParser(response.text)
