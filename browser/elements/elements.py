@@ -39,7 +39,7 @@ class DrawRect:
         self.right = x2
         self.color = color
 
-    def execute(self, scroll: int, canvas: Canvas):
+    def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         canvas.create_rectangle(
             self.left, self.top - scroll,
             self.right, self.bottom - scroll,
