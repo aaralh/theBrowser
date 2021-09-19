@@ -534,7 +534,12 @@ class HTMLDocumentParser:
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
             elif token.name in ["pre", "listing"]:
-                raise NotImplementedError  # TODO: Handle case
+                if self.__open_elements.hasInButtonScope("p"):
+                    self.__open_elements.pop()
+                element = self.__create_element(token)
+                self.__open_elements.push(element)
+                # TODO: Handle new line
+                self.__frameset_ok = False
             elif token.name == "form":
                 if self.__form_element is not None and self.__open_elements.contains("template") is False:
                     # TODO: Handle parse error.
