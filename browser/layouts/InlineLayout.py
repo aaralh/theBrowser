@@ -1,5 +1,6 @@
 
-from browser.elements.elements import DrawText
+from browser.CSSParser import CSSParser
+from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from dataclasses import dataclass
@@ -114,5 +115,19 @@ class InlineLayout(Layout):
             self.cursor_y += globals.VSTEP
 
     def paint(self, display_list: list):
+        
+        if isinstance(self.node, Element):
+            styles = CSSParser(self.node.attributes.get("style", "")).body()
+            bgcolor = styles.get("background-color",
+                                        "transparent")
+            if bgcolor != "transparent":
+                x2, y2 = self.x + self.width, self.y + self.height
+                rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+                display_list.append(rect)
+            elif self.node.name == "pre":
+                x2, y2 = self.x + self.width, self.y + self.height
+                rect = DrawRect(self.x, self.y, x2, y2, "gray")
+                display_list.append(rect)
+
         for x, y, word, font in self.display_list:
             display_list.append(DrawText(x, y, word, font))
