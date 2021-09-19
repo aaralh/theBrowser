@@ -1,4 +1,5 @@
-from browser.Layout import DOMElement, Layout
+from browser.layouts.DocumentLayout import DocumentLayout
+from browser.layouts.InlineLayout import DOMElement
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
@@ -9,14 +10,12 @@ from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement
 import requests
 from PIL import Image, ImageTk
+import browser.globals as globals
+from browser.globals import EMOJIS_PATH
 
-WIDTH, HEIGHT = 800, 600
-HSTEP, VSTEP = 13, 18
 SCROLL_STEP = 100
-EMOJIS_PATH = "resources/emojis/"
-
-
-
+WIDTH = 800
+HEIGHT = 600
 
 class Browser:
     def __init__(self):
@@ -38,7 +37,7 @@ class Browser:
         self.canvas.grid(column=0, row=1, columnspan=2, sticky="news")
         self.scroll = 0
         self.content_height = 0
-        self.current_content: List[DOMElement] = []
+        self.document: DocumentLayout = None
         self.used_resources = []
         self.display_list = []
         self.re_draw_timeout = None
@@ -76,7 +75,9 @@ class Browser:
         
     def redraw(self) -> None:
         self.re_draw_timeout = None
-        self.display_list = Layout(self.current_content, HSTEP, VSTEP, WIDTH).display_list
+        self.document.layout(WIDTH)
+        self.display_list = []
+        self.document.paint(self.display_list)
         self.used_resources = []
         self.draw()
 
@@ -94,9 +95,10 @@ class Browser:
         self.load(url.strip())
 
     def raster(self, dom: DocumentType):
-        elements = lex_next_gen(get_body(dom))
-        self.current_content = elements
-        self.display_list = Layout(elements, HSTEP, VSTEP, WIDTH).display_list
+        self.document = DocumentLayout(dom)
+        self.document.layout(WIDTH)
+        self.display_list = []
+        self.document.paint(self.display_list)
         self.draw()
 
     def handle_scroll(self, direction):
@@ -106,14 +108,8 @@ class Browser:
             self.scroll_up(direction)
 
     def scroll_down(self, _):
-        if self.scroll > self.content_height - HEIGHT:
-            return
-        
-        if self.scroll + SCROLL_STEP >= self.content_height - HEIGHT:
-            self.scroll =  self.content_height - HEIGHT
-        else:
-            self.scroll += SCROLL_STEP
-        
+        max_y = self.document.height - HEIGHT
+        self.scroll = min(self.scroll + SCROLL_STEP, max_y)
         self.draw()
 
     def scroll_up(self, _):
@@ -133,9 +129,13 @@ class Browser:
 
     def draw(self):
         self.canvas.delete("all")
-        for x, y, word, font in self.display_list:
-            if y > self.scroll + HEIGHT: continue
-            if y + VSTEP < self.scroll: continue
+        for cmd in self.display_list:
+            if cmd.top > self.scroll + HEIGHT: continue
+            if cmd.bottom < self.scroll: continue
+            cmd.execute(self.scroll, self.canvas, self.supported_emojis)
+        """ for x, y, word, font in self.display_list:
+            if y > self.scroll + globals.HEIGHT: continue
+            if y + globals.VSTEP < self.scroll: continue
             
             if not set(list(word)).isdisjoint(set(self.supported_emojis)):
                 self.canvas.create_text(x, y - self.scroll, text=word, font=font, anchor='nw')
@@ -148,18 +148,9 @@ class Browser:
                     else:
                         self.canvas.create_text(x, y - self.scroll, text=c, font=font, anchor='nw')
                     w = font.measure(c)
-                    x += w
+                    x += w """
                 
-        
-        if len(self.display_list):
-            self.content_height = self.display_list[-1][1]
 
-
-def get_body(dom: DocumentType) -> HTMLBodyElement:
-    for child in dom.childNodes:
-        for element in child.childNodes:
-            if isinstance(element, HTMLBodyElement):
-               return element
 
 def lex_next_gen(body: HTMLBodyElement) -> List[DOMElement]:
     out = []
