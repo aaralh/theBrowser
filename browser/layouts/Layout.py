@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import List, Optional
+from typing import List, Literal, Optional
 from web.dom.Node import Node
 from web.dom.elements.Text import Text
 from web.dom.elements.Element import Element
@@ -34,7 +34,7 @@ class Layout:
     def layout(self) -> None:
         raise NotImplementedError()
 
-    def layout_mode(self, node: Node):
+    def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):
             return "inline"
         elif node.childNodes:
