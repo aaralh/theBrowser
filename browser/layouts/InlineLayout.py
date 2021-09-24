@@ -1,5 +1,5 @@
 
-from browser.CSSParser import CSSParser
+from browser.css.CSSParser import CSSParser
 from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout

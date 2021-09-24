@@ -1,5 +1,4 @@
-from abc import ABC, abstractmethod
-from typing import List, Literal, Optional
+from typing import List, Literal
 from web.dom.Node import Node
 from web.dom.elements.Text import Text
 from web.dom.elements.Element import Element
