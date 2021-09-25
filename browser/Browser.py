@@ -12,6 +12,9 @@ import requests
 from PIL import Image, ImageTk
 import browser.globals as globals
 from browser.globals import EMOJIS_PATH
+from browser.styling.CSSParser import CSSParser
+from browser.utils.utils import tree_to_list
+from browser.styling.utils import style
 
 SCROLL_STEP = 100
 WIDTH = 800
@@ -50,6 +53,9 @@ class Browser:
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
+        
+        with open("./browser/styling/defaults/browser.css") as file:
+            self.default_style_sheet = CSSParser(file.read()).parse()
 
     def check_key(self, event):
         # Ignore the 'Return' key
@@ -96,7 +102,22 @@ class Browser:
         self.load(url.strip())
 
     def raster(self, dom: DocumentType):
+        rules = self.default_style_sheet.copy()
+        links = [node.attributes["href"]
+             for node in tree_to_list(dom, [])
+             if isinstance(node, Element)
+             and node.name == "link"
+             and "href" in node.attributes
+             and node.attributes.get("rel") == "stylesheet"]
+        for link in links:
+            try:
+                header, body = request(resolve_url(link, url))
+            except:
+                continue
+            rules.extend(CSSParser(body).parse())
         self.document = DocumentLayout(dom)
+        print("rules", rules)
+        style(dom, rules)
         self.document.layout(WIDTH)
         self.display_list = []
         self.document.paint(self.display_list)

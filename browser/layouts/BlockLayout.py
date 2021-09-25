@@ -2,7 +2,7 @@ from browser.layouts.InlineLayout import InlineLayout
 from typing import List
 from browser.layouts.Layout import Layout
 from web.dom.elements.Element import Element
-
+from browser.styling.utils import style
 
 class BlockLayout(Layout):
     def __init__(self, node: Element, parent: Layout, previous: Layout):
@@ -14,7 +14,6 @@ class BlockLayout(Layout):
     def layout(self):
         self.children = []
         previous = None
-        
         for child in self.node.childNodes:
             if self.layout_mode(child) == "inline":
                 next = InlineLayout(child, self, previous)

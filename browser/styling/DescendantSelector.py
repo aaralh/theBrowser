@@ -1,4 +1,4 @@
-from browser.css.TagSelector import TagSelector
+from browser.styling.TagSelector import TagSelector
 from web.dom.elements.Element import Element
 
 

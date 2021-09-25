@@ -11,6 +11,7 @@ class Element(Node):
         self.__id = token.attributes.get("id", None)
         self.__attributes: Dict[str, str] = token.attributes
         self.__namespace: str = namespace
+        self.style: Optional[Dict] = None
 
     def __str__(self) -> str:
         return self.printTree()

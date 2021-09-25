@@ -1,11 +1,11 @@
-from browser.css.DescendantSelector import DescendantSelector
-from browser.css.TagSelector import TagSelector
+from browser.styling.DescendantSelector import DescendantSelector
+from browser.styling.TagSelector import TagSelector
 
 
 class CSSParser:
     def __init__(self, style_string: str):
         self.style_string = style_string
-        self.indexndex = 0
+        self.index = 0
 
     def whitespace(self):
         while self.index < len(self.style_string) and self.style_string[self.index].isspace():
