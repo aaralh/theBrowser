@@ -36,8 +36,8 @@ class Layout:
     def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):
             return "inline"
-        elif node.childNodes:
-            for child in node.childNodes:
+        elif node.children:
+            for child in node.children:
                 if isinstance(child, Text): continue
                 if child.name in BLOCK_ELEMENTS:
                     return "block"

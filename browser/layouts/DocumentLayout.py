@@ -23,8 +23,8 @@ class DocumentLayout(Layout):
         self.height = child.height + 2*globals.VSTEP
 
     def __get_body(self, dom: DocumentType) -> HTMLBodyElement:
-        for child in dom.childNodes:
-            for element in child.childNodes:
+        for child in dom.children:
+            for element in child.children:
                 if isinstance(element, HTMLBodyElement):
                     return element
 

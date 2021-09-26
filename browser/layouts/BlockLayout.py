@@ -14,7 +14,7 @@ class BlockLayout(Layout):
     def layout(self):
         self.children = []
         previous = None
-        for child in self.node.childNodes:
+        for child in self.node.children:
             if self.layout_mode(child) == "inline":
                 next = InlineLayout(child, self, previous)
             else:
