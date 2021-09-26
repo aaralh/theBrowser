@@ -57,65 +57,42 @@ class InlineLayout(Layout):
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):
             self.text(node)
-        elif node.name == "br":
-            self.flush()
         else:
-            self.open_tag(node.name)
+            if node.name == "br":
+                self.flush()
             for child in node.childNodes:
                 self.recurse(child)
-            self.close_tag(node.name)
 
     def text(self, element: Text):
-        font = get_font(self.size, self.weight, self.style)
+        weight = element.style["font-weight"]
+        style = element.style["font-style"]
+        if style == "normal": style = "roman"
+        size = int(float(element.style["font-size"][:-2]) * .75)
+        color = element.style["color"]
+        font = get_font(size, weight, style)
         for word in element.data.split():
             w = font.measure(word)
             if self.cursor_x + w > self.width - globals.HSTEP:
                 self.flush()
-            self.line.append((self.cursor_x, word, font))
+            self.line.append((self.cursor_x, word, font, color))
             self.cursor_x += w + font.measure(" ")
 
     def flush(self) -> None:
         if not self.line: return
-        metrics = [font.metrics() for x, word, font in self.line]
+        metrics = [font.metrics() for x, word, font, color in self.line]
         max_ascent = max([metric["ascent"] for metric in metrics])
         baseline = self.cursor_y + 1.25 * max_ascent
 
-        for x, word, font in self.line:
+        for x, word, font, color in self.line:
             y = baseline - font.metrics("ascent")
-            self.display_list.append((x, y, word, font))
+            self.display_list.append((x, y, word, font, color))
 
         self.cursor_x = self.x
         self.line = []
         max_descent = max([metric["descent"] for metric in metrics])
         self.cursor_y = baseline + 1.25 * max_descent
 
-    def open_tag(self, tag):
-        if tag == "i":
-            self.style = "italic"
-        elif tag == "b" or tag == "strong":
-            self.weight = "bold"
-        elif tag == "small":
-            self.size -= 2
-        elif tag == "big":
-            self.size += 4
-        elif tag == "br":
-            self.flush()
-
-    def close_tag(self, tag):
-        if tag == "i":
-            self.style = "roman"
-        elif tag == "b" or tag == "strong":
-            self.weight = "normal"
-        elif tag == "small":
-            self.size += 2
-        elif tag == "big":
-            self.size -= 4
-        elif tag == "p":
-            self.flush()
-            self.cursor_y += globals.VSTEP
-
     def paint(self, display_list: list):
-        
         if isinstance(self.node, Element):
             bgcolor = self.node.style.get("background-color",
                                       "transparent")
@@ -124,5 +101,6 @@ class InlineLayout(Layout):
                 rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
                 display_list.append(rect)
 
-        for x, y, word, font in self.display_list:
-            display_list.append(DrawText(x, y, word, font))
+        for x, y, word, font, color in self.display_list:
+            display_list.append(DrawText(x, y, word, font, color))
+

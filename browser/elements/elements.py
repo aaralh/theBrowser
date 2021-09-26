@@ -5,11 +5,12 @@ from browser.globals import EMOJIS_PATH
 from tkinter.font import Font
 
 class DrawText:
-    def __init__(self, x1, y1, text: str, font: Font):
+    def __init__(self, x1, y1, text: str, font: Font, color):
         self.top = y1
         self.left = x1
         self.text = text
         self.font = font
+        self.color = color
         self.bottom = y1 + font.metrics("linespace")
         self.used_resources = []
 
@@ -18,7 +19,7 @@ class DrawText:
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         if not set(list(self.text)).isdisjoint(set(supported_emojis)):
-            canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw')
+            canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
         else:
             tmp_left = self.left
             for c in self.text:
@@ -27,7 +28,7 @@ class DrawText:
                     self.used_resources.append(img)
                     canvas.create_image(tmp_left, self.top - scroll, image=img, anchor='nw')
                 else:
-                    canvas.create_text(tmp_left, self.top - scroll, text=c, font=self.font, anchor='nw')
+                    canvas.create_text(tmp_left, self.top - scroll, text=c, font=self.font, anchor='nw', fill=self.color)
                 w = self.font.measure(c)
                 tmp_left += w
     

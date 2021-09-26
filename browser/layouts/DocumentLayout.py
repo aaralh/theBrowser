@@ -10,11 +10,11 @@ class DocumentLayout(Layout):
         self.parent = None
         self.previous = None
         self.children = []
+        self.body = self.__get_body(node)
 
     def layout(self, screen_width):
         self.children = []
-        body = self.__get_body(self.node)
-        child = BlockLayout(body, self, None)
+        child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = screen_width - 2*globals.HSTEP
         self.x = globals.HSTEP
