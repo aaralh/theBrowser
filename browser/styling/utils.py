@@ -38,7 +38,10 @@ def style(node: Element, rules: List[Rule]):
     node.style = {}
     for property, default_value in INHERITED_PROPERTIES.items():
         if node.parentNode:
-            node.style[property] = node.parentNode.style[property]
+            if node.parentNode.style[property] == "inherit":
+                node.style[property] = default_value
+            else:
+                node.style[property] = node.parentNode.style[property]
         else:
             node.style[property] = default_value
     for rule in rules:
