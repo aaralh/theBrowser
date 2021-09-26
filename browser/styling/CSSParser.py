@@ -1,5 +1,13 @@
 from browser.styling.DescendantSelector import DescendantSelector
 from browser.styling.TagSelector import TagSelector
+from dataclasses import dataclass
+from typing import Dict, List
+
+
+@dataclass
+class Rule:
+    selector: TagSelector
+    body: Dict
 
 
 class CSSParser:
@@ -34,7 +42,7 @@ class CSSParser:
         val = self.word()
         return prop.lower(), val
 
-    def body(self):
+    def body(self) -> Dict:
         pairs = {}
         while self.index < len(self.style_string) and self.style_string[self.index] != "}":
             try:
@@ -59,7 +67,7 @@ class CSSParser:
             else:
                 self.index += 1
 
-    def parse(self):
+    def parse(self) -> List[Rule]:
         rules = []
         while self.index < len(self.style_string):
             try:
@@ -69,7 +77,7 @@ class CSSParser:
                 self.whitespace()
                 body = self.body()
                 self.literal("}")
-                rules.append((selector, body))
+                rules.append(Rule(selector, body))
             except AssertionError:
                 why = self.ignore_until(["}"])
                 if why == "}":
@@ -79,7 +87,7 @@ class CSSParser:
                     break
         return rules
 
-    def selector(self):
+    def selector(self) -> TagSelector:
         out = TagSelector(self.word().lower())
         self.whitespace()
         while self.index < len(self.style_string) and self.style_string[self.index] != "{":
