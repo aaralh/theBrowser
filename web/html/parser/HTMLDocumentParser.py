@@ -141,8 +141,8 @@ class HTMLDocumentParser:
     def __insert_character(self, token: HTMLCommentOrCharacter) -> None:
         if type(self.__current_element) is Document:
             return
-        elif len(self.__current_element.childNodes) > 0 and type(self.__current_element.childNodes[-1]) is Text:
-            cast(Text, self.__current_element.childNodes[-1]).appendData(token.data)
+        elif len(self.__current_element.children) > 0 and type(self.__current_element.children[-1]) is Text:
+            cast(Text, self.__current_element.children[-1]).appendData(token.data)
         else:
             text_node = Text(self.__document, self.__current_element, token.data)
             text_node.parentNode = self.__current_element

@@ -7,14 +7,14 @@ class Node(EventTarget):
 
     def __init__(self, parent: Union['Node', None], document: Document):
         self.__parentNode: Union[Node, None] = parent
-        self.__childNodes: List[Node] = []
+        self.__children: List[Node] = []
         self.__nodeName: Union[str, None] = None
         self.__document: Union[Document, None] = document
 
     def __str__(self) -> str:
         treeString = "*Document*\n"
 
-        for node in self.childNodes:
+        for node in self.children:
             treeString += node.__str__()
 
         return treeString
@@ -36,18 +36,18 @@ class Node(EventTarget):
         self.__parentNode = parent
 
     def appendChild(self, node: 'Node') -> None:
-        self.__childNodes.append(node)
+        self.__children.append(node)
 
     def appendChildBeforeElement(self, node: 'Node', insertBefore: 'Node') -> None:
-        index = self.__childNodes.index(insertBefore)
-        self.__childNodes.insert(index, node)
+        index = self.__children.index(insertBefore)
+        self.__children.insert(index, node)
 
     def removeChild(self, node: 'Node') -> None:
-        self.__childNodes.remove(node)
+        self.__children.remove(node)
 
     @property
-    def childNodes(self) -> List['Node']:
-        return self.__childNodes
+    def children(self) -> List['Node']:
+        return self.__children
 
     @property
     def document(self) -> Union[Document, None]:

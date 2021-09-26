@@ -15,6 +15,6 @@ class Text(CharacterData):
 
 	@property
 	def wholeText(self) -> str:
-		siblings = self.parentNode.childNodes
+		siblings = self.parentNode.children
 		textSiblingsData = [sibling.data for sibling in siblings if (type(sibling) is Text)]
 		return "".join(textSiblingsData)

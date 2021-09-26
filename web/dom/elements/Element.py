@@ -22,10 +22,10 @@ class Element(Node):
     def get_contents(self) -> str:
 
         treeString = f"<{self.name} {self.attributes}>"
-        for node in self.childNodes:
+        for node in self.children:
             treeString += node.get_contents()
 
-        if self.childNodes:
+        if self.children:
             treeString += f"</{self.name}>"
         else:
             treeString += f"</{self.name}>"
@@ -38,11 +38,11 @@ class Element(Node):
             indentation += "\t"
         depth += 1
         treeString = f"{indentation}<{self.name} {self.attributes}>"
-        for node in self.childNodes:
+        for node in self.children:
             treeString += "\n"
             treeString += node.printTree(depth)
 
-        if self.childNodes:
+        if self.children:
             treeString += f"{indentation}</{self.name}>\n"
         else:
             treeString += f"</{self.name}>\n"
