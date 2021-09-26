@@ -23,12 +23,12 @@ Bolded items are currently in WIP :construction:. List will be extended in more 
     - [ ] **HTML parser**:construction:
 - [ ] 📝 **CSS Parsing**:construction:
     - [ ] **CSS tokenizer**:construction:
-    - [ ] CSS parser
+    - [ ] **CSS parser** :construction:
 - [ ] 📐 Style
-    - [ ] CSS cascade
-    - [ ] Style computation
+    - [ ] **CSS cascade** :construction:
+    - [ ] **Style computation** :construction:
     - [ ] **Render tree** :construction:
-    - [ ] Selector matching
+    - [ ] **Selector matching** :construction:
 - [ ] 🎴 Layout process
     - [ ] **Layouts** (Block, Flex, Grid):construction:
 - [ ] 🎨 **Rendering**:construction:
