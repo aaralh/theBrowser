@@ -13,8 +13,9 @@ from PIL import Image, ImageTk
 import browser.globals as globals
 from browser.globals import EMOJIS_PATH
 from browser.styling.CSSParser import CSSParser
-from browser.utils.utils import tree_to_list
-from browser.styling.utils import style
+from browser.utils.utils import tree_to_list, resolve_url
+from browser.styling.utils import style, cascade_priority
+
 
 SCROLL_STEP = 100
 WIDTH = 800
@@ -45,6 +46,7 @@ class Browser:
         self.used_resources = []
         self.display_list = []
         self.re_draw_timeout = None
+        self.current_url: str = ""
         self.supported_emojis = self.init_emojis()
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
@@ -90,6 +92,7 @@ class Browser:
 
     def load(self, url):
         self.scroll = 0
+        self.current_url = url
         headers = {
             "User-Agent": "theBrowser/0.02-alpha"
         }
@@ -109,15 +112,18 @@ class Browser:
              and node.name == "link"
              and "href" in node.attributes
              and node.attributes.get("rel") == "stylesheet"]
+        print("links", links)
         for link in links:
+            print(resolve_url(link, self.current_url))
             try:
-                header, body = request(resolve_url(link, url))
-            except:
+                response = requests.request("GET", resolve_url(link, self.current_url))
+            except Exception as e:
+                print(e)
                 continue
-            rules.extend(CSSParser(body).parse())
+            rules.extend(CSSParser(response.text).parse())
         self.document = DocumentLayout(dom)
         print("rules", rules)
-        style(dom, rules)
+        style(dom, sorted(rules, key=cascade_priority))
         self.document.layout(WIDTH)
         self.display_list = []
         self.document.paint(self.display_list)
