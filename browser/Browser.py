@@ -15,6 +15,7 @@ from browser.globals import EMOJIS_PATH
 from browser.styling.CSSParser import CSSParser
 from browser.utils.utils import tree_to_list, resolve_url
 from browser.styling.utils import style, cascade_priority
+from web.dom.elements import Text
 
 
 SCROLL_STEP = 100
@@ -52,6 +53,7 @@ class Browser:
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
+        self.canvas.bind("<Button-1>", self.handle_click)
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
@@ -82,6 +84,26 @@ class Browser:
         HEIGHT = event.height
         self.re_draw_timeout = self.window.after(10, self.redraw)
         
+    def handle_click(self, e):
+        print("Clicked")
+        x, y = e.x, e.y
+
+        y += self.scroll
+        objs = [obj for obj in tree_to_list(self.document, []) if obj.x <= x < obj.x + obj.width and obj.y <= y < obj.y + obj.height]
+        if not objs: return
+        elt = objs[-1].node
+
+        while elt:
+            print("Element: ", elt)
+            if isinstance(elt, Text):
+                pass
+            elif elt.name == "a" and "href" in elt.attributes:
+                url = resolve_url(elt.attributes["href"], self.current_url)
+                self.search_bar.delete(1.0, END)
+                self.search_bar.insert(END, url)
+                return self.load(url)
+            elt = elt.parentNode
+
     def redraw(self) -> None:
         self.re_draw_timeout = None
         self.document.layout(WIDTH)
@@ -189,7 +211,7 @@ def lex_next_gen(body: HTMLBodyElement) -> List[DOMElement]:
         weight=weight,
         slant=style,
     )
-    for child in body.childNodes:
+    for child in body.children:
         out += parse_contents(child, font)
     return out
 
@@ -212,6 +234,6 @@ def parse_contents(element: Element, font: Font) -> List[DOMElement]:
         _font.config(style=style)
     if weight:
         _font.config(weight=weight)
-    for child in element.childNodes:
+    for child in element.children:
          out += parse_contents(child, _font)
     return out

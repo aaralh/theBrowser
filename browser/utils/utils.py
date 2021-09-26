@@ -1,6 +1,6 @@
 def tree_to_list(node, list):
     list.append(node)
-    for child in node.childNodes:
+    for child in node.children:
         tree_to_list(child, list)
     return list
 

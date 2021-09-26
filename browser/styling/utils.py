@@ -51,5 +51,5 @@ def style(node: Element, rules: List[Rule]):
         pairs = CSSParser(node.attributes["style"]).body()
         for property, value in pairs.items():
             node.style[property] = value
-    for child in node.childNodes:
+    for child in node.children:
         style(child, rules)
