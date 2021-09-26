@@ -116,7 +116,7 @@ class Browser:
         self.scroll = 0
         self.current_url = url
         headers = {
-            "User-Agent": "theBrowser/0.02-alpha"
+            "User-Agent": "theBrowser/0.03-alpha"
         }
         response = requests.get(url, headers=headers)
         parser = HTMLDocumentParser(response.text)
