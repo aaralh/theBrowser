@@ -13,6 +13,11 @@ class TextLayout(Layout):
         self.children = []
         self.parent = parent
         self.previous = previous
+        self.x = None
+        self.y = None
+        self.width = None
+        self.height = None
+        self.font = None
 
     def layout(self):
         weight = self.node.style["font-weight"]

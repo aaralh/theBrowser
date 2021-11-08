@@ -3,7 +3,7 @@ from browser.layouts.InlineLayout import DOMElement
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 from web.dom.elements.Element import Element
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
@@ -23,7 +23,7 @@ WIDTH = 800
 HEIGHT = 600
 
 class Browser:
-    def __init__(self):
+    def __init__(self) -> None:
         self.window = tkinter.Tk(className='theBrowser')
         self.window.rowconfigure(0, weight=1)
         self.window.columnconfigure(0, weight=1)
@@ -46,7 +46,7 @@ class Browser:
         self.document: DocumentLayout = None
         self.used_resources = []
         self.display_list = []
-        self.re_draw_timeout = None
+        self.re_draw_timeout: Optional[str] = None
         self.current_url: str = ""
         self.supported_emojis = self.init_emojis()
         self.window.bind("<Down>", self.scroll_down)
@@ -64,7 +64,10 @@ class Browser:
     def check_key(self, event):
         # Ignore the 'Return' key
         if event.keysym == "Return":
-            self.load_webpage()
+            try:
+                self.load_webpage()
+            except:
+                pass
             return "break"
 
     def init_emojis(self) -> List[str]:
@@ -73,7 +76,7 @@ class Browser:
         supported_emojis = [f.strip(".png") for f in listdir(EMOJIS_PATH) if isfile(join(EMOJIS_PATH, f))]
         return supported_emojis
 
-    def handle_resize(self, event) -> None:
+    def handle_resize(self, event: tkinter.Event) -> None:
         if event.widget != self.window:
             return
         if self.re_draw_timeout != None:
@@ -128,6 +131,7 @@ class Browser:
 
     def raster(self, dom: DocumentType):
         rules = self.default_style_sheet.copy()
+        print("Rules", rules)
         links = [node.attributes["href"]
              for node in tree_to_list(dom, [])
              if isinstance(node, Element)
@@ -143,7 +147,7 @@ class Browser:
                 print(e)
                 continue
             rules.extend(CSSParser(response.text).parse())
-        self.document = DocumentLayout(dom)
+        self.document = DocumentLayout(dom, self.current_url)
         print("rules", rules)
         style(dom, sorted(rules, key=cascade_priority))
         self.document.layout(WIDTH)
@@ -151,8 +155,8 @@ class Browser:
         self.document.paint(self.display_list)
         self.draw()
 
-    def handle_scroll(self, direction):
-        if direction:
+    def handle_scroll(self, direction: tkinter.Event):
+        if direction.delta == -1:
             self.scroll_down(direction)
         else:
             self.scroll_up(direction)
@@ -176,8 +180,7 @@ class Browser:
     def is_emoji(self, unicode) -> bool:
         return unicode in self.supported_emojis
 
-
-    def draw(self):
+    def draw(self) -> None:
         self.canvas.delete("all")
         for cmd in self.display_list:
             if cmd.top > self.scroll + HEIGHT: continue

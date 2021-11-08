@@ -1,4 +1,5 @@
 
+from browser.layouts.ImageLayout import ImageLayout
 from browser.styling.CSSParser import CSSParser
 from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
@@ -12,6 +13,9 @@ import browser.globals as globals
 from browser.layouts.LineLayout import LineLayout
 from browser.layouts.TextLayout import TextLayout
 from browser.layouts.utils import get_font
+from web.dom.elements.HTMLImgElement import HTMLImgElement
+import requests
+
 
 @dataclass
 class DOMElement():
@@ -20,11 +24,12 @@ class DOMElement():
 
 
 class InlineLayout(Layout):
-    def __init__(self, node: Node, parent: Layout, previous: Layout):
+    def __init__(self, node: Node, parent: Layout, previous: Layout, current_url: str):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
+        self.current_url = current_url
 
     def layout(self):
         self.children = []
@@ -47,6 +52,10 @@ class InlineLayout(Layout):
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):
             self.text(node)
+        elif isinstance(node, HTMLImgElement):
+            if "src" in node.attributes:
+                self.image(node)
+                self.new_line()
         else:
             if node.name == "br":
                 self.new_line()
@@ -60,12 +69,16 @@ class InlineLayout(Layout):
         new_line = LineLayout(self.node, self, last_line)
         self.children.append(new_line)
 
+    def image(self, element: HTMLImgElement):
+        line = self.children[-1]
+        image = ImageLayout(element, line, self.previous_word, self.current_url)
+        self.children.append(image)
+
     def text(self, element: Text):
         weight = element.style["font-weight"]
         style = element.style["font-style"]
         if style == "normal": style = "roman"
         size = int(float(element.style["font-size"][:-2]) * .75)
-        color = element.style["color"]
         font = get_font(size, weight, style)
         for word in element.data.split():
             w = font.measure(word)

@@ -1,8 +1,21 @@
 from tkinter import Canvas
 from typing import List
-from PIL import Image, ImageTk
+from PIL import ImageTk
 from browser.globals import EMOJIS_PATH
 from tkinter.font import Font
+
+
+class DrawImage:
+    def __init__(self, x1, y1, height, image: ImageTk):
+        self.top = y1
+        self.left = x1
+        self.image = image
+        self.bottom = y1 + height
+        self.used_resources = []
+
+    def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
+        canvas.create_image(self.left, self.top - scroll, image=self.image, anchor='nw')
+
 
 class DrawText:
     def __init__(self, x1, y1, text: str, font: Font, color):
@@ -18,7 +31,8 @@ class DrawText:
         return unicode in supported_emojis
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
-        if not set(list(self.text)).isdisjoint(set(supported_emojis)):
+        canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
+        """if not set(list(self.text)).isdisjoint(set(supported_emojis)):
             canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
         else:
             tmp_left = self.left
@@ -30,7 +44,7 @@ class DrawText:
                 else:
                     canvas.create_text(tmp_left, self.top - scroll, text=c, font=self.font, anchor='nw', fill=self.color)
                 w = self.font.measure(c)
-                tmp_left += w
+                tmp_left += w"""
     
 class DrawRect:
     def __init__(self, x1, y1, x2, y2, color):

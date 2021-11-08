@@ -5,20 +5,21 @@ from web.dom.elements.Element import Element
 from browser.styling.utils import style
 
 class BlockLayout(Layout):
-    def __init__(self, node: Element, parent: Layout, previous: Layout):
+    def __init__(self, node: Element, parent: Layout, previous: Layout, current_url: str):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
+        self.current_url = current_url
 
     def layout(self):
         self.children = []
         previous = None
         for child in self.node.children:
             if self.layout_mode(child) == "inline":
-                next = InlineLayout(child, self, previous)
+                next = InlineLayout(child, self, previous, self.current_url)
             else:
-                next = BlockLayout(child, self, previous)
+                next = BlockLayout(child, self, previous, self.current_url)
             self.children.append(next)
             previous = next
 
