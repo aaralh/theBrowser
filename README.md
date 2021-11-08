@@ -16,7 +16,7 @@ Browser made completely(or as much as possible) with Python and complies with th
 
 ## Features
 
-Bolded items with :construction: are currently in WIP. Items marked with :shipit: are workin but may be partially lacking, hence not considerable as finished yet. Completed features are marked with :rocket: List will be extended in more detail on the go.
+Bolded items with :construction: are currently in WIP. Items marked with :shipit: are working but may be partially lacking, hence not considerable as finished yet. Completed features are marked with :rocket: List will be extended in more detail on the go.
 
 - [ ] 📝 **HTML Parsing**:shipit:
     - [ ] **HTML tokenizer**:shipit:
@@ -33,5 +33,5 @@ Bolded items with :construction: are currently in WIP. Items marked with :shipit
     - [ ] **Layouts** (Block, Flex, Grid):construction:
 - [ ] 🎨 **Rendering**:construction:
 - [ ] 🌍 **Networking**:construction:
-- [ ] 🖼️ Media
+- [ ] 🖼️ **Media**:construction:
 - [ ] JavaScript
