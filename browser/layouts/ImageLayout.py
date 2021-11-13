@@ -4,8 +4,7 @@ from browser.utils.utils import resolve_url
 from web.dom.Node import Node
 from PIL import Image, ImageTk
 from io import BytesIO
-import requests
-
+from browser.utils.networking import request
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout, current_url: str):
@@ -25,7 +24,7 @@ class ImageLayout(Layout):
     def load_image(self):
         image_src = self.node.attributes.get("src")
         src = resolve_url(image_src, self.current_url)
-        response = requests.get(src)
+        response = request(src)
         return response.content
 
     def layout(self):

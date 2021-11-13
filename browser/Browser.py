@@ -4,12 +4,12 @@ import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
 from typing import List, Optional, Tuple
+from browser.utils.networking import request
 from web.dom.elements.Element import Element
 from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement
-import requests
 from PIL import Image, ImageTk
 import browser.globals as globals
 from browser.globals import EMOJIS_PATH
@@ -17,6 +17,7 @@ from browser.styling.CSSParser import CSSParser
 from browser.utils.utils import tree_to_list, resolve_url
 from browser.styling.utils import style, cascade_priority
 from web.dom.elements import Text
+import urllib
 
 
 SCROLL_STEP = 100
@@ -119,11 +120,41 @@ class Browser:
                 self.search_bar.insert(END, url)
                 return self.load(url)
             elif elt.name == "input":
-                print("Element:", elt)
-                elt.attributes["value"] = ""
-                self.focus = elt
-                return
+                if elt.attributes.get("type", "") == "submit":
+                    while elt:
+                        if elt.name == "form" and "action" in elt.attributes:
+                            return self.submit_form(elt)
+                        elt = elt.parentNode
+                else:
+                    print("Element:", elt)
+                    elt.attributes["value"] = ""
+                    self.focus = elt
+                    return
+            elif elt.name == "button":
+                while elt:
+                    if elt.name == "form" and "action" in elt.attributes:
+                        return self.submit_form(elt)
+                    elt = elt.parentNode
             elt = elt.parentNode
+
+    def submit_form(self, elt):
+        inputs = [node for node in tree_to_list(elt, [])
+                  if isinstance(node, Element)
+                  and node.name == "input"
+                  and "name" in node.attributes]
+        
+        body = ""
+        for input in inputs:
+            name = input.attributes["name"]
+            value = input.attributes.get("value", "")
+            name = urllib.parse.quote(name)
+            value = urllib.parse.quote(value)
+            body += "&" + name + "=" + value
+        body = body[1:]
+        url = resolve_url(elt.attributes["action"] + f"?{body}", self.current_url)
+        self.search_bar.delete(1.0, END)
+        self.search_bar.insert(END, url)
+        self.load(url)
 
     def redraw(self) -> None:
         self.re_draw_timeout = None
@@ -133,13 +164,10 @@ class Browser:
         self.used_resources = []
         self.draw()
 
-    def load(self, url):
+    def load(self, url, body=None):
         self.scroll = 0
         self.current_url = url
-        headers = {
-            "User-Agent": "theBrowser/0.03-alpha"
-        }
-        response = requests.get(url, headers=headers)
+        response = request(url)
         parser = HTMLDocumentParser(response.text)
         parser.run(self.raster)
     
@@ -160,7 +188,7 @@ class Browser:
         for link in links:
             print(resolve_url(link, self.current_url))
             try:
-                response = requests.request("GET", resolve_url(link, self.current_url))
+                response = request(resolve_url(link, self.current_url))
             except Exception as e:
                 print(e)
                 continue

@@ -18,7 +18,6 @@ from browser.layouts.utils import get_font
 from web.dom.elements.HTMLImgElement import HTMLImgElement
 from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.elements.HTMLButtonElement import HTMLButtonElement
-import requests
 
 
 @dataclass

@@ -21,6 +21,10 @@ class InputLayout(Layout):
 
         self.width = INPUT_WIDTH_PX
 
+        if self.node.attributes.get("type", "") == "submit":
+            text = self.node.attributes.get("value", " ")
+            self.width = self.font.measure(text)
+
         if self.previous:
             space = self.previous.font.measure(" ")
             self.x = self.previous.x + space + self.previous.width
