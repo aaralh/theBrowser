@@ -57,7 +57,7 @@ class Browser:
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
-        self.canvas.bind("<Button-1>", self.handle_click)
+        self.canvas.bind("<Button-1>", self.handle_canvas_click)
         self.window.bind("<Key>", self.handle_key)
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
@@ -101,8 +101,8 @@ class Browser:
             self.focus.attributes["value"] += e.char
             self.redraw()
 
-    def handle_click(self, e):
-        print("Clicked")
+    def handle_canvas_click(self, e):
+        self.canvas.focus_set()
         x, y = e.x, e.y
 
         y += self.scroll
