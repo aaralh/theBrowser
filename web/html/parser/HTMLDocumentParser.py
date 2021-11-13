@@ -616,6 +616,8 @@ class HTMLDocumentParser:
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
                 self.__open_elements.pop()
+            elif token.name == "input":
+               self.__create_element(token) 
             elif token.name == "textarea":
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
