@@ -48,7 +48,7 @@ class InputLayout(Layout):
             if len(text) == 0:
                 text = self.node.attributes.get("placeholder", "") 
         elif self.node.name == "button":
-            text = self.node.children[0].text
+            text = self.node.children[0].data
 
         print("Text:", text)
         

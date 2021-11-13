@@ -355,8 +355,12 @@ class HTMLDocumentParser:
                 self.__switchModeTo(self.__Mode.Text)
 
             elif token.name == "template":
-                # TODO: Handle case.
-                raise NotImplementedError
+                element = self.__create_element(token)
+                self.__open_elements.push(element)
+                self.__formatting_elements.addMarker()
+                self.__frameset_ok = False
+                # self.__switchModeTo(self.__Mode.InTemplate)
+                # TODO: Handle rest of the case.
             else:
                 # Ignores "head" and any other tag.
                 pass
@@ -369,8 +373,12 @@ class HTMLDocumentParser:
                 self.__open_elements.pop()
                 self.__reconsumeIn(self.__Mode.AfterHead, token)
             elif token.name == "template":
-                # TODO: Handle case.
-                raise NotImplementedError
+                if not self.__open_elements.contains("template"):
+                    pass
+                else:
+                    self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("template")
+                    self.__formatting_elements.clearUpToTheLastMarker()
+                # TODO: Handle rest of the case.
         else:
             self.__open_elements.pop()
             self.__reconsumeIn(self.__Mode.AfterHead, token)
