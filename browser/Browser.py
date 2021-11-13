@@ -93,6 +93,7 @@ class Browser:
         self.re_draw_timeout = self.window.after(10, self.redraw)
 
     def handle_key(self, e):
+        if self.canvas != self.window.focus_get(): return
         if len(e.char) == 0: return
         if not (0x20 <= ord(e.char) < 0x7f): return
 
