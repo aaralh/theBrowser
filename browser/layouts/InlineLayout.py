@@ -1,12 +1,14 @@
 
+from tkinter.constants import X
 from browser.layouts.ImageLayout import ImageLayout
+from browser.layouts.InputLayout import INPUT_WIDTH_PX, InputLayout
 from browser.styling.CSSParser import CSSParser
 from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from dataclasses import dataclass
 from tkinter.font import Font
-from typing import List, Tuple
+from typing import List, Tuple, Union
 from web.dom.elements.Element import Element
 from web.dom.elements import Text
 import browser.globals as globals
@@ -14,6 +16,8 @@ from browser.layouts.LineLayout import LineLayout
 from browser.layouts.TextLayout import TextLayout
 from browser.layouts.utils import get_font
 from web.dom.elements.HTMLImgElement import HTMLImgElement
+from web.dom.elements.HTMLInputElement import HTMLInputElement
+from web.dom.elements.HTMLButtonElement import HTMLButtonElement
 import requests
 
 
@@ -59,8 +63,11 @@ class InlineLayout(Layout):
         else:
             if node.name == "br":
                 self.new_line()
-            for child in node.children:
-                self.recurse(child)
+            elif node.name in ["input", "button"]:
+                self.input(node)
+            else:
+                for child in node.children:
+                    self.recurse(child)
 
     def new_line(self):
         self.previous_word = None
@@ -73,6 +80,21 @@ class InlineLayout(Layout):
         line = self.children[-1]
         image = ImageLayout(element, line, self.previous_word, self.current_url)
         self.children.append(image)
+    
+    def input(self, element: Union[HTMLInputElement, HTMLButtonElement]):
+        weight = element.style["font-weight"]
+        style = element.style["font-style"]
+        if style == "normal": style = "roman"
+        size = int(float(element.style["font-size"][:-2]) * .75)
+        font = get_font(size, weight, style)
+        w = INPUT_WIDTH_PX
+        if self.cursor_x + w > self.x + self.width:
+            self.new_line()
+        line = self.children[-1]
+        input = InputLayout(element, line, self.previous_word)
+        line.children.append(input)
+        self.previous_word = input
+        self.cursor_x += w + font.measure(" ")
 
     def text(self, element: Text):
         weight = element.style["font-weight"]

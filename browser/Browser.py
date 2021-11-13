@@ -5,6 +5,7 @@ from tkinter.constants import END
 from tkinter.font import Font
 from typing import List, Optional, Tuple
 from web.dom.elements.Element import Element
+from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement
@@ -49,11 +50,14 @@ class Browser:
         self.re_draw_timeout: Optional[str] = None
         self.current_url: str = ""
         self.supported_emojis = self.init_emojis()
+        self.focus = None
+
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
         self.window.bind("<Configure>", self.handle_resize)
         self.canvas.bind("<Button-1>", self.handle_click)
+        self.window.bind("<Key>", self.handle_key)
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
@@ -86,7 +90,16 @@ class Browser:
         WIDTH = event.width
         HEIGHT = event.height
         self.re_draw_timeout = self.window.after(10, self.redraw)
-        
+
+    def handle_key(self, e):
+        if len(e.char) == 0: return
+        if not (0x20 <= ord(e.char) < 0x7f): return
+
+        if isinstance(self.focus, HTMLInputElement):
+            print("Key", e.char)
+            self.focus.attributes["value"] += e.char
+            self.redraw()
+
     def handle_click(self, e):
         print("Clicked")
         x, y = e.x, e.y
@@ -97,7 +110,7 @@ class Browser:
         elt = objs[-1].node
 
         while elt:
-            print("Element: ", elt)
+            print("Element: ", elt.name)
             if isinstance(elt, Text):
                 pass
             elif elt.name == "a" and "href" in elt.attributes:
@@ -105,6 +118,11 @@ class Browser:
                 self.search_bar.delete(1.0, END)
                 self.search_bar.insert(END, url)
                 return self.load(url)
+            elif elt.name == "input":
+                print("Element:", elt)
+                elt.attributes["value"] = ""
+                self.focus = elt
+                return
             elt = elt.parentNode
 
     def redraw(self) -> None:
