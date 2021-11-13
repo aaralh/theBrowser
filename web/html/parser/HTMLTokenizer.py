@@ -4,6 +4,7 @@ from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
     charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
+import string
 
 
 class HTMLTokenizer:
@@ -888,7 +889,10 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.DecimalCharacterReferenceStart)
 
     def handle_hexadecimal_character_reference_start(self) -> None:
-        raise NotImplementedError
+        if all(c in string.hexdigits for c in self.__current_input_char):
+            self.__reconsume_in(self.State.DecimalCharacterReference)
+        else:
+            raise NotImplementedError
 
     def handle_decimal_character_reference_start(self) -> None:
         if self.__current_input_char.isdigit():
@@ -916,7 +920,13 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.NumericCharacterReferenceEnd)
 
     def handle_decimal_character_reference(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char.isdigit():
+            self.__character_reference_code *= 10
+            self.__character_reference_code += ord(self.__current_input_char) - 0x0030
+        elif self.__current_input_char == ";":
+            self.switch_state_to(self.State.NumericCharacterReferenceEnd)
+        else:
+            self.__reconsume_in(self.State.NumericCharacterReferenceEnd)
 
     def handle_numeric_character_reference_end(self) -> None:
         if self.__character_reference_code == 0:
