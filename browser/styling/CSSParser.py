@@ -1,7 +1,7 @@
 from browser.styling.DescendantSelector import DescendantSelector
 from browser.styling.TagSelector import TagSelector
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Dict, List, Optional
 
 
 @dataclass
@@ -15,7 +15,7 @@ class CSSParser:
         self.style_string = style_string
         self.index = 0
 
-    def whitespace(self):
+    def whitespace(self) -> None:
         while self.index < len(self.style_string) and self.style_string[self.index].isspace():
             self.index += 1
 
@@ -29,12 +29,12 @@ class CSSParser:
         assert self.index > start
         return self.style_string[start:self.index]
 
-    def literal(self, literal):
+    def literal(self, literal: str) -> None:
         assert self.index < len(
             self.style_string) and self.style_string[self.index] == literal
         self.index += 1
 
-    def pair(self):
+    def pair(self) -> tuple[str, str]:
         prop = self.word()
         self.whitespace()
         self.literal(":")
@@ -60,12 +60,14 @@ class CSSParser:
                     break
         return pairs
 
-    def ignore_until(self, chars):
+    def ignore_until(self, chars: List[str]) -> Optional[str]:
         while self.index < len(self.style_string):
             if self.style_string[self.index] in chars:
                 return self.style_string[self.index]
             else:
                 self.index += 1
+
+        return None
 
     def parse(self) -> List[Rule]:
         rules = []

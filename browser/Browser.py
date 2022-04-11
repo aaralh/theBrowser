@@ -1,10 +1,13 @@
+from dataclasses import dataclass
 from browser.layouts.DocumentLayout import DocumentLayout
 from browser.layouts.InlineLayout import DOMElement
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
 from typing import List, Optional, Tuple
+from browser.layouts.Layout import Layout
 from browser.utils.networking import request
+from web.dom.Node import Node
 from web.dom.elements.Element import Element
 from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.DocumentType import DocumentType
@@ -23,6 +26,11 @@ import urllib
 SCROLL_STEP = 100
 WIDTH = 800
 HEIGHT = 600
+
+@dataclass
+class FocusObject:
+    node: Node
+    layout: Layout
 
 class Browser:
     def __init__(self) -> None:
@@ -51,7 +59,7 @@ class Browser:
         self.re_draw_timeout: Optional[str] = None
         self.current_url: str = ""
         self.supported_emojis = self.init_emojis()
-        self.focus = None
+        self.focus = FocusObject(None, None)
 
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
@@ -97,10 +105,15 @@ class Browser:
         if len(e.char) == 0: return
         if not (0x20 <= ord(e.char) < 0x7f): return
 
-        if isinstance(self.focus, HTMLInputElement):
+        if isinstance(self.focus.node, HTMLInputElement):
             print("Key", e.char)
-            self.focus.attributes["value"] += e.char
+            self.focus.node.attributes["value"] += e.char
             self.redraw()
+
+    def draw_cursor(self):
+       if not isinstance(self.focus.node, HTMLInputElement): return 
+       w = self.focus.layout.font.measure(self.focus.node.attributes["value"])
+       self.canvas.create_line(self.focus.layout.x + w, self.focus.layout.y, self.focus.layout.x + w, self.focus.layout.y + 30)
 
     def handle_canvas_click(self, e):
         self.canvas.focus_set()
@@ -109,7 +122,8 @@ class Browser:
         y += self.scroll
         objs = [obj for obj in tree_to_list(self.document, []) if obj.x <= x < obj.x + obj.width and obj.y <= y < obj.y + obj.height]
         if not objs: return
-        elt = objs[-1].node
+        obj = objs[-1]
+        elt = obj.node
 
         while elt:
             print("Element: ", elt.name)
@@ -129,7 +143,7 @@ class Browser:
                 else:
                     print("Element:", elt)
                     elt.attributes["value"] = ""
-                    self.focus = elt
+                    self.focus = FocusObject(node=elt, layout=obj)
                     return
             elif elt.name == "button":
                 while elt:
@@ -163,6 +177,7 @@ class Browser:
         self.display_list = []
         self.document.paint(self.display_list)
         self.used_resources = []
+        self.draw_cursor()
         self.draw()
 
     def load(self, url, body=None):

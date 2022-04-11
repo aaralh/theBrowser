@@ -1,8 +1,9 @@
+import os
 from browser.elements.elements import DrawImage
 from browser.layouts.Layout import Layout
 from browser.utils.utils import resolve_url
 from web.dom.Node import Node
-from PIL import Image, ImageTk
+from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 from browser.utils.networking import request
 
@@ -28,7 +29,11 @@ class ImageLayout(Layout):
         return response.content
 
     def layout(self):
-        image = Image.open(BytesIO(self.image_bytes))
+        try:
+            image = Image.open(BytesIO(self.image_bytes))
+        except UnidentifiedImageError:
+            print(f"Image is not supported: Image path {self.node.attributes.get('src')}")
+            image = Image.open('resources/images/not_allowed.jpg')
         height = self.node.style.get("height")
         width = self.node.style.get("width")
         image = image.resize((100, 100))
