@@ -17,6 +17,7 @@ class BlockLayout(Layout):
         previous = None
         for child in self.node.children:
             if self.layout_mode(child) == "inline":
+                print(self.current_url)
                 next = InlineLayout(child, self, previous, self.current_url)
             else:
                 next = BlockLayout(child, self, previous, self.current_url)

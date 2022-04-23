@@ -193,28 +193,26 @@ class Browser:
 
     def raster(self, dom: DocumentType):
         rules = self.default_style_sheet.copy()
-        print("Rules", rules)
         links = [node.attributes["href"]
              for node in tree_to_list(dom, [])
              if isinstance(node, Element)
              and node.name == "link"
              and "href" in node.attributes
              and node.attributes.get("rel") == "stylesheet"]
-        print("links", links)
         for link in links:
-            print(resolve_url(link, self.current_url))
             try:
                 response = request(resolve_url(link, self.current_url))
             except Exception as e:
-                print(e)
                 continue
             rules.extend(CSSParser(response.text).parse())
         self.document = DocumentLayout(dom, self.current_url)
-        print("rules", rules)
         style(dom, sorted(rules, key=cascade_priority))
+        with open("document.html", "w") as f:
+            f.write(str(dom))
         self.document.layout(WIDTH)
         self.display_list = []
         self.document.paint(self.display_list)
+            
         self.draw()
 
     def handle_scroll(self, direction: tkinter.Event):

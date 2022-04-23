@@ -1,6 +1,6 @@
 from browser.elements.elements import DrawRect, DrawText
 from browser.layouts.Layout import Layout
-from browser.layouts.utils import get_font
+from browser.layouts.utils import font_weight_to_string, get_font
 from web.dom.Node import Node
 
 INPUT_WIDTH_PX = 200
@@ -17,7 +17,7 @@ class InputLayout(Layout):
         style = self.node.style["font-style"]
         if style == "normal": style = "roman"
         size = int(float(self.node.style["font-size"][:-2]) * .75)
-        self.font = get_font(size, weight, style)
+        self.font = get_font(size, font_weight_to_string(weight), style)
 
         self.width = INPUT_WIDTH_PX
 

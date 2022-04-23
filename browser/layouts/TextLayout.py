@@ -1,7 +1,7 @@
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from tkinter.font import Font
-from browser.layouts.utils import get_font
+from browser.layouts.utils import font_weight_to_string, get_font
 from browser.elements.elements import DrawText
 
 
@@ -19,12 +19,12 @@ class TextLayout(Layout):
         self.height = None
         self.font = None
 
-    def layout(self):
+    def layout(self) -> None:
         weight = self.node.style["font-weight"]
         style = self.node.style["font-style"]
         if style == "normal": style = "roman"
         size = int(float(self.node.style["font-size"][:-2]) * .75)
-        self.font = get_font(size, weight, style)
+        self.font = get_font(size, font_weight_to_string(weight), style)
 
         self.width = self.font.measure(self.word)
 
@@ -36,6 +36,6 @@ class TextLayout(Layout):
 
         self.height = self.font.metrics("linespace")
 
-    def paint(self, display_list: list):
+    def paint(self, display_list: list) -> None:
         color = self.node.style["color"]
         display_list.append(DrawText(self.x, self.y, self.word, self.font, color))
