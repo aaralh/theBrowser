@@ -1,6 +1,7 @@
 
 from browser.layouts.ImageLayout import ImageLayout
 from browser.layouts.InputLayout import INPUT_WIDTH_PX, InputLayout
+from browser.layouts.table.TableLayout import TableLayout
 from browser.styling.CSSParser import CSSParser
 from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
@@ -27,12 +28,11 @@ class DOMElement():
 
 
 class TableDataInlineLayout(Layout):
-    def __init__(self, node: Node, parent: Layout, previous: Layout, current_url: str):
+    def __init__(self, node: Node, parent: Layout, previous: Layout):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
-        self.current_url = current_url
 
     def layout(self):
         self.children = []
@@ -44,24 +44,24 @@ class TableDataInlineLayout(Layout):
         else:
             self.y = self.parent.y
 
-        print("Width: ", self.width, self.x, self.y)
-
         self.new_line()
         self.recurse(self.node)
-        
+        print("inline children:", self.children)
         for line in self.children:
             line.layout()
 
         self.height = sum([line.height for line in self.children]) 
 
     def recurse(self, node: Node) -> None:
-        print(isinstance(node, Text), node.__dict__)
         if isinstance(node, Text):
             self.text(node)
         elif isinstance(node, HTMLImgElement):
             if "src" in node.attributes:
                 self.image(node)
                 self.new_line()
+        elif isinstance(node, HTMLTableElement):
+            self.table(node)
+            self.new_line()
         else:
             if node.name == "br":
                 self.new_line()
@@ -74,18 +74,23 @@ class TableDataInlineLayout(Layout):
                     self.recurse(child)
 
     def new_line(self):
-        print("new_line")
         self.previous_word = None
         self.cursor_x = self.x
-        last_line = self.children[-1] if self.children else None
+        last_line = self.children[-1] if len(self.children) > 0 else None
         new_line = LineLayout(self.node, self, last_line)
         self.children.append(new_line)
 
     def image(self, element: HTMLImgElement):
         line = self.children[-1]
-        image = ImageLayout(element, line, self.previous_word, self.current_url)
+        print("Linez:", line)
+        image = ImageLayout(element, line, self.previous_word)
         self.previous_word = image
         self.children.append(image)
+    
+    def table(self, element: HTMLTableElement):
+        line = self.children[-1]
+        table = TableLayout(element, line, self.previous_word)
+        self.children.append(table)
 
     def input(self, element: Union[HTMLInputElement, HTMLButtonElement]):
         weight = element.style["font-weight"]
@@ -103,6 +108,8 @@ class TableDataInlineLayout(Layout):
         self.cursor_x += w + font.measure(" ")
 
     def text(self, element: Text) -> None:
+        if element.data.isspace(): return
+        print("Added text", f"'{element.data}'")
         weight = element.style["font-weight"]
         style = element.style["font-style"]
         if style == "normal": style = "roman"
@@ -113,6 +120,7 @@ class TableDataInlineLayout(Layout):
             if self.cursor_x + w > (self.width + self.x) - globals.HSTEP:
                 self.new_line()
             line = self.children[-1]
+            print("Word line:", line.__dict__)
             text = TextLayout(element, word, line, self.previous_word)
             line.children.append(text)
             self.previous_word = text

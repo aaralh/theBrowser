@@ -28,7 +28,6 @@ class TableDataLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
-        line = None
         self.width = self.parent.width / len(list(filter(lambda child: isinstance(child, HTMLTdElement), self.parent.node.children)))
         self.x = self.parent.x
 
@@ -42,22 +41,18 @@ class TableDataLayout(Layout):
             
         self.y = self.parent.y
 
-        for child in self.node.children:
-            """ if isinstance(child, Text):
-                if not line:
-                    line = LineLayout(self.node, self, None)
-                print()
-                print(child.data, self.previous_child(), self.x, self.y)
-                print()
-                text = TextLayout(child, child.data, self, self.previous_child())
-                line.children.append(text) """
-            inline_layout = TableDataInlineLayout(child, self, self.previous, "http://localhost:8000/jamaica/jamaica.htm")
-            inline_layout.layout()
-            self.children.append(inline_layout)
-
-        if line:
-            self.children.append(line)
-            line.layout()
+        #for child in self.node.children:
+        """ if isinstance(child, Text):
+            if not line:
+                line = LineLayout(self.node, self, None)
+            print()
+            print(child.data, self.previous_child(), self.x, self.y)
+            print()
+            text = TextLayout(child, child.data, self, self.previous_child())
+            line.children.append(text) """
+        inline_layout = TableDataInlineLayout(self.node, self, self.previous)
+        inline_layout.layout()
+        self.children.append(inline_layout)
 
         if not self.children:
             self.height = 0
