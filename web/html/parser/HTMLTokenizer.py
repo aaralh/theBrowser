@@ -1,11 +1,13 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List, Optional
+
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
     charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
 import string
 
+DEBUG = False
 
 class HTMLTokenizer:
 
@@ -28,7 +30,8 @@ class HTMLTokenizer:
             if self.__current_token.type == HTMLToken.TokenType.StartTag:
                 self.__last_emitted_start_tag_name = self.__current_token.name
             self.__current_token = None
-            print("Current state: ", self.state)
+            if DEBUG:
+                print("Current state: ", self.state)
 
     def __create_new_token(
             self, token_type: HTMLToken.TokenType
@@ -288,9 +291,6 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.RCDATA)
 
     def handle_RCDATA_end_tag_name(self) -> None:
-        print("Current char:", self.__current_input_char)
-        print("Current token:", self.__current_token)
-        print("Last emited token:", self.__last_emitted_start_tag_name)
         self.__current_token = cast(HTMLTag, self.__current_token)
 
         def elseCase() -> None:

@@ -14,11 +14,10 @@ from web.dom.Node import Node
 from web.dom.elements.Text import Text
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from web.html.parser.HTMLTokenizer import HTMLTokenizer
+from web.html.parser.HTMLTokenizer import HTMLTokenizer, DEBUG
 from web.dom.ElementFactory import ElementFactory
 from dataclasses import dataclass
 from copy import deepcopy
-
 
 class HTMLDocumentParser:
     @dataclass
@@ -80,10 +79,11 @@ class HTMLDocumentParser:
 
     def __token_handler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
 
-        print("Token: ", token)
-        print("Input mode: ", self.__current_insertion_mode)
-        print("self.__open_elements")
-        print("Elements: ", self.__open_elements.elements())
+        if DEBUG:
+            print("Token: ", token)
+            print("Input mode: ", self.__current_insertion_mode)
+            print("self.__open_elements")
+            print("Elements: ", self.__open_elements.elements())
 
         switcher = self.__get_mode_switcher()
         if switcher is not None:
