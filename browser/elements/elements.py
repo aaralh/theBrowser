@@ -55,6 +55,8 @@ class DrawRect:
         self.color = color
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
+        if self.color == "rgba":
+            self.color = "#ffffff"
         canvas.create_rectangle(
             self.left, self.top - scroll,
             self.right, self.bottom - scroll,
