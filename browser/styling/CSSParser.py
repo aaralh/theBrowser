@@ -22,7 +22,7 @@ class CSSParser:
     def word(self) -> str:
         start = self.index
         while self.index < len(self.style_string):
-            if self.style_string[self.index].isalnum() or self.style_string[self.index] in "#-.%":
+            if self.style_string[self.index].isalnum() or self.style_string[self.index] in "#-_.%":
                 self.index += 1
             else:
                 break
@@ -51,7 +51,7 @@ class CSSParser:
                 self.whitespace()
                 self.literal(";")
                 self.whitespace()
-            except AssertionError:
+            except AssertionError as e:
                 why = self.ignore_until([";", "}"])
                 if why == ";":
                     self.literal(";")
@@ -90,11 +90,11 @@ class CSSParser:
         return rules
 
     def selector(self) -> TagSelector:
-        out = TagSelector(self.word().lower())
+        out = TagSelector(self.word().lower(), [])
         self.whitespace()
         while self.index < len(self.style_string) and self.style_string[self.index] != "{":
             tag = self.word()
-            descendant = TagSelector(tag.lower())
+            descendant = TagSelector(tag.lower(), [])
             out = DescendantSelector(out, descendant)
             self.whitespace()
         return out
