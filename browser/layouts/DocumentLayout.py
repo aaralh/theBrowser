@@ -5,19 +5,18 @@ from browser.layouts.BlockLayout import BlockLayout
 import browser.globals as globals
 
 class DocumentLayout(Layout):
-    def __init__(self, node, current_url):
+    def __init__(self, node):
         self.node = node
         self.parent = None
         self.previous = None
         self.children = []
         self.body = self.__get_body(node)
-        self.current_url = current_url
 
     def layout(self, screen_width):
         self.children = []
-        child = BlockLayout(self.body, self, None, self.current_url)
+        child = BlockLayout(self.body, self, None)
         self.children.append(child)
-        self.width = screen_width - 2*globals.HSTEP
+        self.width = int(float(screen_width - 2*globals.HSTEP))
         self.x = globals.HSTEP
         self.y = globals.VSTEP
         child.layout()

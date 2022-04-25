@@ -28,12 +28,11 @@ class DOMElement():
 
 
 class InlineLayout(Layout):
-    def __init__(self, node: Node, parent: Layout, previous: Layout, current_url: str):
+    def __init__(self, node: Node, parent: Layout, previous: Layout):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
-        self.current_url = current_url
 
     def layout(self):
         self.children = []
@@ -54,6 +53,8 @@ class InlineLayout(Layout):
         self.height = sum([line.height for line in self.children]) 
 
     def recurse(self, node: Node) -> None:
+        display = node.style.get("display")
+        if display == "none": return
         if isinstance(node, Text):
             self.text(node)
         elif isinstance(node, HTMLImgElement):
@@ -83,7 +84,7 @@ class InlineLayout(Layout):
 
     def image(self, element: HTMLImgElement):
         line = self.children[-1]
-        image = ImageLayout(element, line, self.previous_word, self.current_url)
+        image = ImageLayout(element, line, self.previous_word)
         self.children.append(image)
 
     def table(self, element: HTMLTableElement):

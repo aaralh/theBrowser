@@ -37,7 +37,11 @@ class TableLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
-        self.width = int(self.node.attributes.get("width", str(self.parent.width)))
+        print(self.node.attributes.get("width"), str(self.parent.width))
+        width = self.node.attributes.get("width", str(self.parent.width))
+        if width.endswith("%"):
+            width = self.parent.width * (int(width[:-1]) / 100)
+        self.width = int(float(width))
         self.x = self.parent.x
             
         if self.previous:
@@ -349,7 +353,11 @@ class TableDataInlineLayout(Layout):
         weight = element.style["font-weight"]
         style = element.style["font-style"]
         if style == "normal": style = "roman"
-        size = int(float(element.style["font-size"][:-2]) * .75)
+        if not str(element.style["font-size"]).endswith("px"):
+            # This is just a temporary default value.
+            size = int(float(16) * .75)
+        else:
+            size = int(float(element.style["font-size"][:-2]) * .75)
         font = get_font(size, font_weight_to_string(weight), style)
         for word in element.data.split():
             w = font.measure(word)

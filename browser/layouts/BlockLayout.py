@@ -1,3 +1,4 @@
+from browser.globals import BrowserState
 from browser.layouts.InlineLayout import InlineLayout
 from typing import List
 from browser.layouts.Layout import Layout
@@ -5,22 +6,22 @@ from web.dom.elements.Element import Element
 from browser.styling.utils import style
 
 class BlockLayout(Layout):
-    def __init__(self, node: Element, parent: Layout, previous: Layout, current_url: str):
+    def __init__(self, node: Element, parent: Layout, previous: Layout):
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
-        self.current_url = current_url
 
     def layout(self):
         self.children = []
         previous = None
         for child in self.node.children:
+            display = child.style.get("display")
+            if display == "none": continue
             if self.layout_mode(child) == "inline":
-                print(self.current_url)
-                next = InlineLayout(child, self, previous, self.current_url)
+                next = InlineLayout(child, self, previous)
             else:
-                next = BlockLayout(child, self, previous, self.current_url)
+                next = BlockLayout(child, self, previous)
             self.children.append(next)
             previous = next
 

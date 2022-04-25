@@ -23,7 +23,11 @@ class TextLayout(Layout):
         weight = self.node.style["font-weight"]
         style = self.node.style["font-style"]
         if style == "normal": style = "roman"
-        size = int(float(self.node.style["font-size"][:-2]) * .75)
+        if not str(self.node.style["font-size"]).endswith("px"):
+            # This is just a temporary default value.
+            size = int(float(16) * .75)
+        else:
+            size = int(float(self.node.style["font-size"][:-2]) * .75)
         self.font = get_font(size, font_weight_to_string(weight), style)
 
         self.width = self.font.measure(self.word)

@@ -17,8 +17,6 @@ class LineLayout(Layout):
         self.width = self.parent.width
         self.x = self.parent.x
 
-        print(self.previous)
-
         if self.previous:
             self.y = self.previous.y + self.previous.height
         else:
