@@ -57,6 +57,7 @@ TAG_NAMES: Dict[str, Callable[[HTMLTag, Node, Document], "Element"]] = {
     "form": elements.HTMLFormElement,
     "frame": elements.HTMLFrameElement,
     "frameset": elements.HTMLFramesetElement,
+    "g": elements.HTMLGElement,
     "h1": elements.HTMLH1Element,
     "h2": elements.HTMLH2Element,
     "h3": elements.HTMLH3Element,

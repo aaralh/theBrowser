@@ -254,6 +254,8 @@ class HTMLTokenizer:
             self.__emit_current_token()
         elif charIsWhitespace(self.__current_input_char):
             self.switch_state_to(self.State.BeforeAttributeName)
+        elif self.__current_input_char == "/":
+            self.switch_state_to(self.State.SelfClosingStartTag)
         elif self.__current_input_char == ">":
             self.switch_state_to(self.State.Data)
             self.__emit_current_token()

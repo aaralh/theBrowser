@@ -118,6 +118,7 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         """
         parent = self.__current_element
+        print("token", token.__dict__)
         element = ElementFactory.create_element(token, parent, self.__document)
         element.parentNode.appendChild(element)
 

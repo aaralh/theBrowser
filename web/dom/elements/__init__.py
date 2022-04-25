@@ -139,3 +139,4 @@ from web.dom.elements.HTMLLinkElement import HTMLLinkElement
 from web.dom.elements.HTMLOptgroupElement import HTMLOptgroupElement
 from web.dom.elements.HTMLXmpElement import HTMLXmpElement
 from web.dom.elements.HTMLSpanElement import HTMLSpanElement
+from web.dom.elements.HTMLGElement import HTMLGElement
