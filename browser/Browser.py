@@ -15,7 +15,7 @@ from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement
 from PIL import Image, ImageTk
 import browser.globals as globals
-from browser.globals import EMOJIS_PATH
+from browser.globals import EMOJIS_PATH, BrowserState
 from browser.styling.CSSParser import CSSParser
 from browser.utils.utils import tree_to_list, resolve_url
 from browser.styling.utils import style, cascade_priority
@@ -23,7 +23,7 @@ from web.dom.elements import Text
 import urllib
 
 
-SCROLL_STEP = 100
+SCROLL_STEP = 10
 WIDTH = 800
 HEIGHT = 600
 
@@ -57,7 +57,6 @@ class Browser:
         self.used_resources = []
         self.display_list = []
         self.re_draw_timeout: Optional[str] = None
-        self.current_url: str = ""
         self.supported_emojis = self.init_emojis()
         self.focus = FocusObject(None, None)
 
@@ -130,7 +129,7 @@ class Browser:
             if isinstance(elt, Text):
                 pass
             elif elt.name == "a" and "href" in elt.attributes:
-                url = resolve_url(elt.attributes["href"], self.current_url)
+                url = resolve_url(elt.attributes["href"], BrowserState.get_current_url())
                 self.search_bar.delete(1.0, END)
                 self.search_bar.insert(END, url)
                 return self.load(url)
@@ -166,23 +165,24 @@ class Browser:
             value = urllib.parse.quote(value)
             body += "&" + name + "=" + value
         body = body[1:]
-        url = resolve_url(elt.attributes["action"] + f"?{body}", self.current_url)
+        url = resolve_url(elt.attributes["action"] + f"?{body}", BrowserState.get_current_url())
         self.search_bar.delete(1.0, END)
         self.search_bar.insert(END, url)
         self.load(url)
 
     def redraw(self) -> None:
         self.re_draw_timeout = None
-        self.document.layout(WIDTH)
-        self.display_list = []
-        self.document.paint(self.display_list)
+        if self.document:
+            self.document.layout(WIDTH)
+            self.display_list = []
+            self.document.paint(self.display_list)
         self.used_resources = []
         self.draw_cursor()
         self.draw()
 
     def load(self, url, body=None):
         self.scroll = 0
-        self.current_url = url
+        BrowserState.set_current_url(url)
         response = request(url)
         parser = HTMLDocumentParser(response.text)
         parser.run(self.raster)
@@ -193,6 +193,9 @@ class Browser:
 
     def raster(self, dom: DocumentType):
         rules = self.default_style_sheet.copy()
+        for rule in rules:
+            print("rule:", rule.selector.tag, rule.selector.classes)
+
         links = [node.attributes["href"]
              for node in tree_to_list(dom, [])
              if isinstance(node, Element)
@@ -201,11 +204,14 @@ class Browser:
              and node.attributes.get("rel") == "stylesheet"]
         for link in links:
             try:
-                response = request(resolve_url(link, self.current_url))
+                response = request(resolve_url(link, BrowserState.get_current_url()))
             except Exception as e:
                 continue
+            print(rules)
             rules.extend(CSSParser(response.text).parse())
-        self.document = DocumentLayout(dom, self.current_url)
+            print(CSSParser(response.text).parse())
+            print(rules)
+        self.document = DocumentLayout(dom)
         style(dom, sorted(rules, key=cascade_priority))
         with open("document.html", "w") as f:
             f.write(str(dom))
@@ -216,24 +222,26 @@ class Browser:
         self.draw()
 
     def handle_scroll(self, direction: tkinter.Event):
-        if direction.delta == -1:
-            self.scroll_down(direction)
+        print("Direction", direction.__dict__)
+        if direction.delta < 0:
+            self.scroll_down(direction.delta)
         else:
-            self.scroll_up(direction)
+            self.scroll_up(direction.delta)
 
-    def scroll_down(self, _):
+    def scroll_down(self, delta: int):
+        delta = delta * -1
         max_y = self.document.height - HEIGHT
-        self.scroll = min(self.scroll + SCROLL_STEP, max_y)
+        self.scroll = min(self.scroll + (delta * SCROLL_STEP), max_y)
         self.draw()
 
-    def scroll_up(self, _):
+    def scroll_up(self, delta):
         if self.scroll <= 0:
             return
 
-        if self.scroll - SCROLL_STEP <= 0:
+        if self.scroll - (delta * SCROLL_STEP) <= 0:
             self.scroll = 0
         else:
-            self.scroll -= SCROLL_STEP
+            self.scroll -= (delta * SCROLL_STEP)
         
         self.draw()
 
