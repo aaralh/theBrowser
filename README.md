@@ -30,7 +30,11 @@ Bolded items with :construction: are currently in WIP. Items marked with :shipit
     - [ ] **Render tree** :construction:
     - [ ] **Selector matching** :construction:
 - [ ] 🎴 Layout process
-    - [ ] **Layouts** (Block, Flex, Grid):construction:
+    - [ ] **Layouts** 
+      - [ ] **Table**:shipit:
+      - [ ] **Block**:construction:
+      - [ ] **Flex**:construction:
+      - [ ] **Grid**:construction:
 - [ ] 🎨 **Rendering**:construction:
 - [ ] 🌍 **Networking**:construction:
 - [ ] 🖼️ **Media**:construction:
