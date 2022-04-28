@@ -118,7 +118,6 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         """
         parent = self.__current_element
-        print("token", token.__dict__)
         element = ElementFactory.create_element(token, parent, self.__document)
         element.parentNode.appendChild(element)
 
@@ -314,7 +313,6 @@ class HTMLDocumentParser:
             self.__switchModeTo(self.__Mode.InHead)
 
     def handle_in_head(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-        print("handle_in_head", token)
         if token.type == HTMLToken.TokenType.Character:
             if charIsWhitespace(token.data):
                 self.__insert_character(token)
@@ -420,7 +418,6 @@ class HTMLDocumentParser:
             else:
                 pass
         elif token.type == HTMLToken.TokenType.Character:
-            print(f"token '{token.data}'")
             if charIsWhitespace(token.data):
                 self.__insert_character(token)
             else:
@@ -612,11 +609,13 @@ class HTMLDocumentParser:
                 self.__open_elements.push(element)
 
             elif token.name in ["dd", "dt"]:
+                print(token.name)
                 self.__frameset_ok = False
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
-                # TODO: Handle case
-                raise NotImplementedError
+                #if token.name == "dd":
+                # TODO: Handle the case properly
+                #raise NotImplementedError
             elif token.name == "plaintext":
                 if self.__open_elements.hasInButtonScope("p"):
                     self.__open_elements.pop()
@@ -737,8 +736,17 @@ class HTMLDocumentParser:
                 print("Removing 'li'")
                 self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("li")
             elif token.name in ["dd", "dt"]:
-                # TODO: Handle case
-                raise NotImplementedError
+                if not self.__open_elements.hasInScope(token.name):
+                    raise NotImplementedError  # TODO: handle parse error.
+
+                if self.__current_element.name != token.name:
+                    raise NotImplementedError  # TODO: handle parse error.
+                
+                while not self.__open_elements.isEmpty():
+                    poppedElement = self.__open_elements.pop()
+                    if poppedElement.name == token.name:
+                        break
+                return
             elif token.name in ["h1", "h2", "h3", "h4", "h5", "h6"]:
                 if not self.__open_elements.hasInScope(token.name):
                     raise NotImplementedError  # TODO: handle parse error.
