@@ -22,7 +22,7 @@ class CSSParser:
     def word(self) -> str:
         start = self.index
         while self.index < len(self.style_string):
-            if self.style_string[self.index].isalnum() or self.style_string[self.index] in "#-_.%":
+            if self.style_string[self.index].isalnum() or self.style_string[self.index] in "#-_.%()," or (self.style_string[self.index] == " " and self.style_string[self.index - 1] == ","):
                 self.index += 1
             else:
                 break

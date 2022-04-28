@@ -14,9 +14,6 @@ button {
     font-size: 16px; font-weight: normal; font-style: normal;
     background-color: orange;
 }
-.oo-ui-iconElement-noIcon {
-    display:none
-}
 th {
     font-weight: bold;
 }
