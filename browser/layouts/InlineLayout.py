@@ -58,6 +58,7 @@ class InlineLayout(Layout):
         if isinstance(node, Text):
             self.text(node)
         elif isinstance(node, HTMLImgElement):
+            print("image")
             if "src" in node.attributes:
                 self.image(node)
                 self.new_line()

@@ -209,7 +209,6 @@ class TableDataLayout(Layout):
 
     def calculate_width(self) -> int:
         attr_width = self.node.attributes.get("width")
-        print(self.parent.node.name)
         if attr_width:
             if attr_width.endswith("%"):
                 attr_width = int(attr_width[:-1])

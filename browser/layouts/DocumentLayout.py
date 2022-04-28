@@ -1,8 +1,14 @@
+from typing import TypeVar, cast
+from browser.elements.elements import DrawRect
 from web.dom.elements import HTMLBodyElement
 from web.dom.DocumentType import DocumentType
 from browser.layouts.Layout import Layout
 from browser.layouts.BlockLayout import BlockLayout
 import browser.globals as globals
+from web.dom.elements.Element import Element
+from web.dom.elements.HTMLElement import HTMLElement
+
+T = TypeVar('T')
 
 class DocumentLayout(Layout):
     def __init__(self, node):
@@ -10,10 +16,12 @@ class DocumentLayout(Layout):
         self.parent = None
         self.previous = None
         self.children = []
-        self.body = self.__get_body(node)
+        self.body = self.__get_element(node, HTMLBodyElement)
+        self.html = self.__get_element(node, HTMLElement)
 
     def layout(self, screen_width):
         self.children = []
+        self.html.__children = [self.body]
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = int(float(screen_width - 2*globals.HSTEP))
@@ -22,11 +30,14 @@ class DocumentLayout(Layout):
         child.layout()
         self.height = child.height + 2*globals.VSTEP
 
-    def __get_body(self, dom: DocumentType) -> HTMLBodyElement:
+    def __get_element(self, dom: DocumentType, type: T) -> T:
         for child in dom.children:
+            if isinstance(child, cast(Element, type)):
+                    return child
             for element in child.children:
-                if isinstance(element, HTMLBodyElement):
+                if isinstance(element, cast(Element, type)):
                     return element
 
     def paint(self, display_list: list):
+        print(self.body.__dict__)
         self.children[0].paint(display_list)

@@ -51,7 +51,6 @@ class InputLayout(Layout):
                 text = self.node.attributes.get("placeholder", "") 
         elif self.node.name == "button":
             visible_children: List[Node] = list(filter(lambda child: child.style.get("display") != "none", self.node.children))
-            print("visible", [child.__dict__ for child in visible_children])
             child = visible_children[0]
             if isinstance(child, Text):
                 text = child.data

@@ -1,3 +1,4 @@
+from browser.elements.elements import DrawRect
 from browser.globals import BrowserState
 from browser.layouts.InlineLayout import InlineLayout
 from typing import List
@@ -38,6 +39,13 @@ class BlockLayout(Layout):
         
         self.height = sum([child.height for child in self.children])
 
-    def paint(self, display_list):
+    def paint(self, display_list: list):
+        if isinstance(self.node, Element):
+            bgcolor = self.node.style.get("background-color",
+                                      "transparent")
+            if bgcolor != "transparent":
+                x2, y2 = self.x + self.width, self.y + self.height
+                rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+                display_list.append(rect)
         for child in self.children:
             child.paint(display_list)

@@ -4,6 +4,7 @@ from typing import List
 from browser.elements.elements import DrawImage
 from browser.globals import BrowserState
 from browser.layouts.Layout import Layout
+from browser.styling.utils import style
 from browser.utils.utils import resolve_url
 from web.dom.Node import Node
 from PIL import Image, ImageTk, UnidentifiedImageError
@@ -29,10 +30,17 @@ class ImageLayout(Layout):
         image_src = self.node.attributes.get("src")
         src = resolve_url(image_src, self.current_url)
         response = request(src)
+        print("image:", src)
         return response.content
 
     def calculate_width(self) -> int:
-        style_width = self.node.style.get("width", 100)
+        style_width = self.node.style.get("width", "auto")
+        if (style_width.endswith("px")):
+            style_width = style_width[:-2]
+        elif (style_width.endswith("%")):
+            style_width = self.parent.width * (int(style_width[:-1]) / 100)
+        elif style_width == "auto":
+            style_width = self.parent.width
         attr_width = self.node.attributes.get("width")
         if attr_width:
             if attr_width.endswith("%"):
@@ -43,14 +51,16 @@ class ImageLayout(Layout):
         return int(style_width)
 
     def calculate_height(self) -> int:
-        style_height = self.node.style.get("height", 100)
+        style_height = self.node.style.get("height", "auto")
         attr_height = self.node.attributes.get("height")
         if attr_height:
             if attr_height.endswith("%"):
                 attr_height = attr_height[:-1]
                 return int(attr_height)
             return int(attr_height)
-
+        elif style_height == "auto":
+            print("width", self.width)
+            style_height = self.width
         return int(style_height)
 
     def layout(self) -> None:
@@ -60,12 +70,12 @@ class ImageLayout(Layout):
             print(f"Image is not supported: Image path {self.node.attributes.get('src')}")
             image = Image.open('resources/images/not_allowed.jpg')
         
-        height = self.calculate_height()
         width = self.calculate_width()
-
+        self.width = width
+        height = self.calculate_height()
+        self.height = height
+        print("height/width", height, width)
         image = image.resize((width, height))
-        self.width = width if width else image.width
-        self.height = height if height else image.height
         self.image = ImageTk.PhotoImage(image)
             
         if self.previous:
