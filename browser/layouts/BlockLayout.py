@@ -18,7 +18,7 @@ class BlockLayout(Layout):
         previous = None
         for child in self.node.children:
             display = child.style.get("display")
-            if display == "none": continue
+            if display == "none": continue            
             if self.layout_mode(child) == "inline":
                 next = InlineLayout(child, self, previous)
             else:

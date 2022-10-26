@@ -8,6 +8,8 @@ def font_weight_to_string(weight: Union[Literal['normal', 'bold'], str]) -> Lite
         if int(weight) > 500:
             return "bold"
         return "normal"
+    elif weight == "bolder":
+        weight = "bold"
     return cast(Literal['normal', 'bold'], weight)
 
 

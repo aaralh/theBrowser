@@ -46,6 +46,8 @@ class ImageLayout(Layout):
             if attr_width.endswith("%"):
                 attr_width = attr_width[:-1]
                 return int(attr_width)
+            elif (attr_width.endswith("px")):
+                attr_width = attr_width[:-2]
             return int(attr_width)
 
         return int(style_width)
@@ -57,10 +59,16 @@ class ImageLayout(Layout):
             if attr_height.endswith("%"):
                 attr_height = attr_height[:-1]
                 return int(attr_height)
+            elif (attr_height.endswith("px")):
+                attr_height = attr_height[:-2]
             return int(attr_height)
         elif style_height == "auto":
             print("width", self.width)
-            style_height = self.width
+            style_height = str(self.width)
+        if style_height.endswith("px"):
+            style_height = style_height[:-2]
+        if style_height.endswith("%"):
+            style_height = self.parent.height * (int(style_height[:-1]) / 100)
         return int(style_height)
 
     def layout(self) -> None:

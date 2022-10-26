@@ -39,5 +39,12 @@ class DocumentLayout(Layout):
                     return element
 
     def paint(self, display_list: list):
-        print(self.body.__dict__)
+        bgcolor = self.html.style.get("background-color",
+                                    "transparent")
+        print("HTML", bgcolor)
+        if bgcolor != "transparent":
+            x2, y2 = self.x + self.width, self.y + self.height
+            rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+            display_list.append(rect)
+
         self.children[0].paint(display_list)
