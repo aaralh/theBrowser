@@ -90,11 +90,21 @@ class CSSParser:
         return rules
 
     def selector(self) -> TagSelector:
-        out = TagSelector(self.word().lower(), [])
+        word = self.word().lower()
+        classes = list(filter(lambda selector: selector.startswith("."), word.replace(", ", ",").split(",")))
+        tags = list(filter(lambda selector: (not selector.startswith(".") and not selector.startswith("#")), word.replace(", ", ",").split(",")))
+        print("Tags: ", tags)
+        ids = list(filter(lambda selector: selector.startswith("#"), word.replace(", ", ",").split(",")))
+        tag = next(iter(tags), None)
+        out = TagSelector(tag, [cls[1:] for cls in classes], ids)
         self.whitespace()
         while self.index < len(self.style_string) and self.style_string[self.index] != "{":
-            tag = self.word()
-            descendant = TagSelector(tag.lower(), [])
+            word = self.word().lower()
+            classes = list(filter(lambda selector: selector.startswith("."), word.replace(", ", ",").split(",")))
+            tags = list(filter(lambda selector: (not selector.startswith(".") and not selector.startswith("#")), word.replace(", ", ",").split(",")))
+            ids = list(filter(lambda selector: selector.startswith("#"), word.replace(", ", ",").split(",")))
+            tag = next(iter(tags), None)
+            descendant = TagSelector(tag, [cls[1:] for cls in classes], ids)
             out = DescendantSelector(out, descendant)
             self.whitespace()
         return out
