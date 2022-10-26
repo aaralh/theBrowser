@@ -3,7 +3,7 @@
 ![build](https://github.com/aaralh/theBrowser/workflows/CI-Build/badge.svg)
 
 
-Browser made completely(or as much as possible) with Python and complies with the [HTML spec](https://html.spec.whatwg.org).
+Browser made completely (or as much as possible) with Python and complies with the [HTML spec](https://html.spec.whatwg.org).
 
 ## Setup dev environment
 
