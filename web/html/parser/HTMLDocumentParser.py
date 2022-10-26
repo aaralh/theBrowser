@@ -118,6 +118,7 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         """
         parent = self.__current_element
+        print("Token:", token)
         element = ElementFactory.create_element(token, parent, self.__document)
         element.parentNode.appendChild(element)
 
@@ -386,10 +387,10 @@ class HTMLDocumentParser:
                 pass
 
         elif token.type == HTMLToken.TokenType.EndTag:
-            print("Hello here", token)
             if token.name == "head":
-                print("here")
-                self.__open_elements.pop()
+                print("removing head")
+                print(self.__open_elements.elements())
+                self.__open_elements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                 self.__switchModeTo(self.__Mode.AfterHead)
             elif token.name in ["body", "html", "br"]:
                 self.__open_elements.pop()
@@ -411,6 +412,8 @@ class HTMLDocumentParser:
         elif token.type == HTMLToken.TokenType.EndTag:
             token = cast(HTMLTag, token)
             if token.name == "noscript":
+                print("removing noscript")
+                print(self.__open_elements.elements())
                 self.__open_elements.pop()
                 self.__switchModeTo(self.__Mode.InHead)
             elif token.name == "br":
@@ -443,7 +446,7 @@ class HTMLDocumentParser:
             self.__switchModeTo(self.__Mode.InHead)
 
     def handle_after_head(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-        print("handle_after_head")
+        print("handle_after_head", token)
         if token.type == HTMLToken.TokenType.Character:
             if charIsWhitespace(token.data):
                 self.__insert_character(token)
@@ -457,6 +460,8 @@ class HTMLDocumentParser:
                 # TODO: Handle using the "in body".
                 raise NotImplementedError
             elif token.name == "body":
+                print("Yes here")
+                print(self.__open_elements.elements())
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
                 self.__switchModeTo(self.__Mode.InBody)
