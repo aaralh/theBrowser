@@ -138,5 +138,11 @@ from web.dom.elements.HTMLH4Element import HTMLH4Element
 from web.dom.elements.HTMLLinkElement import HTMLLinkElement
 from web.dom.elements.HTMLOptgroupElement import HTMLOptgroupElement
 from web.dom.elements.HTMLXmpElement import HTMLXmpElement
+from web.dom.elements.HTMLXmlElement import HTMLXmlElement
 from web.dom.elements.HTMLSpanElement import HTMLSpanElement
 from web.dom.elements.HTMLGElement import HTMLGElement
+from web.dom.elements.HTMLDefsElement import HTMLDefsElement
+from web.dom.elements.HTMLLinearGradientElement import HTMLLinearGradientElement
+from web.dom.elements.HTMLStopElement import HTMLStopElement
+from web.dom.elements.HTMLClipPathElement import HTMLClipPathElement
+from web.dom.elements.HTMLFilterElement import HTMLFilterElement
