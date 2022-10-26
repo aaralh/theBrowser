@@ -13,6 +13,9 @@ def is_valid_color(color: str) -> bool:
         return 3 < len(color) < 8
     return True
 
+def rgb_to_hex(rgb) -> str:
+    return '%02x%02x%02x' % rgb
+
 class DrawImage:
     def __init__(self, x1, y1, height, image: ImageTk):
         self.top = y1
@@ -40,7 +43,7 @@ class DrawText:
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         # TODO: Do proper implementation for rgb and rgba colors.
-        if self.color == "inherit" or not is_valid_color(self.color):
+        if self.color == "inherit" or self.color == "transparent" or self.color.startswith("var") or not is_valid_color(self.color):
             self.color = "pink"
         canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
         """if not set(list(self.text)).isdisjoint(set(supported_emojis)):
@@ -68,7 +71,7 @@ class DrawRect:
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         # TODO: Do proper implementation for rgb and rgba colors.
-        if self.color == "inherit" or is_valid_color(self.color):
+        if self.color == "inherit" or self.color.startswith("var") or not is_valid_color(self.color):
             self.color = "pink"
         
         if self.color.startswith("rgba"):
@@ -89,7 +92,11 @@ class DrawRect:
                 self.used_resources = tk_image
                 print(self.left, self.top - scroll)
             canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
-        else:
+        elif self.color.startswith("rgb"):
+            rgb = tuple([int(number) for number in self.color.split("(")[-1].split(")")[0].split(",")])
+            self.color = "#" + rgb_to_hex(rgb)
+        if not self.color.startswith("rgba"):
+            if self.color == "none": self.color = "pink"
             canvas.create_rectangle(
                 self.left, self.top - scroll,
                 self.right, self.bottom - scroll,
