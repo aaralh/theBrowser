@@ -4,15 +4,16 @@ from browser.layouts.InlineLayout import DOMElement
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
-from typing import List, Optional, Tuple
+from typing import List, Optional, Tuple, cast
 from browser.layouts.Layout import Layout
-from browser.utils.networking import request
+from browser.utils.networking import load_file, request
+from web.dom.CharacterData import CharacterData
 from web.dom.Node import Node
 from web.dom.elements.Element import Element
 from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
-from web.dom.elements import HTMLBodyElement
+from web.dom.elements import HTMLBodyElement, HTMLStyleElement
 from PIL import Image, ImageTk
 import browser.globals as globals
 from browser.globals import EMOJIS_PATH, BrowserState
@@ -180,11 +181,14 @@ class Browser:
         self.draw_cursor()
         self.draw()
 
-    def load(self, url, body=None):
+    def load(self, url: str, body=None):
         self.scroll = 0
         BrowserState.set_current_url(url)
-        response = request(url)
-        parser = HTMLDocumentParser(response.text)
+        if url.startswith("file://"):
+            response = load_file(url)
+        else: 
+            response = request(url).text
+        parser = HTMLDocumentParser(response)
         parser.run(self.raster)
     
     def load_webpage(self) -> None:
@@ -194,18 +198,29 @@ class Browser:
     def raster(self, dom: DocumentType):
         rules = self.default_style_sheet.copy()
 
-        links = [node.attributes["href"]
+        stylesheet_links = [node.attributes["href"]
              for node in tree_to_list(dom, [])
              if isinstance(node, Element)
              and node.name == "link"
              and "href" in node.attributes
              and node.attributes.get("rel") == "stylesheet"]
-        for link in links:
+        for link in stylesheet_links:
             try:
                 response = request(resolve_url(link, BrowserState.get_current_url()))
             except Exception as e:
                 continue
             rules.extend(CSSParser(response.text).parse())
+        style_elements = [node for node in tree_to_list(dom, []) if isinstance(node, HTMLStyleElement)]
+        for style_element in style_elements:
+            for child in style_element.children:
+                print("Style element:", child)
+                print(CSSParser(child.data).parse())
+                child = cast(CharacterData, child)
+                rules.extend(CSSParser(child.data).parse())
+
+        with open("rules.txt", "w") as f:
+            for rule in rules:
+                f.write(str(rule.__dict__) + "\n")
         style(dom, sorted(rules, key=cascade_priority))
         with open("document.html", "w") as f:
             f.write(str(dom))
