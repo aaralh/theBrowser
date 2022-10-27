@@ -16,6 +16,8 @@ def parse_host(url: str) -> str:
 def resolve_url(url: str, current: str) -> str:
     if "://" in url:
         return url
+    elif url.startswith("//"):
+        return "https:" + url
     elif url.startswith("/"):
         host = parse_host(current)
         return host + url
