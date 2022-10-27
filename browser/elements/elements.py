@@ -45,6 +45,12 @@ class DrawText:
         # TODO: Do proper implementation for rgb and rgba colors.
         if self.color == "inherit" or self.color == "transparent" or self.color.startswith("var") or not is_valid_color(self.color):
             self.color = "pink"
+        
+        if self.color.startswith("rgb"):
+            # TODO: Add support for rgba
+            rgb = tuple([int(number) for number in self.color.split("(")[-1].split(")")[0].split(",")[:3]])
+            self.color = "#" + rgb_to_hex(rgb)
+
         canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
         """if not set(list(self.text)).isdisjoint(set(supported_emojis)):
             canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
