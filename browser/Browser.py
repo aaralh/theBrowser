@@ -213,8 +213,6 @@ class Browser:
         style_elements = [node for node in tree_to_list(dom, []) if isinstance(node, HTMLStyleElement)]
         for style_element in style_elements:
             for child in style_element.children:
-                print("Style element:", child)
-                print(CSSParser(child.data).parse())
                 child = cast(CharacterData, child)
                 rules.extend(CSSParser(child.data).parse())
 
