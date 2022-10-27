@@ -10,6 +10,7 @@ from web.dom.Node import Node
 from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 from browser.utils.networking import request
+from cairosvg import svg2png
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
@@ -29,9 +30,12 @@ class ImageLayout(Layout):
     def load_image(self) -> bytes:
         image_src = self.node.attributes.get("src")
         src = resolve_url(image_src, self.current_url)
-        response = request(src)
         print("image:", src)
-        return response.content
+        if src.endswith(".svg"):
+            return svg2png(url=src)
+        else:
+            response = request(src)
+            return response.content
 
     def calculate_width(self) -> int:
         style_width = self.node.style.get("width", "auto")
