@@ -7,6 +7,9 @@ from tkinter.font import Font
 
 
 def is_valid_color(color: str) -> bool:
+    if color.startswith("#") and any(char in color for char in [" ", ";", ","]):
+        return False
+        
     if color.startswith("#"):
         if not 3 < len(color) < 8:
             print("Faulty color", color)
@@ -89,14 +92,9 @@ class DrawRect:
                 rgba[3] = 255 * rgba[3]
                 rgba = [int(value) for value in rgba]
                 fill = tuple(rgba)
-                print("fill", fill)
-                print("size", (int(self.right-self.left), int(self.bottom-self.top)))
-                print("position", self.left, self.top - scroll)
                 image = Image.new('RGBA', (int(self.right-self.left), int(self.bottom-self.top)), fill)
-                print("image", image.height, image.width)
                 tk_image = ImageTk.PhotoImage(image)
                 self.used_resources = tk_image
-                print(self.left, self.top - scroll)
             canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
         elif self.color.startswith("rgb"):
             rgb = tuple([int(number) for number in self.color.split("(")[-1].split(")")[0].split(",")])
