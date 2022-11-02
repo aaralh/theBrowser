@@ -237,12 +237,18 @@ class Browser:
 
     def scroll_down(self, delta: int):
         delta = delta * -1
-        max_y = self.document.height - HEIGHT
-        self.scroll = min(self.scroll + (delta * SCROLL_STEP), max_y)
+        max_y = (self.document.content_height - HEIGHT) + 15
+        scroll = min(self.scroll + (delta * SCROLL_STEP), max_y)
+        if scroll <= 0:
+            self.scroll = 0
+        else:
+            self.scroll = scroll
         self.draw()
 
     def scroll_up(self, delta):
         if self.scroll <= 0:
+            self.scroll = 0
+            self.draw()
             return
 
         if self.scroll - (delta * SCROLL_STEP) <= 0:
