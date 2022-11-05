@@ -8,10 +8,12 @@ from browser.styling.utils import style
 
 class BlockLayout(Layout):
     def __init__(self, node: Element, parent: Layout, previous: Layout):
+        super().__init__()
         self.node = node
         self.parent = parent
         self.previous = previous
         self.children = []
+        self.height = 10
 
     def layout(self):
         self.children = []
@@ -37,15 +39,7 @@ class BlockLayout(Layout):
         for child in self.children:
             child.layout()
         
-        self.height = sum([child.height for child in self.children])
+        self.calculate_size()
+        
 
-    def paint(self, display_list: list):
-        if isinstance(self.node, Element):
-            bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-            if bgcolor != "transparent":
-                x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
-                display_list.append(rect)
-        for child in self.children:
-            child.paint(display_list)
+        #self.height = sum([child.height for child in self.children])

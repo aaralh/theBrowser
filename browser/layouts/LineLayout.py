@@ -4,6 +4,7 @@ from browser.layouts.Layout import Layout
 
 class LineLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
         self.node = node
         self.parent = parent
         self.previous = previous

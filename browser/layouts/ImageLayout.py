@@ -14,6 +14,7 @@ from cairosvg import svg2png
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
         self.node = node
         self.children: List = []
         self.parent = parent

@@ -9,6 +9,7 @@ INPUT_WIDTH_PX = 200
 
 class InputLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
         self.node = node
         self.children = []
         self.parent = parent
@@ -40,6 +41,15 @@ class InputLayout(Layout):
         
         bgcolor = self.node.style.get("background-color",
                                       "transparent")
+        
+        if bgcolor == "unset":
+            try:
+                if isinstance(self.node.parentNode, Element):
+                    bgcolor = self.node.parentNode.style.get("background-color",
+                                    "transparent")
+            except:
+                bgcolor = "transparent"
+
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
             rect = DrawRect(self.x, self.y, x2, y2, bgcolor)

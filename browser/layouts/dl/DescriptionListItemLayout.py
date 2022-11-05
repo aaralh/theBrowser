@@ -15,6 +15,8 @@ import browser.globals as globals
 
 class DescriptionListItemLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.parent = parent
         self.previous = previous
@@ -111,16 +113,3 @@ class DescriptionListItemLayout(Layout):
             line.children.append(text)
             self.previous_word = text
             self.cursor_x += w + font.measure(" ")
-
-
-    def paint(self, display_list: list):
-        if isinstance(self.node, Element):
-            bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-            if bgcolor != "transparent":
-                x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
-                display_list.append(rect)
-
-        for child in self.children:
-            child.paint(display_list)

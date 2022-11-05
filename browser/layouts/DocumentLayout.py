@@ -18,17 +18,20 @@ class DocumentLayout(Layout):
         self.children = []
         self.body = self.__get_element(node, HTMLBodyElement)
         self.html = self.__get_element(node, HTMLElement)
+        self.content_height = 0
 
     def layout(self, screen_width):
         self.children = []
         self.html.__children = [self.body]
+        print("Node:", self.body.name)
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = int(float(screen_width - 2*globals.HSTEP))
         self.x = globals.HSTEP
         self.y = globals.VSTEP
         child.layout()
-        self.height = child.height + 2*globals.VSTEP
+        child.recalculate_size()
+        self.content_height = child.height + 2*globals.VSTEP
 
     def __get_element(self, dom: DocumentType, type: T) -> T:
         for child in dom.children:
@@ -40,11 +43,15 @@ class DocumentLayout(Layout):
 
     def paint(self, display_list: list):
         bgcolor = self.html.style.get("background-color",
+                                    None)
+        if not bgcolor:
+            bgcolor = self.html.style.get("background",
                                     "transparent")
+
+
         print("HTML", bgcolor)
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
             rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
             display_list.append(rect)
-
         self.children[0].paint(display_list)

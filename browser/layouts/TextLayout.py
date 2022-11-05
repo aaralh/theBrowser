@@ -8,6 +8,8 @@ from browser.elements.elements import DrawText
 
 class TextLayout(Layout):
     def __init__(self, node: Node, word: str, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.word = word
         self.children = []

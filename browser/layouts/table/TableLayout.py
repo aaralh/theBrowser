@@ -23,6 +23,8 @@ import browser.globals as globals
 
 class TableLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.children: List = []
         self.parent = parent
@@ -37,7 +39,6 @@ class TableLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
-        print(self.node.attributes.get("width"), str(self.parent.width))
         width = self.node.attributes.get("width", str(self.parent.width))
         if width.endswith("%"):
             width = self.parent.width * (int(width[:-1]) / 100)
@@ -72,19 +73,10 @@ class TableLayout(Layout):
         
 
 
-    def paint(self, display_list: list) -> None:
-        x2, y2 = self.x + self.width, self.y + self.height
-        bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-        if bgcolor != "transparent":
-            display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
-
-        for child in self.children:
-            child.paint(display_list)
-
-
 class TableBodyLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.children: List = []
         self.parent = parent
@@ -125,18 +117,10 @@ class TableBodyLayout(Layout):
         self.height = sum([child.height for child in self.children]) 
 
 
-    def paint(self, display_list: list) -> None:
-        x2, y2 = self.x + self.width, self.y + self.height
-        bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-        if bgcolor != "transparent":
-            display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
-
-        for child in self.children:
-            child.paint(display_list)
-
 class TableRowLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.children: List = []
         self.parent = parent
@@ -181,19 +165,10 @@ class TableRowLayout(Layout):
         self.height = max([child.height for child in self.children]) 
 
 
-    def paint(self, display_list: list) -> None:
-        x2, y2 = self.x + self.width, self.y + self.height
-        bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-        if bgcolor != "transparent":
-            display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
-
-        for child in self.children:
-            child.paint(display_list)
-
-
 class TableDataLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.children: List[TableDataInlineLayout] = []
         self.parent = parent
@@ -271,6 +246,8 @@ class DOMElement():
 
 class TableDataInlineLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
+        super().__init__()
+
         self.node = node
         self.parent = parent
         self.previous = previous
@@ -367,16 +344,3 @@ class TableDataInlineLayout(Layout):
             line.children.append(text)
             self.previous_word = text
             self.cursor_x += w + font.measure(" ")
-
-
-    def paint(self, display_list: list):
-        if isinstance(self.node, Element):
-            bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-            if bgcolor != "transparent":
-                x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
-                display_list.append(rect)
-
-        for child in self.children:
-            child.paint(display_list)
