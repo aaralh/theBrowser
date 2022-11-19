@@ -30,25 +30,45 @@ class ImageLayout(Layout):
     
     def load_image(self) -> bytes:
         image_src = self.node.attributes.get("src")
+        if not image_src:
+            srcset = self.node.attributes.get("srcset")
+            if srcset:
+                try:
+                    src = srcset.split(",")[0].split(" ")[0]
+                    image_src = src
+                except:
+                    print("srcset is faulty!")
+
         src = resolve_url(image_src, self.current_url)
-        print("image:", src)
+        print("image:", src, image_src, self.current_url)
         if src.endswith(".svg"):
             return svg2png(url=src)
         else:
-            response = request(src)
-            return response.content
+            try:
+                response = request(src)
+                return response.content
+            except:
+                print("Image not found!")
 
     def calculate_width(self) -> int:
-        style_width = self.node.style.get("width", "auto")
-        if (style_width.endswith("px")):
-            style_width = style_width[:-2]
-        elif (style_width.endswith("%")):
-            style_width = self.parent.width * (int(style_width[:-1]) / 100)
-        elif style_width == "auto":
-            style_width = self.parent.width
-        attr_width = self.node.attributes.get("width")
+        style_width = self.node.style.get("width", None)
+        attr_width = self.node.attributes.get("width", None)
+
+        if not style_width and not attr_width:
+            return self.height
+        if style_width:
+            if (style_width.endswith("px")):
+                style_width = style_width[:-2]
+            elif (style_width.endswith("%")):
+                style_width = self.parent.width * (int(style_width[:-1]) / 100)
+            elif style_width == "auto":
+                style_width = self.parent.width
+            elif style_width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                style_width = int(style_width.replace("em", "")) * font_size
         if attr_width:
             if attr_width.endswith("%"):
+                self.dynamic_size = True
                 attr_width = attr_width[:-1]
                 return int(attr_width)
             elif (attr_width.endswith("px")):
@@ -69,12 +89,21 @@ class ImageLayout(Layout):
             return int(attr_height)
         elif style_height == "auto":
             print("width", self.width)
+            if self.width == None:
+                return 100
             style_height = str(self.width)
         if style_height.endswith("px"):
             style_height = style_height[:-2]
         if style_height.endswith("%"):
+            self.dynamic_size = True
             style_height = self.parent.height * (int(style_height[:-1]) / 100)
         return int(style_height)
+
+    def calculate_size(self) -> None:
+        height = self.calculate_height()
+        self.height = height
+        width = self.calculate_width()
+        self.width = width
 
     def layout(self) -> None:
         try:
@@ -82,13 +111,9 @@ class ImageLayout(Layout):
         except UnidentifiedImageError:
             print(f"Image is not supported: Image path {self.node.attributes.get('src')}")
             image = Image.open('resources/images/not_allowed.jpg')
-        
-        width = self.calculate_width()
-        self.width = width
-        height = self.calculate_height()
-        self.height = height
-        print("height/width", height, width)
-        image = image.resize((width, height))
+        self.calculate_size()
+        print("height/width", self.height, self.width)
+        image = image.resize((self.width, self.height))
         self.image = ImageTk.PhotoImage(image)
             
         if self.previous:
