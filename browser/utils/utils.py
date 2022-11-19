@@ -20,7 +20,12 @@ def resolve_url(url: str, current: str) -> str:
         return "https:" + url
     elif url.startswith("/"):
         host = parse_host(current)
+        if host.endswith("/"):
+            return host[:-1] + url
         return host + url
+    elif not url.startswith("/") and not current.endswith("/"):
+        host = parse_host(current)
+        return host + "/" + url
     else:
         dir, _ = current.rsplit("/", 1)
         while url.startswith("../"):
