@@ -1,10 +1,11 @@
 from dataclasses import dataclass
+from browser.Inspector import Inspector
 from browser.layouts.DocumentLayout import DocumentLayout
 from browser.layouts.InlineLayout import DOMElement
 import tkinter
 from tkinter.constants import END
 from tkinter.font import Font
-from typing import List, Optional, Tuple, cast
+from typing import List, Literal, Optional, Tuple, cast
 from browser.layouts.Layout import Layout
 from browser.utils.networking import load_file, request
 from web.dom.CharacterData import CharacterData
@@ -14,8 +15,6 @@ from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement, HTMLStyleElement
-from PIL import Image, ImageTk
-import browser.globals as globals
 from browser.globals import EMOJIS_PATH, BrowserState
 from browser.styling.CSSParser import CSSParser
 from browser.utils.utils import tree_to_list, resolve_url
@@ -45,15 +44,17 @@ class Browser:
         self.search_bar.bind("<Key>", self.check_key)
         self.search_button = tkinter.Button(text="GO!", command=self.load_webpage)
         self.search_button.grid(column=1, row=0, sticky="news")
-        self.canvas = tkinter.Canvas(
-            self.window, 
+        self.content_frame = tkinter.Frame(
+            self.window,
             width=WIDTH,
-            height=HEIGHT,
-            bg="white"
+            height=HEIGHT)
+        self.content_frame.grid(column=0, row=1, columnspan=2, sticky="news")
+        self.canvas = tkinter.Canvas(
+            self.content_frame, 
+            bg="white",
         )
-        self.canvas.grid(column=0, row=1, columnspan=2, sticky="news")
+        self.canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
         self.scroll = 0
-        self.content_height = 0
         self.document: DocumentLayout = None
         self.used_resources = []
         self.display_list = []
@@ -67,6 +68,15 @@ class Browser:
         self.window.bind("<Configure>", self.handle_resize)
         self.canvas.bind("<Button-1>", self.handle_canvas_click)
         self.window.bind("<Key>", self.handle_key)
+        self.canvas.bind("<Button-2>", self.open_context_menu)
+        self.context_menu = tkinter.Menu(self.window, tearoff=0)
+        self.context_menu.add_command(label="Inspect", command=self.init_inspector)
+        self.context_menu.add_command(label="Reload", command=self.load_webpage)
+
+        self.scrollbar = tkinter.Scrollbar(self.content_frame)
+        self.scrollbar.pack( side = tkinter.RIGHT, fill = tkinter.Y )
+        self.scrollbar.config(command=self.scrollbar_scroll)
+        
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
@@ -89,6 +99,16 @@ class Browser:
         supported_emojis = [f.strip(".png") for f in listdir(EMOJIS_PATH) if isfile(join(EMOJIS_PATH, f))]
         return supported_emojis
 
+    def open_context_menu(self, event: tkinter.Event) -> None:
+        try:
+            self.context_menu.tk_popup(event.x_root, event.y_root)
+        finally:
+            self.context_menu.grab_release()
+
+    def init_inspector(self) -> None:
+        url = self.search_bar.get("1.0", END)
+        BrowserState.register_inspector(Inspector(url, self, self.document.node))
+
     def handle_resize(self, event: tkinter.Event) -> None:
         if event.widget != self.window:
             return
@@ -98,6 +118,7 @@ class Browser:
         global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
+        self.document.height = HEIGHT
         self.re_draw_timeout = self.window.after(10, self.redraw)
 
     def handle_key(self, e):
@@ -184,6 +205,8 @@ class Browser:
     def load(self, url: str, body=None):
         self.scroll = 0
         BrowserState.set_current_url(url)
+        [inspector.update_url(url) for inspector in BrowserState.get_inspectors()]
+        [inspector.clear_network_requests() for inspector in BrowserState.get_inspectors()]
         if url.startswith("file://"):
             response = load_file(url)
         else: 
@@ -223,7 +246,10 @@ class Browser:
         with open("document.html", "w") as f:
             f.write(str(dom))
         self.document = DocumentLayout(dom)
+        [inspector.update_dom(dom) for inspector in BrowserState.get_inspectors()]
+        self.document.height = HEIGHT
         self.document.layout(WIDTH)
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height)) 
         self.display_list = []
         self.document.paint(self.display_list)
             
@@ -243,6 +269,8 @@ class Browser:
             self.scroll = 0
         else:
             self.scroll = scroll
+        print((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.draw()
 
     def scroll_up(self, delta):
@@ -255,7 +283,18 @@ class Browser:
             self.scroll = 0
         else:
             self.scroll -= (delta * SCROLL_STEP)
-        
+        print((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.draw()
+
+    def scrollbar_scroll(self, action: Literal["moveto"], position: str):
+        position_float = float(position)
+        print(position,  not 0 <= position_float <= 1)
+        if not 0 <= position_float <= 1:
+            return
+        print(0 <= position_float <= 1)
+        self.scroll = self.document.content_height * position_float
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.draw()
 
     def is_emoji(self, unicode) -> bool:
