@@ -1,8 +1,8 @@
+from browser.globals import BrowserState
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
-from tkinter.font import Font
 from browser.layouts.utils import font_weight_to_string, get_font
-from browser.elements.elements import DrawText
+from browser.elements.elements import BorderProperties, DrawRect, DrawText
 
 
 
@@ -45,3 +45,8 @@ class TextLayout(Layout):
     def paint(self, display_list: list) -> None:
         color = self.node.style["color"]
         display_list.append(DrawText(self.x, self.y, self.word, self.font, color))
+
+        if str(self.node.id) in BrowserState.get_selected_elements():
+            x2, y2 = self.x + self.width, self.y + self.height
+            rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
+            display_list.append(rect)

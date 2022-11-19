@@ -3,6 +3,7 @@ from browser.elements.elements import DrawRect, DrawText
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
 from web.dom.Node import Node
+from web.dom.elements.Element import Element
 from web.dom.elements.Text import Text
 
 INPUT_WIDTH_PX = 200
@@ -66,7 +67,10 @@ class InputLayout(Layout):
             if isinstance(child, Text):
                 text = child.data
             else:
-                text = child.children[0].data
+                try:
+                    text = child.children[0].data
+                except:
+                    text = ""
         
         color = self.node.style["color"]
 

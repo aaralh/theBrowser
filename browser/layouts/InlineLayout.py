@@ -1,9 +1,6 @@
-
 from browser.layouts.ImageLayout import ImageLayout
 from browser.layouts.InputLayout import INPUT_WIDTH_PX, InputLayout
 from browser.layouts.dl.DescriptionListLayout import DescriptionListLayout
-from browser.styling.CSSParser import CSSParser
-from browser.elements.elements import DrawRect, DrawText
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from dataclasses import dataclass
