@@ -107,11 +107,14 @@ class Layout:
 
                 if bgcolor != "transparent":
                     x2, y2 = self.x + self.width, self.y + self.height
-                    if self.node.id in BrowserState.get_selected_elements():
+                    if str(self.node.id) in BrowserState.get_selected_elements():
                         rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties("red", 10))
                     else:
                         rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
                     display_list.append(rect)
+                if str(self.node.id) in BrowserState.get_selected_elements():
+                        x2, y2 = self.x + self.width, self.y + self.height
+                        rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
 
         for child in self.children:
             child.paint(display_list) 
