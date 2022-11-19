@@ -5,7 +5,6 @@ from web.dom.elements.HTMLScriptElement import HTMLScriptElement
 from web.dom.elements.HTMLTemplateElement import HTMLTemplateElement
 from web.html.parser.ListOfActiveElements import ListOfActiveElements
 from web.html.parser.StackOfOpenElements import StackOfOpenElements
-from web.dom.CharacterData import CharacterData
 from web.dom.elements.Comment import Comment
 from web.html.parser.utils import charIsWhitespace, tagIsSpecial
 from web.dom.elements.Element import Element
