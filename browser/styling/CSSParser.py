@@ -19,34 +19,47 @@ class CSSParser:
         while self.index < len(self.style_string) and self.style_string[self.index].isspace():
             self.index += 1
 
+    def literal(self, literal: str) -> None:
+        assert self.index < len(
+            self.style_string) and self.style_string[self.index] == literal
+        self.index += 1
+
     def word(self) -> str:
         start = self.index
+        in_quote = False
         while self.index < len(self.style_string):
-            if self.style_string[self.index].isalnum() or self.style_string[self.index] in "#-_.%()," or (self.style_string[self.index] == " " and self.style_string[self.index - 1] == ","):
+            current_char = self.style_string[self.index]
+            if current_char == "'":
+                in_quote = not in_quote
+            if current_char == "(":
+                in_parens = True
+            if current_char.isalnum() or current_char in ",/#-.%()\"'" \
+                or (in_quote and current_char == ':'):
                 self.index += 1
             else:
                 break
         assert self.index > start
         return self.style_string[start:self.index]
 
-    def literal(self, literal: str) -> None:
-        assert self.index < len(
-            self.style_string) and self.style_string[self.index] == literal
-        self.index += 1
+    def until_char(self, chars):
+        start = self.index
+        while self.index < len(self.style_string) and self.style_string[self.index] not in chars:
+            self.index += 1
+        return self.style_string[start:self.index]
 
-    def pair(self) -> tuple[str, str]:
+    def pair(self, until) -> tuple[str, str]:
         prop = self.word()
         self.whitespace()
         self.literal(":")
         self.whitespace()
-        val = self.word()
+        val = self.until_char(until)
         return prop.lower(), val
 
     def body(self) -> Dict:
         pairs = {}
         while self.index < len(self.style_string) and self.style_string[self.index] != "}":
             try:
-                prop, val = self.pair()
+                prop, val = self.pair([";", "}"])
                 pairs[prop.lower()] = val
                 self.whitespace()
                 self.literal(";")
@@ -71,14 +84,15 @@ class CSSParser:
 
     def parse(self) -> List[Rule]:
         rules = []
+        self.whitespace()
         while self.index < len(self.style_string):
             try:
-                self.whitespace()
                 selector = self.selector()
                 self.literal("{")
                 self.whitespace()
                 body = self.body()
                 self.literal("}")
+                self.whitespace()
                 rules.append(Rule(selector, body))
             except AssertionError:
                 why = self.ignore_until(["}"])
