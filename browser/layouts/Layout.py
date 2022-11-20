@@ -32,11 +32,15 @@ class Layout:
         self.y = None
         self.width = None
         self.height = None
+        # TODO: Rename this to something more sensible.
+        self.internal_padding = 0
         self.display_list = None
         self.dynamic_size = False
+        self.border = None
 
     def layout(self) -> None:
-        raise NotImplementedError()
+        if isinstance(self.node, Element):
+            self.create_border()
 
     def calculate_size(self) -> None:
         if not isinstance(self.node, Text):
@@ -78,6 +82,9 @@ class Layout:
         else:
             self.height = sum([line.height for line in self.children])
 
+        self.width = self.width + self.internal_padding*2
+        self.height = self.height + self.internal_padding*2
+
     def recalculate_size(self) -> None:
         if self.dynamic_size:
             self.calculate_size()
@@ -96,34 +103,31 @@ class Layout:
             return "inline"
         else:
             return "block"
+
+    def create_border(self) -> None:
+        border_style: Optional[str] = self.node.style.get("border", None)
+
+        if border_style:
+            styles = border_style.split(" ")
+            color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, styles), None)
+            width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
+            style = None
+            border_width = 0
+            if width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                border_width = float(width.replace("em", "")) * font_size
+            elif width.endswith("%"):
+                border_width = self.parent.width * (int(width.replace("%", "")) / 100)
+            elif width.endswith("px"):
+                border_width = int(width[:-2])
+
+            self.internal_padding = border_width
+            self.border = BorderProperties(width=border_width, color=color)
     
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
                 bgcolor = self.node.style.get("background-color",
                                         "transparent")
-                border_style: Optional[str] = self.node.style.get("border", None)
-
-                border = None
-
-                if border_style:
-                    styles = border_style.split(" ")
-                    print("Styles", styles)
-                    color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, styles), None)
-                    width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
-                    style = None
-                    style_width = 0
-                    if width.endswith("em"):
-                        font_size = int(self.node.style["font-size"].replace("px", ""))
-                        style_width = float(width.replace("em", "")) * font_size
-                    elif width.endswith("%"):
-                        style_width = self.parent.width * (int(width.replace("%", "")) / 100)
-                    elif width.endswith("px"):
-                        style_width = int(width[:-2])
-
-                    print(width, style_width)
-
-                    border = BorderProperties(width=style_width, color=color)
-
 
                 if bgcolor == "unset":
                     try:
@@ -137,18 +141,17 @@ class Layout:
                     x2, y2 = self.x + self.width, self.y + self.height
                     if str(self.node.id) in BrowserState.get_selected_elements():
                         rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties("red", 10))
-                    elif border:
-                        rect = DrawRect(self.x, self.y, x2, y2, bgcolor, border)
+                    elif self.border:
+                        rect = DrawRect(self.x, self.y, x2, y2, bgcolor, self.border)
                     else:
                         rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
                     display_list.append(rect)
                 if str(self.node.id) in BrowserState.get_selected_elements():
                     x2, y2 = self.x + self.width, self.y + self.height
                     rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
-                elif border:
+                elif self.border:
                     x2, y2 = self.x + self.width, self.y + self.height
-                    print("Border color", border.color)
-                    rect = DrawRect(self.x, self.y, x2, y2, "", border)
+                    rect = DrawRect(self.x, self.y, x2, y2, "", self.border)
 
         for child in self.children:
             child.paint(display_list) 
