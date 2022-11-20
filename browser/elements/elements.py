@@ -5,7 +5,7 @@ from PIL import ImageTk, Image
 from tkinter.font import Font
 from typing import NewType
 
-from browser.styling.color.utils import is_valid_color, rgb_to_hex, transform_color
+from browser.styling.color.utils import transform_color
 
 class DrawImage:
     def __init__(self, x1, y1, height, image: ImageTk):
