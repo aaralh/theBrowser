@@ -8,11 +8,10 @@ from web.dom.elements import Text
 
 class DescriptionListLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
-        self.children: List = []
         self.parent = parent
+        super().__init__()
+        self.children: List = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -24,6 +23,7 @@ class DescriptionListLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
+        super().layout()
         width = self.node.attributes.get("width", str(self.parent.width))
         if width.endswith("%"):
             width = self.parent.width * (int(width[:-1]) / 100)

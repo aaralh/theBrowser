@@ -14,10 +14,10 @@ from cairosvg import svg2png
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
         self.node = node
-        self.children: List = []
         self.parent = parent
+        super().__init__()
+        self.children: List = []
         self.previous = previous
         self.image: ImageTk = None
         self.x = None
@@ -106,6 +106,7 @@ class ImageLayout(Layout):
         self.width = width
 
     def layout(self) -> None:
+        super().layout()
         try:
             image = Image.open(BytesIO(self.image_bytes))
         except UnidentifiedImageError:

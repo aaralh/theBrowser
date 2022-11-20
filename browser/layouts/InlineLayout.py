@@ -28,22 +28,23 @@ class DOMElement():
 
 class InlineLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
         self.height = 10
 
     def layout(self):
+        super().layout()
         self.children = []
         self.width = self.parent.width
-        self.x = self.parent.x
+        self.x = self.parent.x + self.internal_padding
 
         if self.previous:            
             self.y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y
+            self.y = self.parent.y + self.internal_padding
 
         self.new_line()
         self.recurse(self.node)

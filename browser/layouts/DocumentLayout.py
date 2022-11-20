@@ -21,6 +21,7 @@ class DocumentLayout(Layout):
         self.content_height = 0
 
     def layout(self, screen_width):
+        super().layout()
         self.children = []
         self.html.__children = [self.body]
         print("Node:", self.body.name)

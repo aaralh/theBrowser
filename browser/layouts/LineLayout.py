@@ -4,9 +4,9 @@ from browser.layouts.Layout import Layout
 
 class LineLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
         self.x = None
@@ -15,13 +15,15 @@ class LineLayout(Layout):
         self.height = None
 
     def layout(self):
+        super().layout()
         self.width = self.parent.width
         self.x = self.parent.x
 
         if self.previous:
             self.y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y
+            self.y = self.parent.y + self.parent.internal_padding
+            self.x = self.x + self.parent.internal_padding
 
         for word in self.children:
             word.layout()

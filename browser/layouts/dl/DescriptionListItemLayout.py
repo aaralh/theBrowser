@@ -15,14 +15,14 @@ import browser.globals as globals
 
 class DescriptionListItemLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
 
     def layout(self):
+        super().layout()
         self.children = []
         self.width = self.parent.width
         self.x = self.parent.x
@@ -36,8 +36,17 @@ class DescriptionListItemLayout(Layout):
         self.recurse(self.node)
         for line in self.children:
             line.layout()
-
-        self.height = sum([line.height for line in self.children]) 
+        
+        attr_height = self.node.style.get("height", "auto")
+    
+        if attr_height == "auto":
+            self.height = sum([line.height for line in self.children]) 
+        else:
+            if attr_height.endswith("px"):
+                self.height = attr_height.replace("px", "")
+            elif attr_height.endswith("em"):
+                font_size = self.node.style["font-size"]
+                self.height = int(attr_height.replace("em", "")) * font_size
 
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):

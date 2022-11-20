@@ -8,14 +8,15 @@ from browser.styling.utils import style
 
 class BlockLayout(Layout):
     def __init__(self, node: Element, parent: Layout, previous: Layout):
-        super().__init__()
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
         self.height = 10
 
     def layout(self):
+        super().layout()
         self.children = []
         previous = None
         for child in self.node.children:

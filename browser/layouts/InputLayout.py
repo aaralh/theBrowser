@@ -10,13 +10,14 @@ INPUT_WIDTH_PX = 200
 
 class InputLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
         self.node = node
-        self.children = []
         self.parent = parent
+        super().__init__()
+        self.children = []
         self.previous = previous
 
     def layout(self):
+        super().layout()
         weight = self.node.style["font-weight"]
         style = self.node.style["font-style"]
         if style == "normal": style = "roman"

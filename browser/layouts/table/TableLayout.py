@@ -23,11 +23,10 @@ import browser.globals as globals
 
 class TableLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
-        self.children: List = []
         self.parent = parent
+        super().__init__()
+        self.children: List = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -39,9 +38,12 @@ class TableLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
-        width = self.node.attributes.get("width", str(self.parent.width))
+        super().layout()
+        width = self.node.style.get("width", str(self.parent.width))
         if width.endswith("%"):
-            width = self.parent.width * (int(width[:-1]) / 100)
+            width = self.parent.width * (int(width.replace("%", "")) / 100)
+        elif width.endswith("em"):
+            width = int(width.replace("em", "")) * self.font_size
         self.width = int(float(width))
         self.x = self.parent.x
             
@@ -75,11 +77,10 @@ class TableLayout(Layout):
 
 class TableBodyLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
-        self.children: List = []
         self.parent = parent
+        super().__init__()
+        self.children: List = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -91,6 +92,7 @@ class TableBodyLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
+        super().layout()
         self.width = self.parent.width
         self.x = self.parent.x
             
@@ -119,11 +121,10 @@ class TableBodyLayout(Layout):
 
 class TableRowLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
-        self.children: List = []
         self.parent = parent
+        super().__init__()
+        self.children: List = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -135,6 +136,7 @@ class TableRowLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def layout(self) -> None:
+        super().layout()
         self.width = self.parent.width
         self.x = self.parent.x
 
@@ -167,11 +169,10 @@ class TableRowLayout(Layout):
 
 class TableDataLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
-        self.children: List[TableDataInlineLayout] = []
         self.parent = parent
+        super().__init__()
+        self.children: List[TableDataInlineLayout] = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -183,21 +184,27 @@ class TableDataLayout(Layout):
         return self.children[-1] if len(self.children) > 0 else None
 
     def calculate_width(self) -> int:
-        attr_width = self.node.attributes.get("width")
+        attr_width = self.node.style.get("width")
         if attr_width:
             if attr_width.endswith("%"):
-                attr_width = int(attr_width[:-1])
+                attr_width = int(attr_width.replace("%", ""))
                 return self.parent.width * (attr_width/100)
+            elif attr_width.endswith("px"):
+                return int(attr_width.replace("px", ""))
+            elif attr_width.endswith("em"):
+                return int(attr_width.replace("em", "")) * self.font_size
             return int(attr_width)
-        return self.parent.width / len(list(filter(lambda child: isinstance(child, HTMLTdElement) or isinstance(child, HTMLThElement), self.parent.node.children)))
-
+        if len(self.node.children) > 0:
+            return self.parent.width / len(list(filter(lambda child: isinstance(child, HTMLTdElement) or isinstance(child, HTMLThElement), self.parent.node.children)))
+        # TODO: Fix width calculations to take account margin, padding etc.
+        return 0
         """
         child_count = len(list(filter(lambda child: isinstance(child, HTMLTdElement), self.parent.node.children)))
         return self.parent.width / child_count if child_count > 0 else 1
         """
 
     def layout(self) -> None:
-       
+        super().layout()
         self.width = self.calculate_width()
         self.x = self.parent.x
             
@@ -246,14 +253,14 @@ class DOMElement():
 
 class TableDataInlineLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
 
     def layout(self):
+        super().layout()
         self.children = []
         self.width = self.parent.width
         self.x = self.parent.x
@@ -274,7 +281,7 @@ class TableDataInlineLayout(Layout):
         if isinstance(node, Text):
             self.text(node)
         elif isinstance(node, HTMLImgElement):
-            if "src" in node.attributes:
+            if "src" in node.attributes or "srcset" in node.attributes:
                 self.image(node)
                 self.new_line()
         elif isinstance(node, HTMLTableElement):

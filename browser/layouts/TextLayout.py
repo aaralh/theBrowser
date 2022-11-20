@@ -8,12 +8,11 @@ from browser.elements.elements import BorderProperties, DrawRect, DrawText
 
 class TextLayout(Layout):
     def __init__(self, node: Node, word: str, parent: Layout, previous: Layout):
-        super().__init__()
-
         self.node = node
+        self.parent = parent
+        super().__init__()
         self.word = word
         self.children = []
-        self.parent = parent
         self.previous = previous
         self.x = None
         self.y = None
@@ -22,6 +21,7 @@ class TextLayout(Layout):
         self.font = None
 
     def layout(self) -> None:
+        super().layout()
         weight = self.node.style["font-weight"]
         style = self.node.style["font-style"]
         if style == "normal": style = "roman"
@@ -38,7 +38,7 @@ class TextLayout(Layout):
             space = self.previous.font.measure(" ")
             self.x = self.previous.x + space + self.previous.width
         else:
-            self.x = self.parent.x
+            self.x = self.parent.x + self.internal_padding
 
         self.height = self.font.metrics("linespace")
 
