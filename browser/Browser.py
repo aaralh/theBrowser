@@ -70,7 +70,10 @@ class Browser:
         self.window.bind("<Configure>", self.handle_resize)
         self.canvas.bind("<Button-1>", self.handle_canvas_click)
         self.window.bind("<Key>", self.handle_key)
+        # Right click on mac.
         self.canvas.bind("<Button-2>", self.open_context_menu)
+        # Right click on linux.
+        self.canvas.bind("<Button-3>", self.open_context_menu)
         self.context_menu = tkinter.Menu(self.window, tearoff=0)
         self.context_menu.add_command(label="Inspect", command=self.init_inspector)
         self.context_menu.add_command(label="Reload", command=self.load_webpage)
@@ -258,7 +261,6 @@ class Browser:
         self.draw()
 
     def handle_scroll_linux(self, event: tkinter.Event):
-        print("Scroll: ", event, event.num == 5, event.num == 4)
         if event.num == 5:
             self.scroll_down(-1)
         elif event.num == 4:
