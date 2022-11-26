@@ -162,6 +162,9 @@ def is_valid_color(color: str) -> bool:
 def rgb_to_hex(rgb: tuple[int, int, int]) -> str:
     return '%02x%02x%02x' % rgb
 
+def rgba_to_hex(rgba: tuple[int, int, int]) -> str:
+    return '%02x%02x%02x%02x' % rgba
+
 
 @dataclass
 class ValidColor:

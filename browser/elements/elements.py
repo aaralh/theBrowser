@@ -5,7 +5,7 @@ from PIL import ImageTk, Image
 from tkinter.font import Font
 from typing import NewType
 
-from browser.styling.color.utils import transform_color
+from browser.styling.color.utils import rgba_to_hex, transform_color
 
 class DrawImage:
     def __init__(self, x1, y1, height, image: ImageTk):
@@ -36,8 +36,10 @@ class DrawText:
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         if not self.calculated_color:
             self.calculated_color = transform_color(self.color)
-
-        canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.calculated_color.color)
+        color = self.calculated_color.color
+        if self.calculated_color.type == "rgba_color":
+            color = "#" + rgba_to_hex(color)[:-2]
+        canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=color)
         """if not set(list(self.text)).isdisjoint(set(supported_emojis)):
             canvas.create_text(self.left, self.top - scroll, text=self.text, font=self.font, anchor='nw', fill=self.color)
         else:
