@@ -6,9 +6,13 @@ from browser.Inspector import NetworkRequest
 
 from browser.globals import BrowserState
 
+REQUEST_CACHE = {}
+
 def request(url: str, payload: Optional[dict]=None) -> Response:
     inspectors = BrowserState.get_inspectors()
     if url.startswith("http://") or url.startswith("https://"):
+        if REQUEST_CACHE.get(url) and not payload:
+            return REQUEST_CACHE.get(url)
         headers = {
                 "User-Agent": "theBrowser/0.03-alpha"
             }
@@ -18,6 +22,8 @@ def request(url: str, payload: Optional[dict]=None) -> Response:
         else:
             response = requests.get(url, headers=headers)
             [inspector.add_network_request(NetworkRequest(url, "GET", response.status_code, len(response.content))) for inspector in inspectors]
+        if not payload:
+            REQUEST_CACHE[url] = response
         return response
 
 
