@@ -148,10 +148,8 @@ class Layout:
         if attr_color:
             return transform_color(attr_color).color
         background_style = self.node.style.get("background", None)
-        print("Background style", background_style)
         if background_style:
             color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, background_style), None)
-            print("Border color", color)
             if color:
                 bgcolor = transform_color(color).color
         bgcolor = self.node.style.get("background-color", "transparent")
@@ -180,9 +178,11 @@ class Layout:
             if str(self.node.id) in BrowserState.get_selected_elements():
                 x2, y2 = self.x + self.width, self.y + self.height
                 rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
+                display_list.append(rect)
             elif self.border:
                 x2, y2 = self.x + self.width, self.y + self.height
                 rect = DrawRect(self.x, self.y, x2, y2, "", self.border)
+                display_list.append(rect)
 
         for child in self.children:
             child.paint(display_list) 
