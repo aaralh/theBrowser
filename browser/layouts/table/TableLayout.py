@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 import os
 from tkinter.font import Font
-from typing import List, Union
+from typing import List, Union, cast
 from browser.elements.elements import DrawImage, DrawRect
 from browser.layouts.ImageLayout import ImageLayout
 from browser.layouts.InputLayout import INPUT_WIDTH_PX, InputLayout
@@ -39,7 +39,7 @@ class TableLayout(Layout):
 
     def layout(self) -> None:
         super().layout()
-        width = self.node.style.get("width", str(self.parent.width))
+        width = self.node.style.get("width", self.node.attributes.get("width", str(self.parent.width))) 
         if width.endswith("%"):
             width = self.parent.width * (int(width.replace("%", "")) / 100)
         elif width.endswith("em"):
@@ -124,7 +124,7 @@ class TableRowLayout(Layout):
         self.node = node
         self.parent = parent
         super().__init__()
-        self.children: List = []
+        self.children: List[TableDataLayout] = []
         self.previous = previous
         self.x = None
         self.y = None
@@ -160,6 +160,28 @@ class TableRowLayout(Layout):
         for child in self.children:
             child.layout()
 
+        contents_width = sum([child.width for child in self.children])
+        if contents_width > self.width:
+            dynamic_children = list(filter(lambda child: child.dynamic_width, self.children))
+            non_dynamic_children = list(filter(lambda child: not child.dynamic_width, self.children))
+            non_dynamic_width = sum([child.width for child in non_dynamic_children])
+            available_width = self.width - non_dynamic_width
+            for child in dynamic_children:
+                child_width = (child.width/self.width) * available_width
+                child.layout(child_width)
+        
+        elif contents_width < self.width:
+            dynamic_children = list(filter(lambda child: child.dynamic_width, self.children))
+            dynamic_children_width = sum([child.width for child in dynamic_children])
+            available_width = self.width - dynamic_children_width
+            non_dynamic_children = list(filter(lambda child: child.update_width, self.children))
+            for child in self.children:
+                if child.update_width:
+                    child_width = available_width/len(non_dynamic_children)
+                    child.layout(child_width)
+                child.layout(child.width)
+            
+
         if not self.children:
             self.height = 0
             return
@@ -177,24 +199,38 @@ class TableDataLayout(Layout):
         self.x = None
         self.y = None
         self.width = None
+        self.orig_pixel_width = 0
         self.height = None
         self.font = None
+        self.update_width = False
+        self.dynamic_width = False
 
     def previous_child(self) -> Layout:
         return self.children[-1] if len(self.children) > 0 else None
 
     def calculate_width(self) -> int:
-        attr_width = self.node.style.get("width")
+        attr_width = self.node.style.get("width", self.node.attributes.get("width"))
+        print("Width", attr_width, len(self.node.children))
         if attr_width:
             if attr_width.endswith("%"):
                 attr_width = int(attr_width.replace("%", ""))
+                self.dynamic_width = True
                 return self.parent.width * (attr_width/100)
             elif attr_width.endswith("px"):
                 return int(attr_width.replace("px", ""))
             elif attr_width.endswith("em"):
                 return int(attr_width.replace("em", "")) * self.font_size
             return int(attr_width)
+        
+        # TODO: Handle width of table data elements properly.
+        # With this td elements with no contents are not taking unnecessary amount of horizontal space.
+        if len(self.node.children) == 1 and isinstance(self.node.children[0], Text):
+            if self.node.children[0].wholeText.isspace():
+                return 0
+
         if len(self.node.children) > 0:
+            # Calculate width of contents and reutrn min(content_widht, width below)
+            self.update_width = True
             return self.parent.width / len(list(filter(lambda child: isinstance(child, HTMLTdElement) or isinstance(child, HTMLThElement), self.parent.node.children)))
         # TODO: Fix width calculations to take account margin, padding etc.
         return 0
@@ -204,7 +240,7 @@ class TableDataLayout(Layout):
         """
 
 
-    def calculate_size(self) -> None:
+    def calculate_size2(self) -> None:
         attr_height = self.node.style.get("height", "auto")
         
         if attr_height == "auto":
@@ -229,9 +265,15 @@ class TableDataLayout(Layout):
                 parent_width = self.parent.width
                 self.width = parent_width * (float(attr_width.replace("%", "")) / 100)
 
-    def layout(self) -> None:
+    def layout(self, width= None) -> None:
         super().layout()
-        self.width = self.calculate_width()
+        self.children = []
+        if width:
+            self.width = width
+        else:
+            self.width = self.calculate_width()
+        self.orig_pixel_width = self.width
+        print("Calculated width", self.width)
         self.x = self.parent.x
             
         if self.previous:
@@ -254,10 +296,15 @@ class TableDataLayout(Layout):
         inline_layout = TableDataInlineLayout(self.node, self, self.previous)
         inline_layout.layout()
         self.children.append(inline_layout)
-
+        print("Table inline width", inline_layout.width)
         if not self.children:
             self.height = 0
             return
+
+        if self.update_width:
+
+            print("Udpated width", inline_layout.width)
+            self.width = inline_layout.width
 
         self.height = sum([child.height for child in self.children]) 
 
@@ -301,7 +348,18 @@ class TableDataInlineLayout(Layout):
         for line in self.children:
             line.layout()
 
-        self.height = sum([line.height for line in self.children]) 
+        self.height = sum([line.height for line in self.children])
+        all_lines_empty = all([len(line.children) == 0 for line in filter(lambda child: isinstance(child, LineLayout), self.children)])
+        other_content = list(filter(lambda child: not isinstance(child, LineLayout), self.children))
+        print("Lines empty", all_lines_empty)
+
+        if all_lines_empty and len(other_content) > 0:
+            max_width = 0
+            for item in other_content:
+                if item.width > max_width:
+                    max_width = item.width
+            
+            self.width = max_width
 
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):
