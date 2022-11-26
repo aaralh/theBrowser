@@ -52,7 +52,7 @@ class Layout:
             font_size = str(convert_absolute_size_to_pixels(font_size))
         elif font_size.endswith("em"):
             parent_font_size = self.parent.font_size
-            font_size = str(parent_font_size * int(font_size.replace("em", "")))
+            font_size = str(parent_font_size * float(font_size.replace("em", "")))
         return int(round(float(font_size.replace("px", "")))) 
 
     def layout(self) -> None:

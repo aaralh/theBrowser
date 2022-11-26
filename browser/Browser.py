@@ -65,6 +65,8 @@ class Browser:
         self.window.bind("<Down>", self.scroll_down)
         self.window.bind("<Up>", self.scroll_up)
         self.window.bind("<MouseWheel>", self.handle_scroll)
+        self.window.bind("<Button-4>", self.handle_scroll_linux)
+        self.window.bind("<Button-5>", self.handle_scroll_linux)
         self.window.bind("<Configure>", self.handle_resize)
         self.canvas.bind("<Button-1>", self.handle_canvas_click)
         self.window.bind("<Key>", self.handle_key)
@@ -254,6 +256,15 @@ class Browser:
         self.document.paint(self.display_list)
             
         self.draw()
+
+    def handle_scroll_linux(self, event: tkinter.Event):
+        print("Scroll: ", event, event.num == 5, event.num == 4)
+        if event.num == 5:
+            self.scroll_down(-1)
+        elif event.num == 4:
+            self.scroll_up(1)
+
+
 
     def handle_scroll(self, direction: tkinter.Event):
         if direction.delta < 0:
