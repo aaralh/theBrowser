@@ -203,6 +203,32 @@ class TableDataLayout(Layout):
         return self.parent.width / child_count if child_count > 0 else 1
         """
 
+
+    def calculate_size(self) -> None:
+        attr_height = self.node.style.get("height", "auto")
+        
+        if attr_height == "auto":
+            self.height = sum([line.height for line in self.children]) 
+        else:
+            if attr_height.endswith("px"):
+                self.height = int(attr_height.replace("px", ""))
+            elif attr_height.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                self.height = float(attr_height.replace("em", "")) * font_size
+
+        attr_width = self.node.style.get("width", "auto")
+        if attr_width == "auto":
+            self.width = self.parent.width
+        else:
+            if attr_width.endswith("px"):
+                self.width = int(attr_width.replace("px", ""))
+            elif attr_width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                self.width = int(attr_width.replace("em", "")) * font_size
+            elif attr_width.endswith("%"):
+                parent_width = self.parent.width
+                self.width = parent_width * (float(attr_width.replace("%", "")) / 100)
+
     def layout(self) -> None:
         super().layout()
         self.width = self.calculate_width()

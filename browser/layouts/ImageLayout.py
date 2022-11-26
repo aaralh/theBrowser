@@ -114,6 +114,11 @@ class ImageLayout(Layout):
             image = Image.open('resources/images/not_allowed.jpg')
         self.calculate_size()
         print("height/width", self.height, self.width)
+        # TODO: Height/width can be 0 which causes problem while resizing hence workaround below.
+        if self.width == 0:
+            self.width = 1
+        if self.height == 0:
+            self.height = 1
         image = image.resize((self.width, self.height))
         self.image = ImageTk.PhotoImage(image)
             
