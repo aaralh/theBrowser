@@ -282,7 +282,6 @@ class Browser:
             self.scroll = 0
         else:
             self.scroll = scroll
-        print((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.draw()
 
@@ -296,16 +295,13 @@ class Browser:
             self.scroll = 0
         else:
             self.scroll -= (delta * SCROLL_STEP)
-        print((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.draw()
 
     def scrollbar_scroll(self, action: Literal["moveto"], position: str):
         position_float = float(position)
-        print(position,  not 0 <= position_float <= 1)
         if not 0 <= position_float <= 1:
             return
-        print(0 <= position_float <= 1)
         self.scroll = self.document.content_height * position_float
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.draw()
