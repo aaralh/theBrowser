@@ -175,7 +175,12 @@ def transform_color(color: str) -> ValidColor:
     """
     Transforms css color to supported browser supported color.
     """
+
+    if color == "":
+        return ValidColor("color", "")
+
     if color == "inherit" or color == "none" or color.startswith("var") or not is_valid_color(color):
+        print("Color", color)
         return ValidColor("color", "pink")
 
     if color.startswith("rgba"):

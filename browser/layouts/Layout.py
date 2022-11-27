@@ -149,15 +149,17 @@ class Layout:
             return transform_color(attr_color).color
         background_style = self.node.style.get("background", None)
         if background_style:
+            background_style = background_style.split(" ")
             color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, background_style), None)
             if color:
-                bgcolor = transform_color(color).color
+                return transform_color(color).color
         bgcolor = self.node.style.get("background-color", "transparent")
         return bgcolor
     
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
             bgcolor = self.get_background_color()
+            print("bgcoor", bgcolor)
             if bgcolor == "unset":
                 try:
                     if isinstance(self.node.parentNode, Element):
@@ -167,6 +169,7 @@ class Layout:
                     bgcolor = "transparent"
 
             if bgcolor != "transparent":
+                bgcolor = transform_color(bgcolor)
                 x2, y2 = self.x + self.width, self.y + self.height
                 if str(self.node.id) in BrowserState.get_selected_elements():
                     rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties("red", 10))
@@ -177,11 +180,11 @@ class Layout:
                 display_list.append(rect)
             if str(self.node.id) in BrowserState.get_selected_elements():
                 x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
+                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), BorderProperties("red", 10))
                 display_list.append(rect)
             elif self.border:
                 x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, "", self.border)
+                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), self.border)
                 display_list.append(rect)
 
         for child in self.children:

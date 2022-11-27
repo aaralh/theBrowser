@@ -1,5 +1,6 @@
 from typing import TypeVar, cast
 from browser.elements.elements import DrawRect
+from browser.styling.color.utils import transform_color
 from web.dom.elements import HTMLBodyElement
 from web.dom.DocumentType import DocumentType
 from browser.layouts.Layout import Layout
@@ -53,6 +54,6 @@ class DocumentLayout(Layout):
         print("HTML", bgcolor)
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
-            rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+            rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))
             display_list.append(rect)
         self.children[0].paint(display_list)

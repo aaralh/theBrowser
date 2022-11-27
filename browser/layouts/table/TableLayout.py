@@ -308,15 +308,6 @@ class TableDataLayout(Layout):
 
         self.height = sum([child.height for child in self.children]) 
 
-    def paint(self, display_list: list) -> None:
-        x2, y2 = self.x + self.width, self.y + self.height
-        bgcolor = self.node.style.get("background-color",
-                                      "transparent")
-        if bgcolor != "transparent":
-            display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
-
-        for child in self.children:
-            child.paint(display_list)
 
 @dataclass
 class DOMElement():

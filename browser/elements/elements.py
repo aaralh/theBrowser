@@ -5,7 +5,7 @@ from PIL import ImageTk, Image
 from tkinter.font import Font
 from typing import NewType
 
-from browser.styling.color.utils import rgba_to_hex, transform_color
+from browser.styling.color.utils import ValidColor, rgba_to_hex, transform_color
 
 class DrawImage:
     def __init__(self, x1, y1, height, image: ImageTk):
@@ -61,7 +61,7 @@ class BorderProperties:
     width: int
 
 class DrawRect:
-    def __init__(self, x1, y1, x2, y2, color, border: BorderProperties = BorderProperties("", 0)):
+    def __init__(self, x1, y1, x2, y2, color: ValidColor, border: BorderProperties = BorderProperties("", 0)):
         self.top = y1
         self.left = x1
         self.bottom = y2
@@ -69,24 +69,21 @@ class DrawRect:
         self.color = color
         self.used_resources = None
         self.border = border
-        self.calculated_color = None
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         # TODO: Do proper implementation for rgb and rgba colors.
-        if not self.calculated_color:
-            self.calculated_color = transform_color(self.color)
         
-        if self.calculated_color.type == "rgba_color":
+        if self.color.type == "rgba_color":
             if not self.used_resources:
-                image = Image.new('RGBA', (int(self.right-self.left), int(self.bottom-self.top)), self.calculated_color.color)
+                image = Image.new('RGBA', (int(self.right-self.left), int(self.bottom-self.top)), self.color.color)
                 tk_image = ImageTk.PhotoImage(image)
                 self.used_resources = tk_image
             canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
-        if not self.calculated_color.type == "rgba_color":
+        if not self.color.type == "rgba_color":
             canvas.create_rectangle(
                 self.left, self.top - scroll,
                 self.right, self.bottom - scroll,
                 width=self.border.width,
-                fill=self.calculated_color.color,
+                fill=self.color.color,
                 outline=self.border.color
             )

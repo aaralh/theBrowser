@@ -2,6 +2,7 @@ from typing import List
 from browser.elements.elements import DrawRect, DrawText
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
+from browser.styling.color.utils import transform_color
 from web.dom.Node import Node
 from web.dom.elements.Element import Element
 from web.dom.elements.Text import Text
@@ -39,7 +40,7 @@ class InputLayout(Layout):
         self.height = self.font.metrics("linespace")
        
     def paint(self, display_list: list):
-        if self.node.attributes.get("type") == "hidden": return                         
+        if self.node.attributes.get("type") == "hidden": return    
         
         bgcolor = self.node.style.get("background-color",
                                       "transparent")
@@ -54,7 +55,10 @@ class InputLayout(Layout):
 
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
-            rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
+            if self.border:
+                rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border)
+            else:
+                rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))
             display_list.append(rect)
 
         if self.node.name == "input":
