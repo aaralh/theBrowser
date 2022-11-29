@@ -112,7 +112,7 @@ class Layout:
     def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):
             return "inline"
-        elif node.children:
+        elif len(node.children) > 0:
             for child in node.children:
                 if isinstance(child, Text): continue
                 if child.name in BLOCK_ELEMENTS:
@@ -139,8 +139,9 @@ class Layout:
             elif width.endswith("px"):
                 border_width = int(width[:-2])
 
-            self.internal_padding = border_width
-            self.border = BorderProperties(width=border_width, color=color)
+            if color:
+                self.internal_padding = border_width
+                self.border = BorderProperties(width=border_width, color=transform_color(color))
     
     def get_background_color(self):
         bgcolor = ""
@@ -159,7 +160,6 @@ class Layout:
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
             bgcolor = self.get_background_color()
-            print("bgcoor", bgcolor)
             if bgcolor == "unset":
                 try:
                     if isinstance(self.node.parentNode, Element):

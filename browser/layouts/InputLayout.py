@@ -28,7 +28,9 @@ class InputLayout(Layout):
         self.width = INPUT_WIDTH_PX
 
         if self.node.attributes.get("type", "") == "submit":
-            text = self.node.attributes.get("value", " ")
+            text = self.node.attributes.get("value", None)
+            if not text:
+                text = self.node.attributes.get('alt', " ")
             self.width = self.font.measure(text)
 
         if self.previous:
@@ -36,6 +38,13 @@ class InputLayout(Layout):
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x
+
+        min_width = self.node.style.get("min-width", None)
+        """if min_width:
+            if min_width.endswith("px"):
+                min_width = min_width.replace("px", "")
+                if self.width < min_width:
+                    self.width = min_width"""
 
         self.height = self.font.metrics("linespace")
        
@@ -62,7 +71,9 @@ class InputLayout(Layout):
             display_list.append(rect)
 
         if self.node.name == "input":
-            text = self.node.attributes.get("value", "")
+            text = self.node.attributes.get("value", None)
+            if not text:
+                text = self.node.attributes.get('alt', " ")
             if len(text) == 0:
                 text = self.node.attributes.get("placeholder", "") 
         elif self.node.name == "button":

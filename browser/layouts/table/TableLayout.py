@@ -44,6 +44,8 @@ class TableLayout(Layout):
             width = self.parent.width * (int(width.replace("%", "")) / 100)
         elif width.endswith("em"):
             width = int(width.replace("em", "")) * self.font_size
+        elif width == "auto":
+            width = self.parent.width
         self.width = int(float(width))
         self.x = self.parent.x
             
