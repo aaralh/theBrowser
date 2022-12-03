@@ -128,18 +128,21 @@ class Browser:
 
     def handle_key(self, e):
         if self.canvas != self.window.focus_get(): return
-        if len(e.char) == 0: return
-        if not (0x20 <= ord(e.char) < 0x7f): return
+        if e.keysym != "BackSpace":
+            if len(e.char) == 0: return
+            if not (0x20 <= ord(e.char) < 0x7f): return
 
         if isinstance(self.focus.node, HTMLInputElement):
-            print("Key", e.char)
-            self.focus.node.attributes["value"] += e.char
+            if e.char == "" and e.keysym == "BackSpace":
+                self.focus.node.attributes["value"] = self.focus.node.attributes["value"][:-1]
+            else:
+                self.focus.node.attributes["value"] += e.char
             self.redraw()
 
     def draw_cursor(self):
        if not isinstance(self.focus.node, HTMLInputElement): return 
        w = self.focus.layout.font.measure(self.focus.node.attributes["value"])
-       self.canvas.create_line(self.focus.layout.x + w, self.focus.layout.y, self.focus.layout.x + w, self.focus.layout.y + 30)
+       self.canvas.create_line(self.focus.layout.x + w, self.focus.layout.y, self.focus.layout.x + w, self.focus.layout.y + self.focus.layout.font.cget("size"), fill="black")
 
     def handle_canvas_click(self, e):
         self.canvas.focus_set()
@@ -167,8 +170,8 @@ class Browser:
                             return self.submit_form(elt)
                         elt = elt.parentNode
                 else:
-                    print("Element:", elt)
-                    elt.attributes["value"] = ""
+                    if not elt.attributes.get("value"):
+                        elt.attributes["value"] = ""
                     self.focus = FocusObject(node=elt, layout=obj)
                     return
             elif elt.name == "button":
@@ -204,8 +207,8 @@ class Browser:
             self.display_list = []
             self.document.paint(self.display_list)
         self.used_resources = []
-        self.draw_cursor()
         self.draw()
+        self.draw_cursor()
 
     def load(self, url: str, body=None):
         self.scroll = 0
