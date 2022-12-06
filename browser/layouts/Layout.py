@@ -56,6 +56,10 @@ class Layout:
         return int(round(float(font_size.replace("px", "")))) 
 
     def layout(self) -> None:
+        float_style = self.node.style.get("float")
+        if float_style in ["left"]:
+            #TODO: Add support for other float modes.
+            self.float = float_style
         if isinstance(self.node, Element):
             self.create_border()
 
@@ -80,6 +84,11 @@ class Layout:
                 attr_width = "auto"
             if attr_width == "auto":
                 self.width = self.parent.width
+                if self.float != "auto":
+                    if len(self.children) > 0:
+                        self.width = sum([child.width for child in self.children])
+                    else:
+                        self.width = 0
             else:
                 if attr_width.endswith("px"):
                     self.width = int(attr_width.replace("px", ""))
@@ -90,7 +99,7 @@ class Layout:
                         font_size = str((parent_font_size / 100) * int(font_size.replace("%", "")))
                     font_size = int(
                         round(float(font_size.replace("px", ""))))
-                    self.width = int(attr_width.replace("em", "")) * font_size
+                    self.width = int(float(attr_width.replace("em", ""))) * font_size
                 elif attr_width.endswith("%"):
                     self.dynamic_size = True
                     parent_width = self.parent.width
@@ -103,21 +112,40 @@ class Layout:
         self.height = self.height + self.internal_padding*2
 
     def recalculate_size(self) -> None:
-        if self.dynamic_size:
+        if self.should_recalculate_size:
             self.calculate_size()
 
         for child in self.children:
             child.recalculate_size()
 
+    def update_layout(self, relayout_children: bool = False) -> None:
+        #import pdb; pdb.set_trace()
+        if self.relayout or relayout_children:
+            print("Relayout", self)
+            self.layout()
+            for child in self.children:
+                child.parent = self
+                child.update_layout(True)
+        else:
+            print("not relayout", self)
+            for child in self.children:
+                child.update_layout()
+        
+
     def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):
             return "inline"
         elif len(node.children) > 0:
+            mode = "inline"
             for child in node.children:
                 if isinstance(child, Text): continue
                 if child.name in BLOCK_ELEMENTS:
-                    return "block"
-            return "inline"
+                    mode =  "block"
+
+            style_mode = node.style.get("display")
+            if style_mode in ["inline", "block"]:
+                mode = style_mode
+            return mode
         else:
             return "block"
 
@@ -172,7 +200,7 @@ class Layout:
                 bgcolor = transform_color(bgcolor)
                 x2, y2 = self.x + self.width, self.y + self.height
                 if str(self.node.id) in BrowserState.get_selected_elements():
-                    rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties("red", 10))
+                    rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties(transform_color("red"), 10))
                 elif self.border:
                     rect = DrawRect(self.x, self.y, x2, y2, bgcolor, self.border)
                 else:
@@ -180,7 +208,7 @@ class Layout:
                 display_list.append(rect)
             if str(self.node.id) in BrowserState.get_selected_elements():
                 x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), BorderProperties("red", 10))
+                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), BorderProperties(transform_color("red"), 10))
                 display_list.append(rect)
             elif self.border:
                 x2, y2 = self.x + self.width, self.y + self.height

@@ -1,4 +1,5 @@
 from browser.globals import BrowserState
+from browser.styling.color.utils import transform_color
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
@@ -48,5 +49,5 @@ class TextLayout(Layout):
 
         if str(self.node.id) in BrowserState.get_selected_elements():
             x2, y2 = self.x + self.width, self.y + self.height
-            rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties("red", 10))
+            rect = DrawRect(self.x, self.y, x2, y2, "", BorderProperties(transform_color("red"), 10))
             display_list.append(rect)

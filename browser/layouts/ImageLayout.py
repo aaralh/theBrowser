@@ -11,6 +11,7 @@ from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 from browser.utils.networking import request
 from cairosvg import svg2png
+from utils import log
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):
@@ -37,10 +38,10 @@ class ImageLayout(Layout):
                     src = srcset.split(",")[0].split(" ")[0]
                     image_src = src
                 except:
-                    print("srcset is faulty!")
+                    log("srcset is faulty!")
 
         src = resolve_url(image_src, self.current_url)
-        print("image:", src, image_src, self.current_url)
+        log("image:", src, image_src, self.current_url)
         if src.endswith(".svg"):
             return svg2png(url=src)
         else:
@@ -48,7 +49,7 @@ class ImageLayout(Layout):
                 response = request(src)
                 return response.content
             except:
-                print("Image not found!")
+                log("Image not found!")
 
     def calculate_width(self) -> int:
         style_width = self.node.style.get("width", None)
@@ -110,10 +111,10 @@ class ImageLayout(Layout):
         try:
             image = Image.open(BytesIO(self.image_bytes))
         except UnidentifiedImageError:
-            print(f"Image is not supported: Image path {self.node.attributes.get('src')}")
+            log(f"Image is not supported: Image path {self.node.attributes.get('src')}")
             image = Image.open('resources/images/not_allowed.jpg')
         self.calculate_size()
-        print("height/width", self.height, self.width)
+        log("height/width", self.height, self.width)
         # TODO: Height/width can be 0 which causes problem while resizing hence workaround below.
         if self.width == 0:
             self.width = 1

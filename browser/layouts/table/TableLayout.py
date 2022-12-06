@@ -19,6 +19,7 @@ from web.dom.elements.HTMLTdElement import HTMLTdElement
 from web.dom.elements.HTMLThElement import HTMLThElement
 from web.dom.elements.Text import Text
 import browser.globals as globals
+from utils import log
 
 
 class TableLayout(Layout):
@@ -212,7 +213,7 @@ class TableDataLayout(Layout):
 
     def calculate_width(self) -> int:
         attr_width = self.node.style.get("width", self.node.attributes.get("width"))
-        print("Width", attr_width, len(self.node.children))
+        log("Width", attr_width, len(self.node.children))
         if attr_width:
             if attr_width.endswith("%"):
                 attr_width = int(attr_width.replace("%", ""))
@@ -275,7 +276,7 @@ class TableDataLayout(Layout):
         else:
             self.width = self.calculate_width()
         self.orig_pixel_width = self.width
-        print("Calculated width", self.width)
+        log("Calculated width", self.width)
         self.x = self.parent.x
             
         if self.previous:
@@ -290,22 +291,22 @@ class TableDataLayout(Layout):
         """ if isinstance(child, Text):
             if not line:
                 line = LineLayout(self.node, self, None)
-            print()
-            print(child.data, self.previous_child(), self.x, self.y)
-            print()
+            log()
+            log(child.data, self.previous_child(), self.x, self.y)
+            log()
             text = TextLayout(child, child.data, self, self.previous_child())
             line.children.append(text) """
         inline_layout = TableDataInlineLayout(self.node, self, self.previous)
         inline_layout.layout()
         self.children.append(inline_layout)
-        print("Table inline width", inline_layout.width)
+        log("Table inline width", inline_layout.width)
         if not self.children:
             self.height = 0
             return
 
         if self.update_width:
 
-            print("Udpated width", inline_layout.width)
+            log("Udpated width", inline_layout.width)
             self.width = inline_layout.width
 
         self.height = sum([child.height for child in self.children]) 
@@ -344,7 +345,7 @@ class TableDataInlineLayout(Layout):
         self.height = sum([line.height for line in self.children])
         all_lines_empty = all([len(line.children) == 0 for line in filter(lambda child: isinstance(child, LineLayout), self.children)])
         other_content = list(filter(lambda child: not isinstance(child, LineLayout), self.children))
-        print("Lines empty", all_lines_empty)
+        log("Lines empty", all_lines_empty)
 
         if all_lines_empty and len(other_content) > 0:
             max_width = 0

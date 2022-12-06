@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal, NewType, Union, cast
+from utils import log
 
 CSS_COLORS_DICT = {
     'aliceblue': '#F0F8FF',
@@ -154,7 +155,7 @@ def is_valid_color(color: str) -> bool:
     if color.startswith("#"):
         # TODO: Add support for rgba style hex colors.
         if not len(color[1:]) in [3, 6]:
-            print("Faulty color", color)
+            log("Faulty color", color)
         return len(color[1:]) in [3, 6]
     return True
 
@@ -180,7 +181,7 @@ def transform_color(color: str) -> ValidColor:
         return ValidColor("color", "")
 
     if color == "inherit" or color == "none" or color.startswith("var") or not is_valid_color(color):
-        print("Color", color)
+        log("Color", color)
         return ValidColor("color", "pink")
 
     if color.startswith("rgba"):

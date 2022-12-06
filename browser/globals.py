@@ -1,5 +1,6 @@
 from typing import List
 from uuid import UUID
+from utils import log
 
 from browser.Inspector import Inspector
 
@@ -16,7 +17,7 @@ class BrowserState():
     @staticmethod
     def set_selected_elements(element_ids: List[UUID]) -> None:
         BrowserState.__selected_elements = element_ids
-        print("Selected items:", BrowserState.__selected_elements)
+        log("Selected items:", BrowserState.__selected_elements)
 
     @staticmethod
     def remove_selected_element(element_id: UUID) -> None:

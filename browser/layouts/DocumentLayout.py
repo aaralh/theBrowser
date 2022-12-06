@@ -8,6 +8,7 @@ from browser.layouts.BlockLayout import BlockLayout
 import browser.globals as globals
 from web.dom.elements.Element import Element
 from web.dom.elements.HTMLElement import HTMLElement
+from utils import log
 
 T = TypeVar('T')
 
@@ -25,7 +26,7 @@ class DocumentLayout(Layout):
         super().layout()
         self.children = []
         self.html.__children = [self.body]
-        print("Node:", self.body.name)
+        log("Node:", self.body.name)
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = int(float(screen_width - 2*globals.HSTEP))
@@ -51,7 +52,7 @@ class DocumentLayout(Layout):
                                     "transparent")
 
 
-        print("HTML", bgcolor)
+        log("HTML", bgcolor)
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
             rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))

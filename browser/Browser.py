@@ -8,6 +8,7 @@ from tkinter.font import Font
 from typing import List, Literal, Optional, Tuple, cast
 from browser.layouts.Layout import Layout
 from browser.utils.networking import load_file, request
+from utils import log
 from web.dom.CharacterData import CharacterData
 from web.dom.Node import Node
 from web.dom.elements.Element import Element
@@ -117,10 +118,13 @@ class Browser:
     def handle_resize(self, event: tkinter.Event) -> None:
         if event.widget != self.window:
             return
+        global WIDTH, HEIGHT
+        if WIDTH == event.width and HEIGHT == event.height:
+            # If height and width has not changed then ignore.
+            return
         if self.re_draw_timeout != None:
             self.window.after_cancel(self.re_draw_timeout)
             self.re_draw_timeout = None
-        global WIDTH, HEIGHT
         WIDTH = event.width
         HEIGHT = event.height
         self.document.height = HEIGHT
@@ -155,7 +159,7 @@ class Browser:
         elt = obj.node
 
         while elt:
-            print("Element: ", elt.name)
+            log("Element: ", elt.name)
             if isinstance(elt, Text):
                 pass
             elif elt.name == "a" and "href" in elt.attributes:

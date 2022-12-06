@@ -6,6 +6,7 @@ from tkinter.messagebox import showinfo
 from web.dom.CharacterData import CharacterData
 from web.dom.DocumentType import DocumentType
 from web.dom.Node import Node
+from utils import log
 
 @dataclass
 class NetworkRequest:
@@ -40,7 +41,7 @@ class Inspector:
         self.tabControl.pack(expand=1, fill="both")
         
         def on_closing():
-            print("On close")
+            log("On close")
             from browser.globals import BrowserState
             BrowserState.remove_inspector(self)
             self.inspector_window.destroy()
@@ -109,7 +110,7 @@ class Inspector:
             else:
                 self.elements_treeview.insert(str(parent_id), tkinter.END, text=f"<{node.name}>", iid=id, open=False)
             #parent_child_count = len(self.elements_treeview.get_children(str(parent_id)))
-            #print("Child", parent_child_count)
+            #log("Child", parent_child_count)
             #self.elements_treeview.move(str(id), str(parent_id), parent_child_count)
         else:
            self.elements_treeview.insert('', tkinter.END, text=f"<{node.name}>", iid=id, open=False) 

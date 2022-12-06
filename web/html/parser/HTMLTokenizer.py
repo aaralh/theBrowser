@@ -6,6 +6,7 @@ from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitesp
     charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
 import string
+from utils import log
 
 DEBUG = False
 
@@ -31,7 +32,7 @@ class HTMLTokenizer:
                 self.__last_emitted_start_tag_name = self.__current_token.name
             self.__current_token = None
             if DEBUG:
-                print("Current state: ", self.state)
+                log("Current state: ", self.state)
 
     def __create_new_token(
             self, token_type: HTMLToken.TokenType
@@ -567,7 +568,7 @@ class HTMLTokenizer:
 
     def handle_script_data_escaped_end_tag_open(self) -> None:
         if charIsAlpha(self.__current_input_char):
-            print("handle_script_data_escaped_end_tag_open")
+            log("handle_script_data_escaped_end_tag_open")
             self.__current_token = cast(HTMLTag, self.__create_new_token(HTMLToken.TokenType.EndTag))
             self.__current_token.name = ""
             self.__reconsume_in(self.State.ScriptDataEscapedEndTagName)
@@ -581,7 +582,7 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.ScriptDataEscaped)
 
     def handle_script_data_escaped_end_tag_name(self) -> None:
-        print("handle_script_data_escaped_end_tag_name", self.__current_input_char)
+        log("handle_script_data_escaped_end_tag_name", self.__current_input_char)
         self.__current_token = cast(HTMLTag, self.__current_token)
 
         def elseCase() -> None:

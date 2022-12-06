@@ -17,6 +17,7 @@ from web.html.parser.HTMLTokenizer import HTMLTokenizer, DEBUG
 from web.dom.ElementFactory import ElementFactory
 from dataclasses import dataclass
 from copy import deepcopy
+from utils import log
 
 class HTMLDocumentParser:
     @dataclass
@@ -79,10 +80,10 @@ class HTMLDocumentParser:
     def __token_handler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
 
         if DEBUG:
-            print("Token: ", token)
-            print("Input mode: ", self.__current_insertion_mode)
-            print("self.__open_elements")
-            print("Elements: ", self.__open_elements.elements())
+            log("Token: ", token)
+            log("Input mode: ", self.__current_insertion_mode)
+            log("self.__open_elements")
+            log("Elements: ", self.__open_elements.elements())
 
         switcher = self.__get_mode_switcher()
         if switcher is not None:
@@ -117,7 +118,7 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         """
         parent = self.__current_element
-        print("Token:", token)
+        log("Token:", token)
         element = ElementFactory.create_element(token, parent, self.__document)
         element.parentNode.appendChild(element)
 
@@ -291,7 +292,7 @@ class HTMLDocumentParser:
                 self.__switchModeTo(self.__Mode.BeforeHead)
 
     def handle_before_head(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-        print("handle_before_head")
+        log("handle_before_head")
         if token.type == HTMLToken.TokenType.Character:
             if charIsWhitespace(token.data):
                 self.__continue_in(self.__Mode.BeforeHead)
@@ -342,7 +343,7 @@ class HTMLDocumentParser:
                 self.__open_elements.push(element)
                 self.__tokenizer.switch_state_to(
                     self.__tokenizer.State.RCDATA)
-                print("Assigning insertion mode:", self.__current_insertion_mode)
+                log("Assigning insertion mode:", self.__current_insertion_mode)
                 self.__original_insertion_mode = self.__current_insertion_mode
                 self.__switchModeTo(self.__Mode.Text)
             elif (token.name == "noscript" and self.__scripting) or (token.name in ["noframes", "style"]):
@@ -387,8 +388,8 @@ class HTMLDocumentParser:
 
         elif token.type == HTMLToken.TokenType.EndTag:
             if token.name == "head":
-                print("removing head")
-                print(self.__open_elements.elements())
+                log("removing head")
+                log(self.__open_elements.elements())
                 self.__open_elements.popUntilElementWithAtagNameHasBeenPopped(token.name)
                 self.__switchModeTo(self.__Mode.AfterHead)
             elif token.name in ["body", "html", "br"]:
@@ -411,8 +412,8 @@ class HTMLDocumentParser:
         elif token.type == HTMLToken.TokenType.EndTag:
             token = cast(HTMLTag, token)
             if token.name == "noscript":
-                print("removing noscript")
-                print(self.__open_elements.elements())
+                log("removing noscript")
+                log(self.__open_elements.elements())
                 self.__open_elements.pop()
                 self.__switchModeTo(self.__Mode.InHead)
             elif token.name == "br":
@@ -445,7 +446,7 @@ class HTMLDocumentParser:
             self.__switchModeTo(self.__Mode.InHead)
 
     def handle_after_head(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
-        print("handle_after_head", token)
+        log("handle_after_head", token)
         if token.type == HTMLToken.TokenType.Character:
             if charIsWhitespace(token.data):
                 self.__insert_character(token)
@@ -459,8 +460,8 @@ class HTMLDocumentParser:
                 # TODO: Handle using the "in body".
                 raise NotImplementedError
             elif token.name == "body":
-                print("Yes here")
-                print(self.__open_elements.elements())
+                log("Yes here")
+                log(self.__open_elements.elements())
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
                 self.__switchModeTo(self.__Mode.InBody)
@@ -613,7 +614,7 @@ class HTMLDocumentParser:
                 self.__open_elements.push(element)
 
             elif token.name in ["dd", "dt"]:
-                print(token.name)
+                log(token.name)
                 self.__frameset_ok = False
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
@@ -675,10 +676,10 @@ class HTMLDocumentParser:
                 # Handle case, Process the token using the rules for the "in head" insertion mode.
                 raise NotImplementedError
             elif token.name == "body":
-                print("Closing body element")
+                log("Closing body element")
                 open_body_element = self.__open_elements.lastElementWithTagName(token.name)
                 if open_body_element is None:
-                    print("No body tag in open stack")
+                    log("No body tag in open stack")
                     pass  # Ignore token.
                 # TODO: handle the else case.
                 else:
@@ -737,7 +738,7 @@ class HTMLDocumentParser:
                 if self.__current_element.name != "li":
                     # TODO: Handle parse error.
                     pass
-                print("Removing 'li'")
+                log("Removing 'li'")
                 self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("li")
             elif token.name in ["dd", "dt"]:
                 if not self.__open_elements.hasInScope(token.name):
