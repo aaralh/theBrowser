@@ -40,22 +40,24 @@ class TableLayout(Layout):
 
     def layout(self) -> None:
         super().layout()
-        width = self.node.style.get("width", self.node.attributes.get("width", str(self.parent.width))) 
+        width = self.node.style.get("width", self.node.attributes.get("width", str(self.parent.width)))
         if width.endswith("%"):
             width = self.parent.width * (int(width.replace("%", "")) / 100)
         elif width.endswith("em"):
             width = int(width.replace("em", "")) * self.font_size
+        elif width.endswith("pt"):
+            width = int(width.replace("pt", "")) * 1.33
         elif width == "auto":
             width = self.parent.width
         self.width = int(float(width))
         self.x = self.parent.x
-            
+
         if self.previous:
             space = self.previous.font.measure(" ")
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x
-            
+
         self.y = self.parent.y
 
         for child in self.node.children:
@@ -73,9 +75,9 @@ class TableLayout(Layout):
         if not self.children:
             self.height = 0
             return
-        
-        self.height = sum([child.height for child in self.children]) 
-        
+
+        self.height = sum([child.height for child in self.children])
+
 
 
 class TableBodyLayout(Layout):
@@ -98,13 +100,13 @@ class TableBodyLayout(Layout):
         super().layout()
         self.width = self.parent.width
         self.x = self.parent.x
-            
+
         if self.previous:
             space = self.previous.font.measure(" ")
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x
-            
+
         self.y = self.parent.y
 
         for child in self.node.children:
@@ -114,12 +116,12 @@ class TableBodyLayout(Layout):
                 table_row = TableRowLayout(child, self, self.previous_child())
                 table_row.layout()
                 self.children.append(table_row)
-        
+
         if not self.children:
             self.height = 0
             return
-        
-        self.height = sum([child.height for child in self.children]) 
+
+        self.height = sum([child.height for child in self.children])
 
 
 class TableRowLayout(Layout):
@@ -133,7 +135,7 @@ class TableRowLayout(Layout):
         self.y = None
         self.width = None
         self.height = None
-        self.font = None 
+        self.font = None
 
     def previous_child(self) -> Layout:
         return self.children[-1] if len(self.children) > 0 else None
@@ -172,7 +174,7 @@ class TableRowLayout(Layout):
             for child in dynamic_children:
                 child_width = (child.width/self.width) * available_width
                 child.layout(child_width)
-        
+
         elif contents_width < self.width:
             dynamic_children = list(filter(lambda child: child.dynamic_width, self.children))
             dynamic_children_width = sum([child.width for child in dynamic_children])
@@ -183,13 +185,13 @@ class TableRowLayout(Layout):
                     child_width = available_width/len(non_dynamic_children)
                     child.layout(child_width)
                 child.layout(child.width)
-            
+
 
         if not self.children:
             self.height = 0
             return
-        
-        self.height = max([child.height for child in self.children]) 
+
+        self.height = max([child.height for child in self.children])
 
 
 class TableDataLayout(Layout):
@@ -224,7 +226,7 @@ class TableDataLayout(Layout):
             elif attr_width.endswith("em"):
                 return int(attr_width.replace("em", "")) * self.font_size
             return int(attr_width)
-        
+
         # TODO: Handle width of table data elements properly.
         # With this td elements with no contents are not taking unnecessary amount of horizontal space.
         if len(self.node.children) == 1 and isinstance(self.node.children[0], Text):
@@ -245,9 +247,9 @@ class TableDataLayout(Layout):
 
     def calculate_size2(self) -> None:
         attr_height = self.node.style.get("height", "auto")
-        
+
         if attr_height == "auto":
-            self.height = sum([line.height for line in self.children]) 
+            self.height = sum([line.height for line in self.children])
         else:
             if attr_height.endswith("px"):
                 self.height = int(attr_height.replace("px", ""))
@@ -278,13 +280,13 @@ class TableDataLayout(Layout):
         self.orig_pixel_width = self.width
         log("Calculated width", self.width)
         self.x = self.parent.x
-            
+
         if self.previous:
             space = 1
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x
-            
+
         self.y = self.parent.y
 
         #for child in self.node.children:
@@ -309,7 +311,7 @@ class TableDataLayout(Layout):
             log("Udpated width", inline_layout.width)
             self.width = inline_layout.width
 
-        self.height = sum([child.height for child in self.children]) 
+        self.height = sum([child.height for child in self.children])
 
 
 @dataclass
@@ -352,7 +354,7 @@ class TableDataInlineLayout(Layout):
             for item in other_content:
                 if item.width > max_width:
                     max_width = item.width
-            
+
             self.width = max_width
 
     def recurse(self, node: Node) -> None:
@@ -388,7 +390,7 @@ class TableDataInlineLayout(Layout):
         image = ImageLayout(element, line, self.previous_word)
         self.previous_word = image
         self.children.append(image)
-    
+
     def table(self, element: HTMLTableElement):
         line = self.children[-1]
         table = TableLayout(element, line, self.previous_word)
