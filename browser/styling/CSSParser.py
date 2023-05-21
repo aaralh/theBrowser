@@ -47,19 +47,22 @@ class CSSParser:
             self.index += 1
         return self.style_string[start:self.index]
 
-    def pair(self, until) -> tuple[str, str]:
+    def pair(self, until) -> tuple[str, str, bool]:
         prop = self.word()
         self.whitespace()
         self.literal(":")
         self.whitespace()
         val = self.until_char(until)
-        return prop.lower(), val
+        is_important = val.endswith("!important")
+        if is_important:
+            val = val.split(" ")[0]
+        return prop.lower(), val, is_important
 
     def body(self) -> Dict:
         pairs = {}
         while self.index < len(self.style_string) and self.style_string[self.index] != "}":
             try:
-                prop, val = self.pair([";", "}"])
+                prop, val, important  = self.pair([";", "}"])
                 pairs[prop.lower()] = val
                 self.whitespace()
                 self.literal(";")

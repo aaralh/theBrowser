@@ -1114,6 +1114,7 @@ class HTMLTokenizer:
             self.__character_reference_code = 0xFFFD
         elif charIsNoncharacter(self.__character_reference_code):
             # TODO: Handle parse error.
+            self.__character_reference_code = 0xFFFD
             pass
         elif self.__character_reference_code == 0x0D or (
                 charIsControl(self.__character_reference_code) and not
@@ -1156,7 +1157,7 @@ class HTMLTokenizer:
         self.__temporary_buffer.append(chr(self.__character_reference_code))
         self.__flush_temporary_buffer()
         if self.__return_state is not None:
-            self.switch_state_to(self.__return_state)
+            self.__reconsume_in(self.__return_state)
 
     def __get_state_switcher(self) -> Union[Callable[[], None], None]:
 
