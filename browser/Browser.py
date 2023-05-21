@@ -51,12 +51,12 @@ class Browser:
             height=HEIGHT)
         self.content_frame.grid(column=0, row=1, columnspan=2, sticky="news")
         self.canvas = tkinter.Canvas(
-            self.content_frame, 
+            self.content_frame,
             bg="white",
         )
         self.canvas.pack(side=tkinter.LEFT, fill=tkinter.BOTH, expand=True)
         self.scroll = 0
-        self.document: DocumentLayout = None
+        self.document: Optional[DocumentLayout] = None
         self.used_resources = []
         self.display_list = []
         self.re_draw_timeout: Optional[str] = None
@@ -82,11 +82,11 @@ class Browser:
         self.scrollbar = tkinter.Scrollbar(self.content_frame)
         self.scrollbar.pack( side = tkinter.RIGHT, fill = tkinter.Y )
         self.scrollbar.config(command=self.scrollbar_scroll)
-        
+
         """  vbar=tkinter.Scrollbar(self.window, orient=VERTICAL)
         vbar.pack(side="right", fill="y")
         vbar.config(command=self.handle_scroll) """
-        
+
         with open("./browser/styling/defaults/browser.css") as file:
             self.default_style_sheet = CSSParser(file.read()).parse()
 
@@ -118,6 +118,8 @@ class Browser:
     def handle_resize(self, event: tkinter.Event) -> None:
         if event.widget != self.window:
             return
+        if not self.document:
+            return
         global WIDTH, HEIGHT
         if WIDTH == event.width and HEIGHT == event.height:
             # If height and width has not changed then ignore.
@@ -144,7 +146,7 @@ class Browser:
             self.redraw()
 
     def draw_cursor(self):
-       if not isinstance(self.focus.node, HTMLInputElement): return 
+       if not isinstance(self.focus.node, HTMLInputElement): return
        w = self.focus.layout.font.measure(self.focus.node.attributes["value"])
        self.canvas.create_line(self.focus.layout.x + w, self.focus.layout.y, self.focus.layout.x + w, self.focus.layout.y + self.focus.layout.font.cget("size"), fill="black")
 
@@ -190,7 +192,7 @@ class Browser:
                   if isinstance(node, Element)
                   and node.name == "input"
                   and "name" in node.attributes]
-        
+
         body = ""
         for input in inputs:
             name = input.attributes["name"]
@@ -221,18 +223,17 @@ class Browser:
         [inspector.clear_network_requests() for inspector in BrowserState.get_inspectors()]
         if url.startswith("file://"):
             response = load_file(url)
-        else: 
+        else:
             response = request(url).text
         parser = HTMLDocumentParser(response)
         parser.run(self.raster)
-    
+
     def load_webpage(self) -> None:
         url = self.search_bar.get("1.0", END)
         self.load(url.strip())
 
     def raster(self, dom: DocumentType):
         rules = self.default_style_sheet.copy()
-
         stylesheet_links = [node.attributes["href"]
              for node in tree_to_list(dom, [])
              if isinstance(node, Element)
@@ -261,10 +262,10 @@ class Browser:
         [inspector.update_dom(dom) for inspector in BrowserState.get_inspectors()]
         self.document.height = HEIGHT
         self.document.layout(WIDTH)
-        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height)) 
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.display_list = []
         self.document.paint(self.display_list)
-            
+
         self.draw()
 
     def handle_scroll_linux(self, event: tkinter.Event):
@@ -325,7 +326,7 @@ class Browser:
         """ for x, y, word, font in self.display_list:
             if y > self.scroll + globals.HEIGHT: continue
             if y + globals.VSTEP < self.scroll: continue
-            
+
             if not set(list(word)).isdisjoint(set(self.supported_emojis)):
                 self.canvas.create_text(x, y - self.scroll, text=word, font=font, anchor='nw')
             else:
@@ -338,7 +339,7 @@ class Browser:
                         self.canvas.create_text(x, y - self.scroll, text=c, font=font, anchor='nw')
                     w = font.measure(c)
                     x += w """
-                
+
 
 
 def lex_next_gen(body: HTMLBodyElement) -> List[DOMElement]:
