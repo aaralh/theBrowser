@@ -307,8 +307,10 @@ class Browser:
         self.draw()
 
     def scrollbar_scroll(self, action: Literal["moveto"], position: str):
+        if not self.document: return
         position_float = float(position)
-        if not 0 <= position_float <= 1:
+        max_position = 1 - ((HEIGHT - 15) / self.document.content_height)
+        if not 0 <= position_float <= max_position:
             return
         self.scroll = self.document.content_height * position_float
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
