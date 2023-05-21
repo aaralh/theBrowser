@@ -33,7 +33,7 @@ class CSSParser:
                 in_quote = not in_quote
             if current_char == "(":
                 in_parens = True
-            if current_char.isalnum() or current_char in ",/#-.%()\"'" \
+            if current_char.isalnum() or current_char in ",/#-_.%()\"'" \
                 or (in_quote and current_char == ':'):
                 self.index += 1
             else:
@@ -65,8 +65,8 @@ class CSSParser:
         val = self.until_char(until)
         is_important = val.endswith("!important")
         if is_important:
-            val = val.split(" ")[0]
-        return prop.lower(), val, is_important
+            val = val.split("!")[0]
+        return prop.lower(), val.strip(), is_important
 
     def body(self) -> Dict:
         pairs = {}
@@ -84,6 +84,7 @@ class CSSParser:
                     self.whitespace()
                 else:
                     break
+
         return pairs
 
     def ignore_until(self, chars: List[str]) -> Optional[str]:
@@ -134,20 +135,42 @@ class CSSParser:
                     break
         return rules
 
+    def split_id_from_selector(self, selector: str) -> tuple[str, Optional[str]]:
+        if "#" in selector:
+            selector, id = selector.split("#")
+            return selector, id
+        else:
+            return selector, None
+
     def selector(self) -> TagSelector:
+        def get_tags_from_selector(selectors: list[str]) -> list[str]:
+            return list(filter(lambda selector: (not selector.startswith(".") and not selector.startswith("#")), selectors))
+
         word = self.word().lower()
         classes = list(filter(lambda selector: selector.startswith("."), word.replace(", ", ",").split(",")))
-        tags = list(filter(lambda selector: (not selector.startswith(".") and not selector.startswith("#")), word.replace(", ", ",").split(",")))
+        _tags = get_tags_from_selector(word.replace(", ", ",").split(","))
+        tags = ([], [])
+        if len(_tags) > 0:
+            z = zip
+            tags = tuple(map(list, zip(*map(self.split_id_from_selector, _tags))))
+        _, _ids = tags
         ids = list(filter(lambda selector: selector.startswith("#"), word.replace(", ", ",").split(",")))
-        tag = next(iter(tags), None)
+        tag = next(iter(_), "")
+        ids = ids + _ids
         out = TagSelector(tag, [cls[1:] for cls in classes], ids)
         self.whitespace()
         while self.index < len(self.style_string) and self.style_string[self.index] != "{":
             word = self.word().lower()
             classes = list(filter(lambda selector: selector.startswith("."), word.replace(", ", ",").split(",")))
-            tags = list(filter(lambda selector: (not selector.startswith(".") and not selector.startswith("#")), word.replace(", ", ",").split(",")))
+            _tags = get_tags_from_selector(word.replace(", ", ",").split(","))
+            tags = ([], [])
+            if len(_tags) > 0:
+                z = zip
+                tags = tuple(map(list, zip(*map(self.split_id_from_selector, _tags))))
+            _, _ids = tags
             ids = list(filter(lambda selector: selector.startswith("#"), word.replace(", ", ",").split(",")))
-            tag = next(iter(tags), None)
+            tag = next(iter(_), "")
+            ids = ids + _ids
             descendant = TagSelector(tag, [cls[1:] for cls in classes], ids)
             out = DescendantSelector(out, descendant)
             self.whitespace()
