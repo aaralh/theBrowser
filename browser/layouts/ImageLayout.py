@@ -28,7 +28,7 @@ class ImageLayout(Layout):
         self.font = None
         self.current_url = BrowserState.get_current_url()
         self.image_bytes = self.load_image()
-    
+
     def load_image(self) -> bytes:
         image_src = self.node.attributes.get("src")
         if not image_src:
@@ -58,6 +58,7 @@ class ImageLayout(Layout):
         if not style_width and not attr_width:
             return self.height
         if style_width:
+            style_width = str(style_width)
             if (style_width.endswith("px")):
                 style_width = style_width[:-2]
             elif (style_width.endswith("%")):
@@ -65,11 +66,11 @@ class ImageLayout(Layout):
             elif style_width == "auto":
                 style_width = self.parent.width
             elif style_width.endswith("em"):
-                font_size = int(self.node.style["font-size"].replace("px", ""))
-                style_width = int(style_width.replace("em", "")) * font_size
+                font_size = self.font_size
+                style_width = int(float(style_width.replace("em", "")) * font_size)
         if attr_width:
             if attr_width.endswith("%"):
-                self.dynamic_size = True
+                self.should_recalculate_size = True
                 attr_width = attr_width[:-1]
                 return int(attr_width)
             elif (attr_width.endswith("px")):
@@ -95,9 +96,12 @@ class ImageLayout(Layout):
             style_height = str(self.width)
         if style_height.endswith("px"):
             style_height = style_height[:-2]
-        if style_height.endswith("%"):
-            self.dynamic_size = True
+        elif style_height.endswith("%"):
+            self.should_recalculate_size = True
             style_height = self.parent.height * (int(style_height[:-1]) / 100)
+        elif style_height.endswith("em"):
+            font_size = self.font_size
+            style_height = int(float(style_height.replace("em", "")) * font_size)
         return int(style_height)
 
     def calculate_size(self) -> None:
@@ -110,7 +114,7 @@ class ImageLayout(Layout):
         super().layout()
         try:
             image = Image.open(BytesIO(self.image_bytes))
-        except UnidentifiedImageError:
+        except UnidentifiedImageError as e:
             log(f"Image is not supported: Image path {self.node.attributes.get('src')}")
             image = Image.open('resources/images/not_allowed.jpg')
         self.calculate_size()
@@ -122,13 +126,13 @@ class ImageLayout(Layout):
             self.height = 1
         image = image.resize((self.width, self.height))
         self.image = ImageTk.PhotoImage(image)
-            
+
         if self.previous:
             space = 10
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x
-            
+
         self.y = self.parent.y
 
     def paint(self, display_list: list) -> None:
