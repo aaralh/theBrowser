@@ -41,6 +41,16 @@ class CSSParser:
         assert self.index > start
         return self.style_string[start:self.index]
 
+    def media_query(self) -> tuple[str, str]:
+        self.literal("@")
+        assert self.word() == "media"
+        self.whitespace()
+        self.literal("(")
+        prop, val, _ = self.pair(")")
+        self.whitespace()
+        self.literal(")")
+        return prop, val
+
     def until_char(self, chars):
         start = self.index
         while self.index < len(self.style_string) and self.style_string[self.index] not in chars:
@@ -87,16 +97,34 @@ class CSSParser:
 
     def parse(self) -> List[Rule]:
         rules = []
+        media = None
         self.whitespace()
         while self.index < len(self.style_string):
             try:
-                selector = self.selector()
-                self.literal("{")
-                self.whitespace()
-                body = self.body()
-                self.literal("}")
-                self.whitespace()
-                rules.append(Rule(selector, body))
+                if self.style_string[self.index] == "@" and not media:
+                    """
+                    prop, val = self.media_query()
+                    if prop == "prefers-color-scheme" and \
+                        val in ["dark", "light"]:
+                        media = val
+                    """
+                    media = "in-media"
+                    self.whitespace()
+                    self.literal("{")
+                    self.whitespace()
+                elif self.style_string[self.index] == "}" and media:
+                    self.literal("}")
+                    media = None
+                    self.whitespace()
+                else:
+                    selector = self.selector()
+                    self.literal("{")
+                    self.whitespace()
+                    body = self.body()
+                    self.literal("}")
+                    self.whitespace()
+                    if not media:
+                        rules.append(Rule(selector, body))
             except AssertionError:
                 why = self.ignore_until(["}"])
                 if why == "}":
