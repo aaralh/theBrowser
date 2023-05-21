@@ -36,9 +36,10 @@ class Layout:
         # TODO: Rename this to something more sensible.
         self.internal_padding = 0
         self.display_list = None
-        self.dynamic_size = False
+        self.should_recalculate_size = False
         self.border = None
         self.font_size = self.calculate_font_size()
+        self.float = "auto"
 
     def calculate_font_size(self) -> int:
         font_size: str = self.node.style["font-size"]
@@ -53,7 +54,7 @@ class Layout:
         elif font_size.endswith("em"):
             parent_font_size = self.parent.font_size
             font_size = str(parent_font_size * float(font_size.replace("em", "")))
-        return int(round(float(font_size.replace("px", "")))) 
+        return int(round(float(font_size.replace("px", ""))))
 
     def layout(self) -> None:
         float_style = self.node.style.get("float")
@@ -73,10 +74,8 @@ class Layout:
                 if attr_height.endswith("px"):
                     self.height = int(attr_height.replace("px", ""))
                 elif attr_height.endswith("em"):
-                    font_size = int(
-                        self.node.style["font-size"].replace("px", ""))
-                    self.height = float(
-                        attr_height.replace("em", "")) * font_size
+                    font_size = int(self.node.style["font-size"].replace("px", ""))
+                    self.height = float(attr_height.replace("em", "")) * font_size
 
             attr_width = self.node.style.get("width", "auto")
             if "(" in attr_width:
@@ -97,11 +96,13 @@ class Layout:
                     if font_size.endswith("%"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
                         font_size = str((parent_font_size / 100) * int(font_size.replace("%", "")))
-                    font_size = int(
-                        round(float(font_size.replace("px", ""))))
+                    if font_size.endswith("em"):
+                        parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
+                        font_size = str(parent_font_size * float(font_size.replace("em", "")))
+                    font_size = int(round(float(font_size.replace("px", ""))))
                     self.width = int(float(attr_width.replace("em", ""))) * font_size
                 elif attr_width.endswith("%"):
-                    self.dynamic_size = True
+                    self.should_recalculate_size = True
                     parent_width = self.parent.width
                     self.width = parent_width * \
                         (float(attr_width.replace("%", "")) / 100)
@@ -130,7 +131,7 @@ class Layout:
             print("not relayout", self)
             for child in self.children:
                 child.update_layout()
-        
+
 
     def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):
@@ -170,7 +171,7 @@ class Layout:
             if color:
                 self.internal_padding = border_width
                 self.border = BorderProperties(width=border_width, color=transform_color(color))
-    
+
     def get_background_color(self):
         bgcolor = ""
         attr_color = self.node.attributes.get("bgcolor", None)
@@ -184,7 +185,7 @@ class Layout:
                 return transform_color(color).color
         bgcolor = self.node.style.get("background-color", "transparent")
         return bgcolor
-    
+
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
             bgcolor = self.get_background_color()
@@ -216,4 +217,4 @@ class Layout:
                 display_list.append(rect)
 
         for child in self.children:
-            child.paint(display_list) 
+            child.paint(display_list)
