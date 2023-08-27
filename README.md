@@ -3,7 +3,7 @@
 ![build](https://github.com/aaralh/theBrowser/workflows/CI-Build/badge.svg)
 
 
-Browser made completely(or as much as possible) with Python and complies with the [HTML spec](https://html.spec.whatwg.org).
+Browser made completely (or as much as possible) with Python and complies with the [HTML spec](https://html.spec.whatwg.org).
 
 ## Setup dev environment
 
@@ -16,22 +16,26 @@ Browser made completely(or as much as possible) with Python and complies with th
 
 ## Features
 
-Bolded items are currently in WIP :construction:. List will be extended in more detail on the go.
+Bolded items with :construction: are currently in WIP. Items marked with :shipit: are working but may be partially lacking, hence not considerable as finished yet. Completed features are marked with :rocket: List will be extended in more detail on the go.
 
-- [ ] 📝 **HTML Parsing**:construction:
-    - [ ] **HTML tokenizer**:construction:
-    - [ ] **HTML parser**:construction:
-- [ ] 📝 **CSS Parsing**:construction:
-    - [ ] **CSS tokenizer**:construction:
-    - [ ] **CSS parser** :construction:
+- [ ] 📝 **HTML Parsing**:shipit:
+    - [ ] **HTML tokenizer**:shipit:
+    - [ ] **HTML parser**:shipit:
+- [ ] 📝 **CSS Parsing**:shipit:
+    - [ ] **CSS tokenizer**:shipit:
+    - [ ] **CSS parser** :shipit:
 - [ ] 📐 Style
     - [ ] **CSS cascade** :construction:
     - [ ] **Style computation** :construction:
     - [ ] **Render tree** :construction:
     - [ ] **Selector matching** :construction:
 - [ ] 🎴 Layout process
-    - [ ] **Layouts** (Block, Flex, Grid):construction:
+    - [ ] **Layouts** 
+      - [ ] **Table**:shipit:
+      - [ ] **Block**:construction:
+      - [ ] **Flex**:construction:
+      - [ ] **Grid**:construction:
 - [ ] 🎨 **Rendering**:construction:
 - [ ] 🌍 **Networking**:construction:
-- [ ] 🖼️ Media
+- [ ] 🖼️ **Media**:construction:
 - [ ] JavaScript

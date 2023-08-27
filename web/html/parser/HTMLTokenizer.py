@@ -1,10 +1,14 @@
 from enum import Enum, auto
 from typing import Union, Callable, Any, cast, List, Optional
+
 from .HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
 from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitespace, charIsUppercaseAlpha, \
     charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
+import string
+from utils import log
 
+DEBUG = False
 
 class HTMLTokenizer:
 
@@ -27,7 +31,8 @@ class HTMLTokenizer:
             if self.__current_token.type == HTMLToken.TokenType.StartTag:
                 self.__last_emitted_start_tag_name = self.__current_token.name
             self.__current_token = None
-            print("Current state: ", self.state)
+            if DEBUG:
+                log("Current state: ", self.state)
 
     def __create_new_token(
             self, token_type: HTMLToken.TokenType
@@ -250,6 +255,8 @@ class HTMLTokenizer:
             self.__emit_current_token()
         elif charIsWhitespace(self.__current_input_char):
             self.switch_state_to(self.State.BeforeAttributeName)
+        elif self.__current_input_char == "/":
+            self.switch_state_to(self.State.SelfClosingStartTag)
         elif self.__current_input_char == ">":
             self.switch_state_to(self.State.Data)
             self.__emit_current_token()
@@ -287,9 +294,6 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.RCDATA)
 
     def handle_RCDATA_end_tag_name(self) -> None:
-        print("Current char:", self.__current_input_char)
-        print("Current token:", self.__current_token)
-        print("Last emited token:", self.__last_emitted_start_tag_name)
         self.__current_token = cast(HTMLTag, self.__current_token)
 
         def elseCase() -> None:
@@ -475,31 +479,177 @@ class HTMLTokenizer:
             elseCase()
 
     def handle_script_data_escape_start(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char == "-":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscapedDash)
+        else:
+            self.__reconsume_in(self.State.ScriptData)
 
     def handle_script_data_escape_start_dash(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char == "-":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscapedDashDash)
+        else:
+            self.__reconsume_in(self.State.ScriptData)
 
     def handle_script_data_escaped(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char == "-":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscapedDashDash)
+        elif self.__current_input_char == "<":
+            self.switch_state_to(self.State.ScriptDataEscapedLessThanSign)
+        elif self.__current_input_char == None:
+            self.__current_token = self.__create_new_token(HTMLToken.TokenType.EOF)
+            self.__emit_current_token()
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
 
     def handle_script_data_escaped_dash(self) -> None:
-        raise NotImplementedError
-
+        if self.__current_input_char == "-":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscapedDashDash)
+        elif self.__current_input_char == "<":
+            self.switch_state_to(self.State.ScriptDataEscapedLessThanSign)
+        elif self.__current_input_char == None:
+            self.__current_token = self.__create_new_token(HTMLToken.TokenType.EOF)
+            self.__emit_current_token()
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscaped)
+            
     def handle_script_data_escaped_dash_dash(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char == "-":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+        elif self.__current_input_char == "<":
+            self.switch_state_to(self.State.ScriptDataEscapedLessThanSign)
+        elif self.__current_input_char == ">":
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptData)
+        elif self.__current_input_char == None:
+            self.__current_token = self.__create_new_token(HTMLToken.TokenType.EOF)
+            self.__emit_current_token()
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            self.switch_state_to(self.State.ScriptDataEscaped)
 
     def handle_script_data_escaped_less_than_sign(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char == "/":
+            self.__temporary_buffer = []
+            self.switch_state_to(self.State.ScriptDataEscapedEndTagOpen)
+        elif charIsAlpha(self.__current_input_char):
+            self.__temporary_buffer = []
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "<"
+            self.__emit_current_token()
+            self.__reconsume_in(self.State.ScriptDataDoubleEscapeStart)
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "<"
+            self.__emit_current_token()
+            self.__reconsume_in(self.State.ScriptDataEscaped)
 
     def handle_script_data_escaped_end_tag_open(self) -> None:
-        raise NotImplementedError
+        if charIsAlpha(self.__current_input_char):
+            log("handle_script_data_escaped_end_tag_open")
+            self.__current_token = cast(HTMLTag, self.__create_new_token(HTMLToken.TokenType.EndTag))
+            self.__current_token.name = ""
+            self.__reconsume_in(self.State.ScriptDataEscapedEndTagName)
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "<"
+            self.__emit_current_token()
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "/"
+            self.__emit_current_token()
+            self.__reconsume_in(self.State.ScriptDataEscaped)
 
     def handle_script_data_escaped_end_tag_name(self) -> None:
-        raise NotImplementedError
+        log("handle_script_data_escaped_end_tag_name", self.__current_input_char)
+        self.__current_token = cast(HTMLTag, self.__current_token)
+
+        def elseCase() -> None:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "<"
+            self.__emit_current_token()
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "/"
+            self.__emit_current_token()
+            for char in self.__temporary_buffer:
+                self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+                self.__current_token.data = char
+                self.__emit_current_token()
+            
+            self.__reconsume_in(self.State.ScriptDataEscaped)
+
+
+        if charIsWhitespace(self.__current_input_char):
+            if self.__last_emitted_start_tag_name == self.__current_token.name:
+                self.switch_state_to(self.State.BeforeAttributeName)
+            else:
+                elseCase()
+        elif self.__current_input_char == "/":
+            if self.__last_emitted_start_tag_name == self.__current_token.name:
+                self.switch_state_to(self.State.SelfClosingStartTag)
+            else:
+                elseCase()
+        elif self.__current_input_char == ">":
+            if self.__last_emitted_start_tag_name == self.__current_token.name:
+                self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+                self.__current_token.data = self.__current_input_char
+                self.__emit_current_token()
+                self.switch_state_to(self.State.Data)
+            else:
+                elseCase()
+        elif charIsUppercaseAlpha(self.__current_input_char):
+            self.__current_token.appendCharToTokenName(self.__current_input_char.lower())
+            self.__temporary_buffer.append(self.__current_input_char)
+        elif charIsLowercaseAlpha(self.__current_input_char):
+            self.__current_token.appendCharToTokenName(self.__current_input_char)
+            self.__temporary_buffer.append(self.__current_input_char)
+        else:
+            elseCase()
 
     def handle_script_data_double_escape_start(self) -> None:
-        raise NotImplementedError
+        if charIsWhitespace(self.__current_input_char) or self.__current_input_char in ["/", ">"]:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+            if "".join(self.__temporary_buffer) == "script":
+                self.switch_state_to(self.State.ScriptDataDoubleEscaped)
+            else:
+                self.switch_state_to(self.State.ScriptDataEscaped)
+        elif charIsUppercaseAlpha(self.__current_input_char):
+            self.__temporary_buffer.append(self.__current_input_char)
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+        elif charIsLowercaseAlpha(self.__current_input_char):
+            self.__temporary_buffer.append(self.__current_input_char)
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = self.__current_input_char
+            self.__emit_current_token()
+        else:
+            self.__reconsume_in(self.State.ScriptDataEscaped)
+        
+
 
     def handle_script_data_double_escaped(self) -> None:
         raise NotImplementedError
@@ -689,7 +839,13 @@ class HTMLTokenizer:
 
     def handle_comment(self) -> None:
         self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
-        if self.__current_input_char == "-":
+        if self.__current_input_char == "<":
+            if self.__current_token.data is not None:
+                self.__current_token.data += self.__current_input_char
+            else:
+                self.__current_token.data = self.__current_input_char
+            self.switch_state_to(self.State.CommentLessThanSign)
+        elif self.__current_input_char == "-":
             self.switch_state_to(self.State.CommentEndDash)
         elif self.__current_input_char is None:
             self.__emit_current_token()
@@ -703,16 +859,35 @@ class HTMLTokenizer:
             self.__continue_in(self.State.Comment)
 
     def handle_comment_less_than_sign(self) -> None:
-        raise NotImplementedError
+        self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
+        if self.__current_input_char == "!":
+            self.__current_token.data += self.__current_input_char
+            self.switch_state_to(self.State.CommentLessThanSignBang)
+        elif self.__current_input_char == "<":
+            self.__current_token.data += self.__current_input_char
+        else:
+            self.__reconsume_in(self.State.Comment)
 
     def handle_comment_less_than_sign_bang(self) -> None:
-        raise NotImplementedError
+        self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
+        if self.__current_input_char == "-":
+            self.switch_state_to(self.State.CommentLessThanSignBangDash)
+        else:
+            self.__reconsume_in(self.State.Comment)
 
     def handle_comment_less_than_sign_bang_dash(self) -> None:
-        raise NotImplementedError
+        self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
+        if self.__current_input_char == "-":
+            self.switch_state_to(self.State.CommentLessThanSignBangDashDash)
+        else:
+            self.__reconsume_in(self.State.Comment)
 
     def handle_comment_less_than_sign_bang_dash_dash(self) -> None:
-        raise NotImplementedError
+        self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
+        if self.__current_input_char == ">" or self.__current_input_char is None:
+            self.switch_state_to(self.State.CommentEnd)
+        else:
+            self.__reconsume_in(self.State.CommentEnd)
 
     def handle_comment_end_dash(self) -> None:
         self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
@@ -732,8 +907,8 @@ class HTMLTokenizer:
     def handle_comment_end(self) -> None:
         self.__current_token = cast(HTMLCommentOrCharacter, self.__current_token)
         if self.__current_input_char == ">":
-            self.switch_state_to(self.State.Data)
             self.__emit_current_token()
+            self.switch_state_to(self.State.Data)
         elif self.__current_input_char == "-":
             if self.__current_token.data is not None:
                 self.__current_token.data += "-"
@@ -888,7 +1063,10 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.DecimalCharacterReferenceStart)
 
     def handle_hexadecimal_character_reference_start(self) -> None:
-        raise NotImplementedError
+        if all(c in string.hexdigits for c in self.__current_input_char):
+            self.__reconsume_in(self.State.DecimalCharacterReference)
+        else:
+            raise NotImplementedError
 
     def handle_decimal_character_reference_start(self) -> None:
         if self.__current_input_char.isdigit():
@@ -916,7 +1094,13 @@ class HTMLTokenizer:
             self.__reconsume_in(self.State.NumericCharacterReferenceEnd)
 
     def handle_decimal_character_reference(self) -> None:
-        raise NotImplementedError
+        if self.__current_input_char.isdigit():
+            self.__character_reference_code *= 10
+            self.__character_reference_code += ord(self.__current_input_char) - 0x0030
+        elif self.__current_input_char == ";":
+            self.switch_state_to(self.State.NumericCharacterReferenceEnd)
+        else:
+            self.__reconsume_in(self.State.NumericCharacterReferenceEnd)
 
     def handle_numeric_character_reference_end(self) -> None:
         if self.__character_reference_code == 0:
@@ -930,6 +1114,7 @@ class HTMLTokenizer:
             self.__character_reference_code = 0xFFFD
         elif charIsNoncharacter(self.__character_reference_code):
             # TODO: Handle parse error.
+            self.__character_reference_code = 0xFFFD
             pass
         elif self.__character_reference_code == 0x0D or (
                 charIsControl(self.__character_reference_code) and not
@@ -972,7 +1157,7 @@ class HTMLTokenizer:
         self.__temporary_buffer.append(chr(self.__character_reference_code))
         self.__flush_temporary_buffer()
         if self.__return_state is not None:
-            self.switch_state_to(self.__return_state)
+            self.__reconsume_in(self.__return_state)
 
     def __get_state_switcher(self) -> Union[Callable[[], None], None]:
 

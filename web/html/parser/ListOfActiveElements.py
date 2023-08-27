@@ -66,3 +66,15 @@ class ListOfActiveElements:
                 break
             else:
                 self.__listOfActiveElements.remove(entry)
+
+    def entryBefore(self, entry: Entry) -> Optional[Entry]:
+        index = self.__listOfActiveElements.index(entry)
+        if index == 0:
+            return  None
+        return self.__listOfActiveElements[index - 1]
+
+    def entryAfter(self, entry: Entry) -> Optional[Entry]:
+        index = self.__listOfActiveElements.index(entry)
+        if index == len(self.__listOfActiveElements) - 1:
+            return  None
+        return self.__listOfActiveElements[index + 1]

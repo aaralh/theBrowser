@@ -1,11 +1,13 @@
 from typing import List, Union
 from web.dom.Document import Document
 from web.dom.events.EventTarget import EventTarget
+import uuid
 
 
 class Node(EventTarget):
 
     def __init__(self, parent: Union['Node', None], document: Document):
+        self.id = uuid.uuid4()
         self.__parentNode: Union[Node, None] = parent
         self.__children: List[Node] = []
         self.__nodeName: Union[str, None] = None

@@ -4,3 +4,23 @@ i { font-style: italic; }
 b { font-weight: bold; }
 small { font-size: 90%; }
 big { font-size: 110%; }
+input {
+    font-size: 16px;
+    font-weight: normal;
+    font-style: normal;
+    background-color: #fff;
+    border: 1px solid #b1b1b1;
+}
+button {
+    font-size: 16px; font-weight: normal; font-style: normal;
+    background-color: #fbfbfb;
+    border: 1px solid #b1b1b1;
+    height: 24px;
+}
+th {
+    font-weight: bold;
+}
+
+.dark-theme, .dark-theme2 {
+    background-color: purple;
+}

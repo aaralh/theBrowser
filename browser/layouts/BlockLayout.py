@@ -1,3 +1,5 @@
+from browser.elements.elements import DrawRect
+from browser.globals import BrowserState
 from browser.layouts.InlineLayout import InlineLayout
 from typing import List
 from browser.layouts.Layout import Layout
@@ -8,13 +10,18 @@ class BlockLayout(Layout):
     def __init__(self, node: Element, parent: Layout, previous: Layout):
         self.node = node
         self.parent = parent
+        super().__init__()
         self.previous = previous
         self.children = []
+        self.height = 10
 
     def layout(self):
+        super().layout()
         self.children = []
         previous = None
         for child in self.node.children:
+            display = child.style.get("display")
+            if display == "none": continue            
             if self.layout_mode(child) == "inline":
                 next = InlineLayout(child, self, previous)
             else:
@@ -33,8 +40,7 @@ class BlockLayout(Layout):
         for child in self.children:
             child.layout()
         
-        self.height = sum([child.height for child in self.children])
+        self.calculate_size()
+        
 
-    def paint(self, display_list):
-        for child in self.children:
-            child.paint(display_list)
+        #self.height = sum([child.height for child in self.children])
