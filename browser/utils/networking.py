@@ -4,11 +4,35 @@ from requests.models import Response
 import json
 from browser.Inspector import NetworkRequest
 from charset_normalizer import detect
-
+from urllib.parse import urlparse
 from browser.globals import BrowserState
 
 REQUEST_CACHE: Dict[str, Response] = {}
 
+def parse_host(url: str) -> str:
+    parsed_uri = urlparse(url)
+    return '{uri.scheme}://{uri.netloc}/'.format(uri=parsed_uri)
+
+def resolve_url(url: str, current: str) -> str:
+    if "://" in url:
+        return url
+    elif url.startswith("//"):
+        return "https:" + url
+    elif url.startswith("/"):
+        host = parse_host(current)
+        if host.endswith("/"):
+            return host[:-1] + url
+        return host + url
+    elif not url.startswith("/") and not current.endswith("/"):
+        host = parse_host(current)
+        return host + "/" + url
+    else:
+        dir, _ = current.rsplit("/", 1)
+        while url.startswith("../"):
+            url = url[3:]
+            if dir.count("/") == 2: continue
+            dir, _ = dir.rsplit("/", 1)
+        return dir + "/" + url
 
 def request(url: str, payload: Optional[dict]=None) -> Response:
     inspectors = BrowserState.get_inspectors()

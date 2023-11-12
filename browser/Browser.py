@@ -7,8 +7,9 @@ from tkinter.constants import END
 from tkinter.font import Font
 from typing import List, Literal, Optional, Tuple, cast
 from browser.layouts.Layout import Layout
-from browser.utils.networking import load_file, request
-from utils import log
+from browser.utils.networking import load_file, request, resolve_url
+from browser.utils.dom import tree_to_list
+from browser.utils import logging
 from web.dom.CharacterData import CharacterData
 from web.dom.Node import Node
 from web.dom.elements.Element import Element
@@ -18,7 +19,6 @@ from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement, HTMLStyleElement
 from browser.globals import EMOJIS_PATH, BrowserState
 from browser.styling.CSSParser import CSSParser
-from browser.utils.utils import tree_to_list, resolve_url
 from browser.styling.utils import style, cascade_priority
 from web.dom.elements import Text
 import urllib
@@ -161,7 +161,7 @@ class Browser:
         elt = obj.node
 
         while elt:
-            log("Element: ", elt.name)
+            logging.log("Element: ", elt.name)
             if isinstance(elt, Text):
                 pass
             elif elt.name == "a" and "href" in elt.attributes:

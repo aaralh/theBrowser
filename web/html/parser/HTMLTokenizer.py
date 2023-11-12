@@ -6,7 +6,7 @@ from .utils import charIsAlpha, charIsControl, charIsNoncharacter, charIsWhitesp
     charIsLowercaseAlpha, charIsSurrogate
 from .Entities import getNamedCharFromTable, atLeastOneNameStartsWith
 import string
-from utils import log
+from browser.utils.logging import log
 
 DEBUG = False
 
@@ -528,7 +528,7 @@ class HTMLTokenizer:
             self.__current_token.data = self.__current_input_char
             self.__emit_current_token()
             self.switch_state_to(self.State.ScriptDataEscaped)
-            
+
     def handle_script_data_escaped_dash_dash(self) -> None:
         if self.__current_input_char == "-":
             self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
@@ -596,7 +596,7 @@ class HTMLTokenizer:
                 self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
                 self.__current_token.data = char
                 self.__emit_current_token()
-            
+
             self.__reconsume_in(self.State.ScriptDataEscaped)
 
 
@@ -648,7 +648,7 @@ class HTMLTokenizer:
             self.__emit_current_token()
         else:
             self.__reconsume_in(self.State.ScriptDataEscaped)
-        
+
 
 
     def handle_script_data_double_escaped(self) -> None:

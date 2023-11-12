@@ -8,7 +8,7 @@ from browser.layouts.BlockLayout import BlockLayout
 import browser.globals as globals
 from web.dom.elements.Element import Element
 from web.dom.elements.HTMLElement import HTMLElement
-from utils import log
+from browser.utils.logging import log
 
 T = TypeVar('T')
 

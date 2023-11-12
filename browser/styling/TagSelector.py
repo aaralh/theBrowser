@@ -1,6 +1,5 @@
 from typing import List
 from web.dom.elements.Element import Element
-from utils import log
 
 class TagSelector:
     def __init__(self, tag: str, classes: List[str], ids: list[str]):

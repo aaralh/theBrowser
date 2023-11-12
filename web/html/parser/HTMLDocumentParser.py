@@ -17,7 +17,7 @@ from web.html.parser.HTMLTokenizer import HTMLTokenizer, DEBUG
 from web.dom.ElementFactory import ElementFactory
 from dataclasses import dataclass
 from copy import deepcopy
-from utils import log
+from browser.utils.logging import log
 
 class HTMLDocumentParser:
     @dataclass
@@ -211,11 +211,11 @@ class HTMLDocumentParser:
     def __reconstruct_the_active_formatting_elements(self) -> None:
         if self.__formatting_elements.isEmpty():
             return
-        
+
         entry = self.__formatting_elements.lastEntry()
         if entry.isMarker or entry.element.name == self.__open_elements.contains(entry.element.name):
             return
-        
+
         def rewind(entry: ListOfActiveElements.Entry) -> Optional[ListOfActiveElements.Entry]:
             return self.__formatting_elements.entryBefore(entry)
 
@@ -658,7 +658,7 @@ class HTMLDocumentParser:
                 self.__open_elements.push(element)
                 self.__open_elements.pop()
             elif token.name == "input":
-               self.__create_element(token) 
+               self.__create_element(token)
             elif token.name == "textarea":
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
@@ -746,7 +746,7 @@ class HTMLDocumentParser:
 
                 if self.__current_element.name != token.name:
                     raise NotImplementedError  # TODO: handle parse error.
-                
+
                 while not self.__open_elements.isEmpty():
                     poppedElement = self.__open_elements.pop()
                     if poppedElement.name == token.name:
@@ -798,7 +798,7 @@ class HTMLDocumentParser:
                                      "td", "tfoot", "th", "thead", "tr", "body", "html"]:
                     # TODO: Handle parse error.
                     raise NotImplementedError()
-                    
+
             # TODO: This is a hack, check if valid
             self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("body")
             # TODO: Implement the popping functionality.

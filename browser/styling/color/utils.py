@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from typing import Literal, NewType, Union, cast
-from utils import log
+from browser.utils.logging import log
 
 CSS_COLORS_DICT = {
     'aliceblue': '#F0F8FF',

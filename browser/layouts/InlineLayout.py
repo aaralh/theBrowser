@@ -18,7 +18,6 @@ from web.dom.elements.HTMLImgElement import HTMLImgElement
 from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.elements.HTMLButtonElement import HTMLButtonElement
 from web.dom.elements.HTMLTableElement import HTMLTableElement
-from utils import log
 
 
 @dataclass
@@ -42,14 +41,14 @@ class InlineLayout(Layout):
         self.width = self.parent.width
         self.x = self.parent.x + self.internal_padding
 
-        if self.previous:            
+        if self.previous:
             self.y = self.previous.y + self.previous.height
         else:
             self.y = self.parent.y + self.internal_padding
 
         self.new_line()
         self.recurse(self.node)
-        
+
         for line in self.children:
             line.layout()
 

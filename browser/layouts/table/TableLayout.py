@@ -9,7 +9,7 @@ from browser.layouts.Layout import Layout
 from browser.layouts.LineLayout import LineLayout
 from browser.layouts.TextLayout import TextLayout
 from browser.layouts.utils import font_weight_to_string, get_font
-from browser.utils.utils import resolve_url
+from browser.utils.networking import resolve_url
 from web.dom.Node import Node
 from browser.utils.networking import request
 from web.dom.elements import HTMLButtonElement, HTMLImgElement, HTMLInputElement
@@ -19,7 +19,7 @@ from web.dom.elements.HTMLTdElement import HTMLTdElement
 from web.dom.elements.HTMLThElement import HTMLThElement
 from web.dom.elements.Text import Text
 import browser.globals as globals
-from utils import log
+from browser.utils.logging import log
 
 
 class TableLayout(Layout):

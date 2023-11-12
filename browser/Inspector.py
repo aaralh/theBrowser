@@ -6,7 +6,7 @@ from tkinter.messagebox import showinfo
 from web.dom.CharacterData import CharacterData
 from web.dom.DocumentType import DocumentType
 from web.dom.Node import Node
-from utils import log
+from browser.utils import logging
 
 @dataclass
 class NetworkRequest:
@@ -39,9 +39,9 @@ class Inspector:
         self.tabControl.add(self.network, text='Network')
 
         self.tabControl.pack(expand=1, fill="both")
-        
+
         def on_closing():
-            log("On close")
+            logging.log("On close")
             from browser.globals import BrowserState
             BrowserState.remove_inspector(self)
             self.inspector_window.destroy()
@@ -56,7 +56,7 @@ class Inspector:
         self.network_treeview.heading('request_type', text='Request type')
         self.network_treeview.heading('response_code', text='Response code')
         self.network_treeview.heading('response_size', text='Response size')
-        
+
         #self.elements_treeview['columns'] = ['#1']
 
         self.elements_treeview.heading("#0", text="Element", anchor=tkinter.W)
@@ -113,8 +113,8 @@ class Inspector:
             #log("Child", parent_child_count)
             #self.elements_treeview.move(str(id), str(parent_id), parent_child_count)
         else:
-           self.elements_treeview.insert('', tkinter.END, text=f"<{node.name}>", iid=id, open=False) 
-        
+           self.elements_treeview.insert('', tkinter.END, text=f"<{node.name}>", iid=id, open=False)
+
         for child in node.children:
             self.__add_node_to_elements_view(child, str(child.id), id)
 
@@ -141,11 +141,11 @@ class Inspector:
     def add_network_request(self, request: NetworkRequest) -> None:
         self.network_requests.append(request)
         self.update_network_view()
-    
+
     def clear_network_requests(self) -> None:
         self.network_requests = []
         self.network_treeview.delete(*self.network_treeview.get_children())
 
 
 
-    
+

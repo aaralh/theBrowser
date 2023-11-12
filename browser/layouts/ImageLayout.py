@@ -5,13 +5,13 @@ from browser.elements.elements import DrawImage
 from browser.globals import BrowserState
 from browser.layouts.Layout import Layout
 from browser.styling.utils import style
-from browser.utils.utils import resolve_url
+from browser.utils.networking import resolve_url
 from web.dom.Node import Node
 from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 from browser.utils.networking import request
 from cairosvg import svg2png
-from utils import log
+from browser.utils.logging import log
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):

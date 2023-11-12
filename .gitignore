@@ -4,3 +4,4 @@ __pycache__
 theBrowser
 .idea
 testPages
+libs/JSlib/*
