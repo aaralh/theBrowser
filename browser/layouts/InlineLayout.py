@@ -44,7 +44,10 @@ class InlineLayout(Layout):
         if self.previous:
             self.y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y + self.internal_padding
+            self.y = int(self.parent.y + self.internal_padding)
+
+        if not self.previous and self.parent.border:
+            self.y += self.parent.border.width
 
         self.new_line()
         self.recurse(self.node)
@@ -52,7 +55,11 @@ class InlineLayout(Layout):
         for line in self.children:
             line.layout()
 
+
         self.calculate_size()
+
+        if self.parent.border:
+            self.width -= self.parent.border.width * 2
 
     def recurse(self, node: Node) -> None:
         display = node.style.get("display")

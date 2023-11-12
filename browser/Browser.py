@@ -25,6 +25,7 @@ import urllib
 
 
 SCROLL_STEP = 10
+SCROLLBAR_WIDTH = 15
 WIDTH = 800
 HEIGHT = 600
 
@@ -209,7 +210,7 @@ class Browser:
     def redraw(self) -> None:
         self.re_draw_timeout = None
         if self.document:
-            self.document.layout(WIDTH)
+            self.document.layout(WIDTH - SCROLLBAR_WIDTH)
             self.display_list = []
             self.document.paint(self.display_list)
         self.used_resources = []
@@ -261,7 +262,7 @@ class Browser:
         self.document = DocumentLayout(dom)
         [inspector.update_dom(dom) for inspector in BrowserState.get_inspectors()]
         self.document.height = HEIGHT
-        self.document.layout(WIDTH)
+        self.document.layout(WIDTH - SCROLLBAR_WIDTH)
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
         self.display_list = []
         self.document.paint(self.display_list)

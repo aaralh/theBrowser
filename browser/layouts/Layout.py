@@ -34,7 +34,7 @@ class Layout:
         self.width = None
         self.height = None
         # TODO: Rename this to something more sensible.
-        self.internal_padding = 0
+        self.internal_padding: int = 0
         self.display_list = None
         self.should_recalculate_size = False
         self.border = None
@@ -67,7 +67,6 @@ class Layout:
     def calculate_size(self) -> None:
         if not isinstance(self.node, Text):
             attr_height = self.node.style.get("height", "auto")
-
             if attr_height == "auto":
                 self.height = sum([line.height for line in self.children])
             else:
@@ -83,11 +82,15 @@ class Layout:
                 attr_width = "auto"
             if attr_width == "auto":
                 self.width = self.parent.width
+                if self.parent.border:
+                    self.width -= self.parent.border.width * 2
                 if self.float != "auto":
                     if len(self.children) > 0:
                         self.width = sum([child.width for child in self.children])
                     else:
                         self.width = 0
+                if self.border:
+                    self.width = self.width - self.border.width*2
             else:
                 if attr_width.endswith("px"):
                     self.width = int(attr_width.replace("px", ""))
@@ -107,10 +110,13 @@ class Layout:
                     self.width = parent_width * \
                         (float(attr_width.replace("%", "")) / 100)
         else:
+            self.width = self.parent.width
+            if self.parent.border:
+                self.width -= self.parent.border.width * 2
             self.height = sum([line.height for line in self.children])
 
-        self.width = self.width + self.internal_padding*2
-        self.height = self.height + self.internal_padding*2
+        self.width = int(self.width + self.internal_padding*2)
+        self.height = int(self.height + self.internal_padding*2)
 
     def recalculate_size(self) -> None:
         if self.should_recalculate_size:
@@ -162,9 +168,9 @@ class Layout:
             border_width = 0
             if width.endswith("em"):
                 font_size = int(self.node.style["font-size"].replace("px", ""))
-                border_width = float(width.replace("em", "")) * font_size
+                border_width = int(float(width.replace("em", "")) * font_size)
             elif width.endswith("%"):
-                border_width = self.parent.width * (int(width.replace("%", "")) / 100)
+                border_width = int(self.parent.width * (int(width.replace("%", "")) / 100))
             elif width.endswith("px"):
                 border_width = int(width[:-2])
 
@@ -212,7 +218,7 @@ class Layout:
                 rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), BorderProperties(transform_color("red"), 10))
                 display_list.append(rect)
             elif self.border:
-                x2, y2 = self.x + self.width, self.y + self.height
+                x2, y2 = self.x + self.width, self.y + self.height - self.border.width
                 rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), self.border)
                 display_list.append(rect)
 
