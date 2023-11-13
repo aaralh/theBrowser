@@ -23,6 +23,8 @@ class BlockLayout(Layout):
         for child in self.node.children:
             display = child.style.get("display")
             if display == "none": continue
+            # TODO: This is a hack to get around the fact that there is ghost elements in the DOM.
+            if not child.name: continue
             if self.layout_mode(child) == "inline":
                 next = InlineLayout(child, self, previous)
             else:
@@ -47,5 +49,17 @@ class BlockLayout(Layout):
             child.layout()
 
         self.calculate_size()
+
+        if self.float == "right":
+            self.x = self.parent.x + self.parent.width - self.width
+            if self.previous and self.previous.float == "left":
+                if self.previous.width + self.width <= self.parent.width:
+                    self.y = self.previous.y
+                else:
+                    self.y = self.previous.y + self.previous.height
+            for line in self.children:
+                line.layout()
+        elif self.float == "left":
+            self.x = self.parent.x
 
         #self.height = sum([child.height for child in self.children])

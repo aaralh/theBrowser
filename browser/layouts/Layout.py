@@ -39,7 +39,7 @@ class Layout:
         self.should_recalculate_size = False
         self.border = None
         self.font_size = self.calculate_font_size()
-        self.float = "auto"
+        self.float: Literal["none", "left", "right"] = self.node.style.get("float", "none")
 
     def calculate_font_size(self) -> int:
         font_size: str = self.node.style["font-size"]
@@ -57,8 +57,8 @@ class Layout:
         return int(round(float(font_size.replace("px", ""))))
 
     def layout(self) -> None:
-        float_style = self.node.style.get("float")
-        if float_style in ["left"]:
+        float_style = self.float
+        if float_style in ["left", "right"]:
             #TODO: Add support for other float modes.
             self.float = float_style
         if isinstance(self.node, Element):
@@ -84,11 +84,13 @@ class Layout:
                 self.width = self.parent.width
                 if self.parent.border:
                     self.width -= self.parent.border.width * 2
-                if self.float != "auto":
+                """
+                if self.float != "none":
                     if len(self.children) > 0:
                         self.width = sum([child.width for child in self.children])
                     else:
                         self.width = 0
+                """
                 if self.border:
                     self.width = self.width - self.border.width*2
             else:

@@ -16,6 +16,7 @@ class DocumentLayout(Layout):
     def __init__(self, node):
         # This self.border is just to keep things a bit simpler.
         self.border = None
+        self.float = "none"
 
         self.node = node
         self.parent = None

@@ -61,6 +61,18 @@ class InlineLayout(Layout):
         if self.parent.border:
             self.width -= self.parent.border.width * 2
 
+        if self.float == "right":
+            self.x = self.parent.x + self.parent.width - self.width
+            if self.previous and self.previous.float == "left":
+                if self.previous.width + self.width <= self.parent.width:
+                    self.y = self.previous.y
+                else:
+                    self.y = self.previous.y + self.previous.height
+            for line in self.children:
+                line.layout()
+        elif self.float == "left":
+            self.x = self.parent.x
+
     def recurse(self, node: Node) -> None:
         display = node.style.get("display")
         if display == "none": return
