@@ -1,3 +1,4 @@
+from tkinter import W
 from browser.elements.elements import DrawRect
 from browser.globals import BrowserState
 from browser.layouts.InlineLayout import InlineLayout
@@ -53,13 +54,22 @@ class BlockLayout(Layout):
         if self.float == "right":
             self.x = self.parent.x + self.parent.width - self.width
             if self.previous and self.previous.float == "left":
-                if self.previous.width + self.width <= self.parent.width:
+                if self.width < (self.parent.width - (self.previous.x + self.previous.width)):
                     self.y = self.previous.y
                 else:
                     self.y = self.previous.y + self.previous.height
             for line in self.children:
                 line.layout()
         elif self.float == "left":
-            self.x = self.parent.x
+            if self.previous and self.previous.float == "left":
+                if self.width < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
+                    self.y = self.previous.y
+                    self.x = self.previous.x + self.previous.width
+                else:
+                    self.y = self.previous.y + self.previous.height
+            else:
+                self.x = self.parent.x
+            for line in self.children:
+                line.layout()
 
         #self.height = sum([child.height for child in self.children])

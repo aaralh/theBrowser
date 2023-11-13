@@ -36,17 +36,39 @@ class DescriptionListItemLayout(Layout):
         self.recurse(self.node)
         for line in self.children:
             line.layout()
-        
+
         attr_height = self.node.style.get("height", "auto")
-    
+
         if attr_height == "auto":
-            self.height = sum([line.height for line in self.children]) 
+            self.height = sum([line.height for line in self.children])
         else:
             if attr_height.endswith("px"):
                 self.height = attr_height.replace("px", "")
             elif attr_height.endswith("em"):
                 font_size = self.node.style["font-size"]
                 self.height = int(attr_height.replace("em", "")) * font_size
+
+        if self.float == "right":
+            self.x = self.parent.x + self.parent.width - self.width
+            if self.previous and self.previous.float == "left":
+                if self.width < (self.parent.width - (self.previous.x + self.previous.width)):
+                    self.y = self.previous.y
+                else:
+                    self.y = self.previous.y + self.previous.height
+            for line in self.children:
+                line.layout()
+        elif self.float == "left":
+            if self.previous and self.previous.float == "left":
+                if self.width < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
+                    self.y = self.previous.y
+                    self.x = self.previous.x + self.previous.width
+                else:
+                    self.y = self.previous.y + self.previous.height
+            else:
+                self.x = self.parent.x
+            for line in self.children:
+                line.layout()
+
 
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):
@@ -81,7 +103,7 @@ class DescriptionListItemLayout(Layout):
         image = ImageLayout(element, line, self.previous_word)
         self.previous_word = image
         self.children.append(image)
-    
+
     def table(self, element: HTMLTableElement):
         line = self.children[-1]
         table = TableLayout(element, line, self.previous_word)
