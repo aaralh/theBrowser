@@ -95,7 +95,7 @@ class Layout:
                     self.width = self.width - self.border.width*2
             else:
                 if attr_width.endswith("px"):
-                    self.width = int(attr_width.replace("px", ""))
+                    self.width = int(float(attr_width.replace("px", "")))
                 elif attr_width.endswith("em"):
                     font_size: str = self.node.style["font-size"]
                     if font_size.endswith("%"):
