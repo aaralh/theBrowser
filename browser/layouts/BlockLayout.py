@@ -72,7 +72,7 @@ class BlockLayout(Layout):
                     self.x = self.previous.x + self.previous.width
                 else:
                     self.y = self.previous.y + self.previous.height
-            elif self.parent.float != "none" and self.previous.float == "none":
+            elif self.parent and self.previous and self.parent.float != "none" and self.previous.float == "none":
                 self.x = self.previous.children[-1].x + self.previous.children[-1].width
 
                 if self.width < (self.parent.width - ((self.previous.children[-1].x + self.previous.children[-1].width) - self.parent.x)):

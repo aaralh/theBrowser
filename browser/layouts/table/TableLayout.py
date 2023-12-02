@@ -77,6 +77,7 @@ class TableLayout(Layout):
             return
 
         self.height = sum([child.height for child in self.children])
+        self.calculated_height = self.height
 
         if self.float == "right":
             self.x = self.parent.x + self.parent.width - self.width
@@ -122,8 +123,10 @@ class TableBodyLayout(Layout):
         self.x = self.parent.x
 
         if self.previous:
+            """
             space = self.previous.font.measure(" ")
-            self.x = self.previous.x + space + self.previous.width
+            """
+            self.x = self.previous.x + self.previous.width
         else:
             self.x = self.parent.x
 

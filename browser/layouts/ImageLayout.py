@@ -106,6 +106,7 @@ class ImageLayout(Layout):
 
     def calculate_size(self) -> None:
         height = self.calculate_height()
+        self.calculated_height = height
         self.height = height
         width = self.calculate_width()
         self.width = width

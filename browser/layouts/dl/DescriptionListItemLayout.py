@@ -43,7 +43,7 @@ class DescriptionListItemLayout(Layout):
             self.height = sum([line.height for line in self.children])
         else:
             if attr_height.endswith("px"):
-                self.height = attr_height.replace("px", "")
+                self.height = int(attr_height.replace("px", ""))
             elif attr_height.endswith("em"):
                 font_size = self.node.style["font-size"]
                 self.height = int(attr_height.replace("em", "")) * font_size
@@ -68,7 +68,7 @@ class DescriptionListItemLayout(Layout):
                 self.x = self.parent.x
             for line in self.children:
                 line.layout()
-
+        self.calculated_height = self.height
 
     def recurse(self, node: Node) -> None:
         if isinstance(node, Text):

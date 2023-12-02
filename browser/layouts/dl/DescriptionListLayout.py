@@ -50,6 +50,7 @@ class DescriptionListLayout(Layout):
             return
 
         self.height = sum([child.height for child in self.children])
+        self.calculated_height = self.height
         if self.float == "right":
             self.x = self.parent.x + self.parent.width - self.width
             if self.previous and self.previous.float == "left":
