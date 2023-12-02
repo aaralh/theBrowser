@@ -33,7 +33,7 @@ class BlockLayout(Layout):
             self.children.append(next)
             previous = next
 
-        self.width = self.parent.width
+        self.calculate_size()
 
         self.x = self.parent.x
         if self.parent.border:
@@ -50,6 +50,7 @@ class BlockLayout(Layout):
             child.layout()
 
         self.calculate_size()
+
 
         if self.float == "right":
             self.x = self.parent.x + self.parent.width - self.width

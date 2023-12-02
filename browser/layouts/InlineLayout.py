@@ -58,6 +58,11 @@ class InlineLayout(Layout):
 
         self.calculate_size()
 
+        if self.parent.float != "none":
+            self.width = sum([line.width for line in self.children])
+            for line in self.children:
+                line.layout()
+
         if self.parent.border:
             self.width -= self.parent.border.width * 2
 
@@ -155,8 +160,9 @@ class InlineLayout(Layout):
         font = get_font(size, font_weight_to_string(weight), style)
         for word in element.data.split():
             w = font.measure(word)
-            if self.cursor_x + w > self.width - globals.HSTEP:
-                self.new_line()
+            if self.parent.float == "none":
+                if self.cursor_x + w > self.width - globals.HSTEP:
+                    self.new_line()
             line = self.children[-1]
             text = TextLayout(element, word, line, self.previous_word)
             line.children.append(text)

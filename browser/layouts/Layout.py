@@ -68,7 +68,10 @@ class Layout:
         if not isinstance(self.node, Text):
             attr_height = self.node.style.get("height", "auto")
             if attr_height == "auto":
-                self.height = sum([line.height for line in self.children])
+                if self.float != "none":
+                    self.height = sum([line.height for line in self.children])
+                else:
+                    self.height = sum([line.height for line in self.children if line.float == "none"])
             else:
                 if attr_height.endswith("px"):
                     self.height = int(attr_height.replace("px", ""))
@@ -81,9 +84,15 @@ class Layout:
                 # TODO: Handle calc and other css functions.
                 attr_width = "auto"
             if attr_width == "auto":
-                self.width = self.parent.width
-                if self.parent.border:
-                    self.width -= self.parent.border.width * 2
+                if self.float != "none":
+                    if len(self.children) > 0:
+                        self.width = sum([child.width for child in self.children if child.width is not None])
+                    else:
+                        self.width = 0
+                else:
+                    self.width = self.parent.width
+                    if self.parent.border:
+                        self.width -= self.parent.border.width * 2
                 """
                 if self.float != "none":
                     if len(self.children) > 0:
@@ -115,7 +124,10 @@ class Layout:
             self.width = self.parent.width
             if self.parent.border:
                 self.width -= self.parent.border.width * 2
-            self.height = sum([line.height for line in self.children])
+            if self.float != "none":
+                self.height = sum([line.height for line in self.children])
+            else:
+                self.height = sum([line.height for line in self.children if line.float == "none"])
 
         self.width = int(self.width + self.internal_padding*2)
         self.height = int(self.height + self.internal_padding*2)

@@ -28,6 +28,9 @@ class LineLayout(Layout):
         for word in self.children:
             word.layout()
 
+        if self.width == 0:
+            self.width = sum([word.width for word in self.children])
+
         if len(self.children) == 0:
             self.height = 0
             return
