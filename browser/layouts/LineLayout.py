@@ -43,6 +43,7 @@ class LineLayout(Layout):
 
         max_descent = max([word.font.metrics("descent") for word in self.children])
         self.height = 1.25 * (max_ascent + max_descent)
+        self.calculated_height = self.height
 
     def paint(self, display_list: list):
         for child in self.children:

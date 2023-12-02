@@ -42,7 +42,7 @@ class InlineLayout(Layout):
         self.x = self.parent.x + self.internal_padding
 
         if self.previous:
-            self.y = self.previous.y + self.previous.height
+            self.y = self.previous.y + self.previous.calculated_height
         else:
             self.y = int(self.parent.y + self.internal_padding)
 
@@ -57,11 +57,6 @@ class InlineLayout(Layout):
 
 
         self.calculate_size()
-
-        if self.parent.float != "none":
-            self.width = sum([line.width for line in self.children])
-            for line in self.children:
-                line.layout()
 
         if self.parent.border:
             self.width -= self.parent.border.width * 2

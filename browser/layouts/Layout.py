@@ -40,6 +40,8 @@ class Layout:
         self.border = None
         self.font_size = self.calculate_font_size()
         self.float: Literal["none", "left", "right"] = self.node.style.get("float", "none")
+        # Holds "real" height of the element. This is used  to calculate body height when elements children are floated.
+        self.calculated_height: int = 0
 
     def calculate_font_size(self) -> int:
         font_size: str = self.node.style["font-size"]
@@ -64,10 +66,20 @@ class Layout:
         if isinstance(self.node, Element):
             self.create_border()
 
+    def calculate_calculated_height(self) -> int:
+        # Here child y and caculated_height might be None in initial layout cycle. With trycatch we can skip the first layout cycle and calculate the height in the second one.
+        try:
+            lowest_child_corner = max([child.y + child.calculated_height for child in self.children if child.y and child.calculated_height])
+            return lowest_child_corner - self.y
+        except:
+            return 0
+
+
     def calculate_size(self) -> None:
         if not isinstance(self.node, Text):
             attr_height = self.node.style.get("height", "auto")
             if attr_height == "auto":
+                self.calculated_height =  self.calculate_calculated_height()
                 if self.float != "none":
                     self.height = sum([line.height for line in self.children])
                 else:
@@ -78,6 +90,8 @@ class Layout:
                 elif attr_height.endswith("em"):
                     font_size = int(self.node.style["font-size"].replace("px", ""))
                     self.height = float(attr_height.replace("em", "")) * font_size
+
+                self.calculated_height = self.height
 
             attr_width = self.node.style.get("width", "auto")
             if "(" in attr_width:
@@ -128,9 +142,11 @@ class Layout:
                 self.height = sum([line.height for line in self.children])
             else:
                 self.height = sum([line.height for line in self.children if line.float == "none"])
-
+            self.calculated_height = self.calculate_calculated_height()
         self.width = int(self.width + self.internal_padding*2)
         self.height = int(self.height + self.internal_padding*2)
+        if self.calculated_height is not None:
+            self.calculated_height = int(self.calculated_height + self.internal_padding*2)
 
     def recalculate_size(self) -> None:
         if self.should_recalculate_size:
@@ -151,7 +167,6 @@ class Layout:
             print("not relayout", self)
             for child in self.children:
                 child.update_layout()
-
 
     def layout_mode(self, node: Node) -> Literal["inline", "block"]:
         if isinstance(node, Text):

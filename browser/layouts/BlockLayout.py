@@ -40,7 +40,7 @@ class BlockLayout(Layout):
             self.x += self.parent.border.width
 
         if self.previous:
-            self.y = self.previous.y + self.previous.height
+            self.y = self.previous.y + self.previous.calculated_height
         else:
             self.y = self.parent.y
             if self.parent.border:
@@ -51,6 +51,10 @@ class BlockLayout(Layout):
 
         self.calculate_size()
 
+        if self.node.name == "body":
+            self.height = self.calculated_height
+            for child in self.children:
+                child.layout()
 
         if self.float == "right":
             self.x = self.parent.x + self.parent.width - self.width
@@ -68,6 +72,13 @@ class BlockLayout(Layout):
                     self.x = self.previous.x + self.previous.width
                 else:
                     self.y = self.previous.y + self.previous.height
+            elif self.parent.float != "none" and self.previous.float == "none":
+                self.x = self.previous.children[-1].x + self.previous.children[-1].width
+
+                if self.width < (self.parent.width - ((self.previous.children[-1].x + self.previous.children[-1].width) - self.parent.x)):
+                    self.y = self.previous.children[-1].y
+                else:
+                    self.y = self.previous.children[-1].y + self.previous.children[-1].height
             else:
                 self.x = self.parent.x
             for line in self.children:

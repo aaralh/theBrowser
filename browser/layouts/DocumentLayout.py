@@ -31,14 +31,14 @@ class DocumentLayout(Layout):
         self.children = []
         self.html.__children = [self.body]
         log("Node:", self.body.name)
+        self.x = globals.HSTEP
+        self.y = globals.VSTEP
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = int(float(screen_width - 2*globals.HSTEP))
-        self.x = globals.HSTEP
-        self.y = globals.VSTEP
         child.layout()
         child.recalculate_size()
-        self.content_height = child.height + 2*globals.VSTEP
+        self.content_height = child.calculated_height + 2*globals.VSTEP
 
     def __get_element(self, dom: DocumentType, type: T) -> T:
         for child in dom.children:
