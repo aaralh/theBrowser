@@ -87,6 +87,10 @@ class Layout:
             else:
                 if attr_height.endswith("px"):
                     self.height = int(attr_height.replace("px", ""))
+                elif attr_height.endswith("rem"):
+                    #TODO: Fix rem and em calculations.
+                    font_size = int(self.node.style["font-size"].replace("px", ""))
+                    self.height = float(attr_height.replace("rem", "")) * font_size
                 elif attr_height.endswith("em"):
                     font_size = int(self.node.style["font-size"].replace("px", ""))
                     self.height = float(attr_height.replace("em", "")) * font_size
@@ -119,21 +123,41 @@ class Layout:
             else:
                 if attr_width.endswith("px"):
                     self.width = int(float(attr_width.replace("px", "")))
+                elif attr_width.endswith("rem"):
+                    font_size_str: str = self.node.style["font-size"]
+                    if font_size_str.endswith("%"):
+                        parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
+                        font_size = ((parent_font_size / 100) * int(font_size_str.replace("%", "")))
+                    elif font_size_str.endswith("rem"):
+                        #TODO: Fix rem and em calculations.
+                        parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
+                        font_size = str(parent_font_size * float(font_size_str.replace("rem", "")))
+                    elif font_size_str.endswith("em"):
+                        parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
+                        font_size = str(parent_font_size * float(font_size_str.replace("em", "")))
+                    font_size = int(round(float(font_size_str.replace("px", ""))))
+                    self.width = int(float(attr_width.replace("rem", ""))) * font_size
                 elif attr_width.endswith("em"):
-                    font_size: str = self.node.style["font-size"]
-                    if font_size.endswith("%"):
+                    font_size_str: str = self.node.style["font-size"]
+                    if font_size_str.endswith("%"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
-                        font_size = str((parent_font_size / 100) * int(font_size.replace("%", "")))
-                    if font_size.endswith("em"):
+                        font_size = ((parent_font_size / 100) * int(font_size_str.replace("%", "")))
+                    elif font_size_str.endswith("rem"):
+                        #TODO: Fix rem and em calculations.
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
-                        font_size = str(parent_font_size * float(font_size.replace("em", "")))
-                    font_size = int(round(float(font_size.replace("px", ""))))
+                        font_size = str(parent_font_size * float(font_size_str.replace("rem", "")))
+                    elif font_size_str.endswith("em"):
+                        parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
+                        font_size = str(parent_font_size * float(font_size_str.replace("em", "")))
+                    font_size = int(round(float(font_size_str.replace("px", ""))))
                     self.width = int(float(attr_width.replace("em", ""))) * font_size
                 elif attr_width.endswith("%"):
                     self.should_recalculate_size = True
                     parent_width = self.parent.width
-                    self.width = parent_width * \
-                        (float(attr_width.replace("%", "")) / 100)
+                    self.width = int(parent_width * \
+                        (float(attr_width.replace("%", "")) / 100))
+                else:
+                    self.width = int(attr_width)
         else:
             self.width = self.parent.width
             if self.parent.border:

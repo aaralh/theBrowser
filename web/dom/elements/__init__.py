@@ -3,6 +3,7 @@ from web.dom.elements.HTMLH1Element import HTMLH1Element
 from web.dom.elements.HTMLBodyElement import HTMLBodyElement
 from web.dom.elements.HTMLSlotElement import HTMLSlotElement
 from web.dom.elements.HTMLPElement import HTMLPElement
+from web.dom.elements.HTMLMaskElement import HTMLMaskElement
 from web.dom.elements.HTMLMenuElement import HTMLMenuElement
 from web.dom.elements.HTMLTitleElement import HTMLTitleElement
 from web.dom.elements.HTMLTdElement import HTMLTdElement
@@ -146,3 +147,5 @@ from web.dom.elements.HTMLLinearGradientElement import HTMLLinearGradientElement
 from web.dom.elements.HTMLStopElement import HTMLStopElement
 from web.dom.elements.HTMLClipPathElement import HTMLClipPathElement
 from web.dom.elements.HTMLFilterElement import HTMLFilterElement
+from web.dom.elements.HTMLCircleElement import HTMLCircleElement
+from web.dom.elements.HTMLPolylineElement import HTMLPolylineElement

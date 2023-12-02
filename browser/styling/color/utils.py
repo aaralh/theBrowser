@@ -180,7 +180,7 @@ def transform_color(color: str) -> ValidColor:
     if color == "" or color == "transparent":
         return ValidColor("color", "")
 
-    if color == "inherit" or color == "none" or color.startswith("var") or not is_valid_color(color):
+    if color == "inherit" or color == "none" or color.startswith("var") or color.startswith("hsla") or not is_valid_color(color):
         log("Color", color)
         return ValidColor("color", "pink")
 

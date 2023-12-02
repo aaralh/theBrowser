@@ -65,6 +65,10 @@ class ImageLayout(Layout):
                 style_width = self.parent.width * (int(style_width[:-1]) / 100)
             elif style_width == "auto":
                 style_width = self.parent.width
+            elif style_width.endswith("rem"):
+                #TODO: Fix rem and em calculation.
+                font_size = self.font_size
+                style_width = int(float(style_width.replace("rem", "")) * font_size)
             elif style_width.endswith("em"):
                 font_size = self.font_size
                 style_width = int(float(style_width.replace("em", "")) * font_size)
@@ -99,6 +103,10 @@ class ImageLayout(Layout):
         elif style_height.endswith("%"):
             self.should_recalculate_size = True
             style_height = self.parent.height * (int(style_height[:-1]) / 100)
+        elif style_height.endswith("rem"):
+            #TODO: Fix rem and em calculation.
+            font_size = self.font_size
+            style_height = int(float(style_height.replace("rem", "")) * font_size)
         elif style_height.endswith("em"):
             font_size = self.font_size
             style_height = int(float(style_height.replace("em", "")) * font_size)
