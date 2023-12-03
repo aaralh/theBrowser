@@ -244,6 +244,11 @@ class HTMLTokenizer:
         elif self.__current_input_char.isalpha():
             self.__current_token = cast(HTMLTag, self.__create_new_token(HTMLToken.TokenType.StartTag))
             self.__reconsume_in(self.State.TagName)
+        else:
+            self.__current_token = cast(HTMLCommentOrCharacter, self.__create_new_token(HTMLToken.TokenType.Character))
+            self.__current_token.data = "<"
+            self.__emit_current_token()
+            self.__reconsume_in(self.State.Data)
 
     def handle_end_tag_open(self) -> None:
         self.__current_token = self.__create_new_token(HTMLToken.TokenType.EndTag)
