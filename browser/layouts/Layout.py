@@ -125,7 +125,9 @@ class Layout:
                     self.width = int(float(attr_width.replace("px", "")))
                 elif attr_width.endswith("rem"):
                     font_size_str: str = self.node.style["font-size"]
-                    if font_size_str.endswith("%"):
+                    if font_size_str.endswith("px"):
+                        font_size = int(font_size_str.replace("px", ""))
+                    elif font_size_str.endswith("%"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
                         font_size = ((parent_font_size / 100) * int(font_size_str.replace("%", "")))
                     elif font_size_str.endswith("rem"):
@@ -135,11 +137,12 @@ class Layout:
                     elif font_size_str.endswith("em"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
                         font_size = str(parent_font_size * float(font_size_str.replace("em", "")))
-                    font_size = int(round(float(font_size_str.replace("px", ""))))
                     self.width = int(float(attr_width.replace("rem", ""))) * font_size
                 elif attr_width.endswith("em"):
                     font_size_str: str = self.node.style["font-size"]
-                    if font_size_str.endswith("%"):
+                    if font_size_str.endswith("px"):
+                        font_size = int(font_size_str.replace("px", ""))
+                    elif font_size_str.endswith("%"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
                         font_size = ((parent_font_size / 100) * int(font_size_str.replace("%", "")))
                     elif font_size_str.endswith("rem"):
@@ -149,7 +152,6 @@ class Layout:
                     elif font_size_str.endswith("em"):
                         parent_font_size = int(self.parent.node.style["font-size"].replace("px", ""))
                         font_size = str(parent_font_size * float(font_size_str.replace("em", "")))
-                    font_size = int(round(float(font_size_str.replace("px", ""))))
                     self.width = int(float(attr_width.replace("em", ""))) * font_size
                 elif attr_width.endswith("%"):
                     self.should_recalculate_size = True

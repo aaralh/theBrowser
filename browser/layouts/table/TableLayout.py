@@ -40,6 +40,7 @@ class TableLayout(Layout):
 
     def layout(self) -> None:
         super().layout()
+        self.children = []
         width = self.node.style.get("width", self.node.attributes.get("width", str(self.parent.width)))
         if width.endswith("%"):
             width = self.parent.width * (int(width.replace("%", "")) / 100)
@@ -119,6 +120,7 @@ class TableBodyLayout(Layout):
 
     def layout(self) -> None:
         super().layout()
+        self.children = []
         self.width = self.parent.width
         self.x = self.parent.x
 
@@ -165,6 +167,7 @@ class TableRowLayout(Layout):
 
     def layout(self) -> None:
         super().layout()
+        self.children = []
         self.width = self.parent.width
         self.x = self.parent.x
 

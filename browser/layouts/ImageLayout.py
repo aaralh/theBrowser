@@ -40,16 +40,20 @@ class ImageLayout(Layout):
                 except:
                     log("srcset is faulty!")
 
-        src = resolve_url(image_src, self.current_url)
-        log("image:", src, image_src, self.current_url)
-        if src.endswith(".svg"):
-            return svg2png(url=src)
-        else:
-            try:
-                response = request(src)
-                return response.content
-            except:
-                log("Image not found!")
+        log("image:", image_src, self.current_url)
+        try:
+            src = resolve_url(image_src, self.current_url)
+            log("image:", src, image_src, self.current_url)
+            if src.endswith(".svg"):
+                return svg2png(url=src)
+            else:
+                try:
+                    response = request(src)
+                    return response.content
+                except:
+                    log("Image not found!")
+        except:
+            log("Could not resolve url!")
 
     def calculate_width(self) -> int:
         style_width = self.node.style.get("width", None)

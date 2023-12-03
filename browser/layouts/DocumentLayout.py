@@ -35,10 +35,12 @@ class DocumentLayout(Layout):
         self.y = globals.VSTEP
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
-        self.width = int(float(screen_width - 2*globals.HSTEP))
+        self.width = int(float(screen_width))
         child.layout()
         child.recalculate_size()
         self.content_height = child.calculated_height + 2*globals.VSTEP
+        self.x = 0
+        self.y = 0
 
     def __get_element(self, dom: DocumentType, type: T) -> T:
         for child in dom.children:
@@ -58,7 +60,7 @@ class DocumentLayout(Layout):
 
         log("HTML", bgcolor)
         if bgcolor != "transparent":
-            x2, y2 = self.x + self.width, self.y + self.height
+            x2, y2 = self.x + self.width, self.y + max(self.content_height, self.height)
             rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))
             display_list.append(rect)
         self.children[0].paint(display_list)
