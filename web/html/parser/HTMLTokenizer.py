@@ -1070,7 +1070,7 @@ class HTMLTokenizer:
 
     def handle_decimal_character_reference_start(self) -> None:
         if self.__current_input_char.isdigit():
-            self.__reconsume_in(self.State.HexadecimalCharacterReference)
+            self.__reconsume_in(self.State.DecimalCharacterReference)
         else:
             # TODO: handle parse error.
             self.__flush_temporary_buffer()
@@ -1114,7 +1114,7 @@ class HTMLTokenizer:
             self.__character_reference_code = 0xFFFD
         elif charIsNoncharacter(self.__character_reference_code):
             # TODO: Handle parse error.
-            self.__character_reference_code = 0xFFFD
+            self.__character_reference_code = 0x27
             pass
         elif self.__character_reference_code == 0x0D or (
                 charIsControl(self.__character_reference_code) and not
