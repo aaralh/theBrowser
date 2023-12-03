@@ -138,7 +138,11 @@ class InlineLayout(Layout):
         if style == "normal": style = "roman"
         size = int(float(element.style["font-size"][:-2]) * .75)
         font = get_font(size, font_weight_to_string(weight), style)
-        w = INPUT_WIDTH_PX
+        type = element.attributes.get("type")
+        if type == "radio" or type == "checkbox":
+            w = 10
+        else:
+            w = INPUT_WIDTH_PX
         if self.cursor_x + w > self.x + self.width:
             self.new_line()
         line = self.children[-1]

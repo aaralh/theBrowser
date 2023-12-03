@@ -171,11 +171,20 @@ class Browser:
                 self.search_bar.insert(END, url)
                 return self.load(url)
             elif elt.name == "input":
-                if elt.attributes.get("type", "") == "submit":
+                type = elt.attributes.get("type", "input")
+                if type == "submit":
                     while elt:
                         if elt.name == "form" and "action" in elt.attributes:
                             return self.submit_form(elt)
                         elt = elt.parentNode
+                elif type == "radio" or type == "checkbox":
+                    current_value = elt.attributes.get("value", "off")
+                    if current_value == "off":
+                        elt.attributes["value"] = "on"
+                    elif current_value == "on" and type != "radio":
+                        elt.attributes["value"] = "off"
+                    self.redraw()
+                    return
                 else:
                     if not elt.attributes.get("value"):
                         elt.attributes["value"] = ""

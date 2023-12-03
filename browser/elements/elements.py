@@ -60,6 +60,36 @@ class BorderProperties:
     color: ValidColor
     width: int
 
+class DrawOval:
+    def __init__(self, x1, y1, x2, y2, color: ValidColor, border: BorderProperties = BorderProperties(transform_color(""), 0)):
+        self.top = y1
+        self.left = x1
+        self.bottom = y2
+        self.right = x2
+        self.color = color
+        self.used_resources = None
+        self.border = border
+
+    def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
+        # TODO: Do proper implementation for rgb and rgba colors.
+        if self.color.type == "rgba_color":
+            if not self.used_resources:
+                image = Image.new('RGBA', (int(self.right-self.left), int(self.bottom-self.top)), self.color.color)
+                tk_image = ImageTk.PhotoImage(image)
+                self.used_resources = tk_image
+            canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
+        if not self.color.type == "rgba_color":
+            outline = self.border.color.color
+            if self.border.color.type == "rgba_color":
+                outline = "#" + rgba_to_hex(outline)[:-2]
+            canvas.create_oval(
+                self.left, self.top - scroll,
+                self.right, self.bottom - scroll,
+                width=self.border.width,
+                fill=self.color.color,
+                outline=outline
+            )
+
 class DrawRect:
     def __init__(self, x1, y1, x2, y2, color: ValidColor, border: BorderProperties = BorderProperties(transform_color(""), 0)):
         self.top = y1

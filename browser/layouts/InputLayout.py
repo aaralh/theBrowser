@@ -1,5 +1,6 @@
-from typing import List
-from browser.elements.elements import DrawRect, DrawText
+from tkinter import W
+from typing import List, Literal
+from browser.elements.elements import DrawOval, DrawRect, DrawText
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
 from browser.styling.color.utils import transform_color
@@ -16,6 +17,7 @@ class InputLayout(Layout):
         super().__init__()
         self.children = []
         self.previous = previous
+        self.type: Literal["input", "radio", "checkbox"] = self.node.attributes.get("type", "input")
 
     def layout(self):
         super().layout()
@@ -25,7 +27,12 @@ class InputLayout(Layout):
         size = int(float(self.node.style["font-size"][:-2]) * .75)
         self.font = get_font(size, font_weight_to_string(weight), style)
 
-        self.width = INPUT_WIDTH_PX
+        if self.type == "radio" or self.type == "checkbox":
+            self.width = 10
+            self.height = 10
+        else:
+            self.width = INPUT_WIDTH_PX
+            self.height = self.font.metrics("linespace")
 
         if self.node.attributes.get("type", "") == "submit":
             text = self.node.attributes.get("value", None)
@@ -46,14 +53,13 @@ class InputLayout(Layout):
                 if self.width < min_width:
                     self.width = min_width"""
 
-        self.height = self.font.metrics("linespace")
-       
+
     def paint(self, display_list: list):
-        if self.node.attributes.get("type") == "hidden": return    
-        
+        if self.node.attributes.get("type") == "hidden": return
+
         bgcolor = self.node.style.get("background-color",
                                       "transparent")
-        
+
         if bgcolor == "unset":
             try:
                 if isinstance(self.node.parentNode, Element):
@@ -64,18 +70,35 @@ class InputLayout(Layout):
 
         if bgcolor != "transparent":
             x2, y2 = self.x + self.width, self.y + self.height
-            if self.border:
-                rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border)
+            if self.type == "radio":
+                display_list.append(
+                    DrawOval(self.x, self.y, x2, y2, transform_color(bgcolor), self.border)
+                )
+
+                text = self.node.attributes.get("value", None)
+                if text == "on":
+                    display_list.append(
+                        DrawOval(self.x + 2, self.y + 2, x2 - 2, y2 - 2, transform_color("black"), self.border)
+                    )
+            elif self.type == "checkbox":
+                display_list.append(
+                    DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border)
+                )
+                text = self.node.attributes.get("value", None)
+                if text == "on":
+                    display_list.append(
+                        DrawRect(self.x + 2, self.y + 2, x2 - 2, y2 - 2, transform_color("black"), self.border)
+                    )
             else:
-                rect = DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))
-            display_list.append(rect)
+                display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border))
 
         if self.node.name == "input":
-            text = self.node.attributes.get("value", None)
-            if not text:
-                text = self.node.attributes.get('alt', " ")
-            if len(text) == 0:
-                text = self.node.attributes.get("placeholder", "") 
+            if self.type == "input":
+                text = self.node.attributes.get("value", None)
+                if not text:
+                    text = self.node.attributes.get('alt', " ")
+                if len(text) == 0:
+                    text = self.node.attributes.get("placeholder", "")
         elif self.node.name == "button":
             visible_children: List[Node] = list(filter(lambda child: child.style.get("display") != "none", self.node.children))
             if len(visible_children) == 0: return
@@ -87,9 +110,10 @@ class InputLayout(Layout):
                     text = child.children[0].data
                 except:
                     text = ""
-        
+
         color = self.node.style["color"]
 
-        display_list.append(
-            DrawText(self.x, self.y, text, self.font, color)
-        )
+        if self.type == "input" or self.type == "button":
+            display_list.append(
+                DrawText(self.x, self.y, text, self.font, color)
+            )
