@@ -203,10 +203,6 @@ class Layout:
                 if isinstance(child, Text): continue
                 if child.name in BLOCK_ELEMENTS:
                     mode =  "block"
-
-            style_mode = node.style.get("display")
-            if style_mode in ["inline", "block"]:
-                mode = style_mode
             return mode
         else:
             return "block"

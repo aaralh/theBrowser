@@ -157,7 +157,8 @@ class InlineLayout(Layout):
         if style == "normal": style = "roman"
         size = int(float(element.style["font-size"][:-2]) * .75)
         font = get_font(size, font_weight_to_string(weight), style)
-        for word in element.data.split():
+        data = element.data.strip()
+        for word in data.split():
             w = font.measure(word)
             if self.parent.float == "none":
                 if self.cursor_x + w > self.width - globals.HSTEP:
