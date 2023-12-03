@@ -40,7 +40,6 @@ class TextLayout(Layout):
 
         if self.previous:
             space = self.previous.font.measure(" ")
-            self.width += space
             self.x = self.previous.x + space + self.previous.width
         else:
             self.x = self.parent.x + self.internal_padding
