@@ -113,7 +113,7 @@ class InputLayout(Layout):
 
         color = self.node.style["color"]
 
-        if self.type != "radio" or self.type != "checkbox":
+        if self.type != "radio" and self.type != "checkbox":
             display_list.append(
                 DrawText(self.x, self.y, text, self.font, color)
             )
