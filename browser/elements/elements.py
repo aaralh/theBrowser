@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from tkinter import Canvas
-from typing import List, cast
+from typing import Dict, List, Literal, Optional, Tuple, cast
 from PIL import ImageTk, Image
 from tkinter.font import Font
 from typing import NewType
@@ -55,13 +55,52 @@ class DrawText:
                 tmp_left += w"""
 
 
-@dataclass
+@dataclass()
 class BorderProperties:
     color: ValidColor
     width: int
 
+
+class Border:
+
+    def __init__(self):
+        self.borders: Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]] = {
+            "top": None,
+            "left": None,
+            "bottom": None,
+            "right": None
+        }
+
+    def set_border(self, side: Literal["top", "left", "bottom", "right"], border: BorderProperties) -> None:
+        self.borders.update({side: border})
+
+    def get_border(self, side: Literal["top", "left", "bottom", "right"]) -> Optional[BorderProperties]:
+        return self.borders[side]
+
+    def get_borders(self) -> Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]]:
+        return self.borders
+
+    def __get_border_width(self, side: Literal["top", "left", "bottom", "right"]) -> int:
+        border = self.borders[side]
+        if border:
+            return border.width
+        return 0
+
+    @property
+    def width(self) -> int:
+        width = self.__get_border_width("left")
+        width += self.__get_border_width("right")
+        return width
+
+    @property
+    def height(self) -> int:
+        height = self.__get_border_width("top")
+        height += self.__get_border_width("bottom")
+        return height
+
+
 class DrawOval:
-    def __init__(self, x1, y1, x2, y2, color: ValidColor, border: BorderProperties = BorderProperties(transform_color(""), 0)):
+    def __init__(self, x1, y1, x2, y2, color: ValidColor, border: Border = Border()):
         self.top = y1
         self.left = x1
         self.bottom = y2
@@ -79,26 +118,104 @@ class DrawOval:
                 self.used_resources = tk_image
             canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
         if not self.color.type == "rgba_color":
-            outline = self.border.color.color
-            if self.border.color.type == "rgba_color":
-                outline = "#" + rgba_to_hex(outline)[:-2]
-            canvas.create_oval(
-                self.left, self.top - scroll,
-                self.right, self.bottom - scroll,
-                width=self.border.width,
-                fill=self.color.color,
-                outline=outline
-            )
+            border = self.border.get_border("top")
+            if border:
+                outline = border.color.color
+                if border.color.type == "rgba_color":
+                    outline = "#" + rgba_to_hex(outline)[:-2]
+                canvas.create_oval(
+                    self.left, self.top - scroll,
+                    self.right, self.bottom - scroll,
+                    width=border.width,
+                    fill=self.color.color,
+                    outline=outline
+                )
+            else:
+                canvas.create_oval(
+                    self.left, self.top - scroll,
+                    self.right, self.bottom - scroll,
+                    fill=self.color.color,
+                )
+
+class DrawBorder:
+    def __init__(self, x1, y1, x2, y2, border: Border = Border()):
+        self.top = y1
+        self.left = x1
+        self.bottom = y2
+        self.right = x2
+        self.border = border
+
+    def calculate_offset(self, side: Literal["top", "left", "bottom", "right"]) -> Tuple[int, int]:
+        offset: Tuple[int, int] = (0, 0)
+        if side == "top":
+            if self.border.get_border("left"):
+                offset = (int(self.border.get_border("left").width/2), offset[1])
+            if self.border.get_border("right"):
+                offset = (offset[0], int(self.border.get_border("right").width/2))
+        elif side == "left":
+            if self.border.get_border("top"):
+                offset = (offset[0], int(self.border.get_border("top").width/2))
+            if self.border.get_border("bottom"):
+                offset = (int(self.border.get_border("bottom").width/2), offset[1])
+        elif side == "bottom":
+            if self.border.get_border("left"):
+                offset = (int(self.border.get_border("left").width/2), offset[1])
+            if self.border.get_border("right"):
+                offset = (offset[0], int(self.border.get_border("right").width/2))
+        elif side == "right":
+            if self.border.get_border("top"):
+                offset = (offset[0], int(self.border.get_border("top").width/2))
+            if self.border.get_border("bottom"):
+                offset = (int(self.border.get_border("bottom").width/2), offset[1])
+
+        return offset
+
+    def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
+
+        for side, border in self.border.get_borders().items():
+            if border:
+                outline = border.color.color
+                if border.color.type == "rgba_color":
+                    outline = "#" + rgba_to_hex(outline)[:-2]
+
+                off1, off2 = self.calculate_offset(side)
+                if side == "top":
+                    canvas.create_line(
+                        self.left - off1, self.top - scroll,
+                        self.right + off2, self.top - scroll,
+                        width=border.width,
+                        fill=outline
+                    )
+                elif side == "left":
+                    canvas.create_line(
+                        self.left, self.top - scroll + off2,
+                        self.left, self.bottom - scroll - off1,
+                        width=border.width,
+                        fill=outline
+                    )
+                elif side == "bottom":
+                    canvas.create_line(
+                        self.left - off1, self.bottom - scroll,
+                        self.right + off2, self.bottom - scroll,
+                        width=border.width,
+                        fill=outline
+                    )
+                elif side == "right":
+                    canvas.create_line(
+                        self.right, self.top - scroll + off2,
+                        self.right, self.bottom - scroll - off1,
+                        width=border.width,
+                        fill=outline
+                    )
 
 class DrawRect:
-    def __init__(self, x1, y1, x2, y2, color: ValidColor, border: BorderProperties = BorderProperties(transform_color(""), 0)):
+    def __init__(self, x1, y1, x2, y2, color: ValidColor):
         self.top = y1
         self.left = x1
         self.bottom = y2
         self.right = x2
         self.color = color
         self.used_resources = None
-        self.border = border
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
         # TODO: Do proper implementation for rgb and rgba colors.
@@ -109,13 +226,9 @@ class DrawRect:
                 self.used_resources = tk_image
             canvas.create_image((self.left, self.top - scroll), image=self.used_resources, anchor='nw')
         if not self.color.type == "rgba_color":
-            outline = self.border.color.color
-            if self.border.color.type == "rgba_color":
-                outline = "#" + rgba_to_hex(outline)[:-2]
             canvas.create_rectangle(
                 self.left, self.top - scroll,
                 self.right, self.bottom - scroll,
-                width=self.border.width,
                 fill=self.color.color,
-                outline=outline
             )
+

@@ -1,5 +1,5 @@
 from typing import List, Literal, Optional, Union
-from browser.elements.elements import BorderProperties, DrawRect
+from browser.elements.elements import Border, BorderProperties, DrawBorder, DrawRect
 from browser.globals import BrowserState
 from browser.styling.color.utils import CSS_COLORS, transform_color
 from browser.styling.font.utils import CSS_FONTS_SIZE, convert_absolute_size_to_pixels
@@ -37,7 +37,7 @@ class Layout:
         self.internal_padding: int = 0
         self.display_list = None
         self.should_recalculate_size = False
-        self.border = None
+        self.border = Border()
         self.font_size = self.calculate_font_size()
         self.float: Literal["none", "left", "right"] = self.node.style.get("float", "none")
         # Holds "real" height of the element. This is used  to calculate body height when elements children are floated.
@@ -208,26 +208,51 @@ class Layout:
             return "block"
 
     def create_border(self) -> None:
-        border_style: Optional[str] = self.node.style.get("border", None)
+        def calclulate_border_width(width: str) -> int:
+            if width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                return int(float(width.replace("em", "")) * font_size)
+            elif width.endswith("%"):
+                return int(self.parent.width * (int(width.replace("%", "")) / 100))
+            elif width.endswith("px"):
+                return int(width[:-2])
+            else:
+                return 0
 
-        if border_style:
+        style = self.node.style
+
+        if style.get("border", None):
+            border_style = style.get("border", None)
             styles = border_style.split(" ")
             color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, styles), None)
             width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
             # TODO: Add support for border style.
-            style = None
-            border_width = 0
-            if width.endswith("em"):
-                font_size = int(self.node.style["font-size"].replace("px", ""))
-                border_width = int(float(width.replace("em", "")) * font_size)
-            elif width.endswith("%"):
-                border_width = int(self.parent.width * (int(width.replace("%", "")) / 100))
-            elif width.endswith("px"):
-                border_width = int(width[:-2])
+            border_width = calclulate_border_width(width)
 
             if color:
                 self.internal_padding = border_width
-                self.border = BorderProperties(width=border_width, color=transform_color(color))
+                for side in ["top", "right", "bottom", "left"]:
+                    self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+        elif style.get("border-width", None) and style.get("border-color", None):
+            colors: Optional[str] = self.node.style.get("border-color", None)
+            border_widths: Optional[str] = self.node.style.get("border-width", None)
+
+            if colors and border_widths:
+                widths: List[str] = list(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), border_widths.split(" ")))
+                #TODO: Handle multiple colors.
+                color = colors.split(" ")[0]
+                for width, side in zip(widths, ["top", "right", "bottom", "left"]):
+                    border_width = calclulate_border_width(width)
+                    self.internal_padding = border_width
+                    self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+        else:
+            for side in ["top", "right", "bottom", "left"]:
+                width = style.get(f"border-{side}-width", None)
+                color = style.get(f"border-{side}-color", None)
+                if width and color:
+                    border_width = calclulate_border_width(width)
+                    self.internal_padding = border_width
+                    self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
 
     def get_background_color(self):
         bgcolor = ""
@@ -254,24 +279,19 @@ class Layout:
                 except:
                     bgcolor = "transparent"
 
+            x2, y2 = self.x + self.width, self.y + self.height
             if bgcolor != "transparent":
                 bgcolor = transform_color(bgcolor)
-                x2, y2 = self.x + self.width, self.y + self.height
-                if str(self.node.id) in BrowserState.get_selected_elements():
-                    rect = DrawRect(self.x, self.y, x2, y2, bgcolor, BorderProperties(transform_color("red"), 10))
-                elif self.border:
-                    rect = DrawRect(self.x, self.y, x2, y2, bgcolor, self.border)
-                else:
-                    rect = DrawRect(self.x, self.y, x2, y2, bgcolor)
-                display_list.append(rect)
+                display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
+
             if str(self.node.id) in BrowserState.get_selected_elements():
-                x2, y2 = self.x + self.width, self.y + self.height
-                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), BorderProperties(transform_color("red"), 10))
-                display_list.append(rect)
-            elif self.border:
-                x2, y2 = self.x + self.width, self.y + self.height - self.border.width
-                rect = DrawRect(self.x, self.y, x2, y2, transform_color(""), self.border)
-                display_list.append(rect)
+                display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(""), ))
+                border = Border()
+                for side in ["top", "right", "bottom", "left"]:
+                    border.set_border(side, BorderProperties(width=10, color=transform_color("red")))
+                display_list.append(DrawBorder(self.x, self.y, x2, y2, border))
+            else:
+                display_list.append(DrawBorder(self.x, self.y, x2, y2, self.border))
 
         for child in self.children:
             child.paint(display_list)

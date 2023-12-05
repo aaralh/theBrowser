@@ -1,6 +1,6 @@
 from tkinter import W
 from typing import List, Literal
-from browser.elements.elements import DrawOval, DrawRect, DrawText
+from browser.elements.elements import DrawBorder, DrawOval, DrawRect, DrawText
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
 from browser.styling.color.utils import transform_color
@@ -82,15 +82,22 @@ class InputLayout(Layout):
                     )
             elif self.type == "checkbox":
                 display_list.append(
-                    DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border)
+                    DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor))
                 )
                 text = self.node.attributes.get("value", None)
                 if text == "on":
                     display_list.append(
-                        DrawRect(self.x + 2, self.y + 2, x2 - 2, y2 - 2, transform_color("black"), self.border)
+                        DrawRect(self.x + 2, self.y + 2, x2 - 2, y2 - 2, transform_color("black"))
                     )
+
+                display_list.append(
+                    DrawBorder(self.x, self.y, x2, y2, self.border)
+                )
             else:
-                display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border))
+                display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor)))
+                display_list.append(
+                    DrawBorder(self.x, self.y, x2, y2, self.border)
+                )
 
         if self.node.name == "input":
             text = self.node.attributes.get("value", None)
