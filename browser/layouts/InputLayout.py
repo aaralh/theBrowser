@@ -93,8 +93,8 @@ class InputLayout(Layout):
                 display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(bgcolor), self.border))
 
         if self.node.name == "input":
+            text = self.node.attributes.get("value", None)
             if self.type == "input":
-                text = self.node.attributes.get("value", None)
                 if not text:
                     text = self.node.attributes.get('alt', " ")
                 if len(text) == 0:
@@ -113,7 +113,7 @@ class InputLayout(Layout):
 
         color = self.node.style["color"]
 
-        if self.type == "input" or self.type == "button":
+        if self.type != "radio" or self.type != "checkbox":
             display_list.append(
                 DrawText(self.x, self.y, text, self.font, color)
             )
