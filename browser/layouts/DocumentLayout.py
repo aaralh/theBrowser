@@ -3,7 +3,7 @@ from browser.elements.elements import DrawRect
 from browser.styling.color.utils import transform_color
 from web.dom.elements import HTMLBodyElement
 from web.dom.DocumentType import DocumentType
-from browser.layouts.Layout import Layout
+from browser.layouts.Layout import Layout, Margin
 from browser.layouts.BlockLayout import BlockLayout
 import browser.globals as globals
 from web.dom.elements.Element import Element
@@ -16,6 +16,7 @@ class DocumentLayout(Layout):
     def __init__(self, node):
         # This self.border is just to keep things a bit simpler.
         self.border = None
+        self.margin = Margin()
         self.float = "none"
 
         self.node = node

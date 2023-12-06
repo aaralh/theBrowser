@@ -16,6 +16,35 @@ BLOCK_ELEMENTS = [
     "legend", "details", "summary"
 ]
 
+MarginSide = Literal["top", "right", "bottom", "left"]
+
+class Margin:
+
+    def __init__(self):
+        self.margins = {
+            "top": 0,
+            "right": 0,
+            "bottom": 0,
+            "left": 0
+        }
+
+    def set_margin(self, side: MarginSide, value: int) -> None:
+        self.margins[side] = value
+
+    def get_margin(self, side: MarginSide) -> int:
+        return self.margins[side]
+
+    def get_margins(self) -> dict:
+        return self.margins
+
+    @property
+    def width(self) -> int:
+        return self.margins["left"] + self.margins["right"]
+
+    @property
+    def height(self) -> int:
+        return self.margins["top"] + self.margins["bottom"]
+
 
 class Layout:
 
@@ -37,6 +66,7 @@ class Layout:
         self.internal_padding: int = 0
         self.display_list = None
         self.should_recalculate_size = False
+        self.margin = Margin()
         self.border = Border()
         self.font_size = self.calculate_font_size()
         self.float: Literal["none", "left", "right"] = self.node.style.get("float", "none")
@@ -65,6 +95,7 @@ class Layout:
             self.float = float_style
         if isinstance(self.node, Element):
             self.create_border()
+            self.create_margin()
 
     def calculate_calculated_height(self) -> int:
         # Here child y and caculated_height might be None in initial layout cycle. With trycatch we can skip the first layout cycle and calculate the height in the second one.
@@ -169,10 +200,10 @@ class Layout:
             else:
                 self.height = sum([line.height for line in self.children if line.float == "none"])
             self.calculated_height = self.calculate_calculated_height()
-        self.width = int(self.width + self.internal_padding*2)
-        self.height = int(self.height + self.internal_padding*2)
+        self.width = int(self.width + self.border.width + self.margin.width)
+        self.height = int(self.height + self.border.height + self.margin.height)
         if self.calculated_height is not None:
-            self.calculated_height = int(self.calculated_height + self.internal_padding*2)
+            self.calculated_height = int(self.calculated_height + self.border.height + self.margin.height)
 
     def recalculate_size(self) -> None:
         if self.should_recalculate_size:
@@ -254,6 +285,35 @@ class Layout:
                     self.internal_padding = border_width
                     self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
 
+    def create_margin(self) -> None:
+        def calculate_margin_width(width: str) -> int:
+            if width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                return int(float(width.replace("em", "")) * font_size)
+            elif width.endswith("%"):
+                return int(self.parent.width * (int(width.replace("%", "")) / 100))
+            elif width.endswith("px"):
+                return int(width[:-2])
+            else:
+                return 0
+
+        style = self.node.style
+        margin = style.get("margin", None)
+        if margin:
+            styles = margin.split(" ")
+            for side in ["top", "right", "bottom", "left"]:
+                #TODO: Handle individual margin widths
+                width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
+                margin_width = calculate_margin_width(width)
+                self.margin.set_margin(side, margin_width)
+        else:
+            for side in ["top", "right", "bottom", "left"]:
+                width = style.get(f"margin-{side}", None)
+                if width:
+                    margin_width = calculate_margin_width(width)
+                    self.margin.set_margin(side, margin_width)
+
+
     def get_background_color(self):
         bgcolor = ""
         attr_color = self.node.attributes.get("bgcolor", None)
@@ -270,6 +330,11 @@ class Layout:
 
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
+            x = self.x + self.margin.get_margin("left")
+            y = self.y + self.margin.get_margin("top")
+            width = self.width - self.margin.width
+            height = self.height - self.margin.height
+
             bgcolor = self.get_background_color()
             if bgcolor == "unset":
                 try:
@@ -279,19 +344,19 @@ class Layout:
                 except:
                     bgcolor = "transparent"
 
-            x2, y2 = self.x + self.width, self.y + self.height
+            x2, y2 = x + width, y + height
             if bgcolor != "transparent":
                 bgcolor = transform_color(bgcolor)
-                display_list.append(DrawRect(self.x, self.y, x2, y2, bgcolor))
+                display_list.append(DrawRect(x, y, x2, y2, bgcolor))
 
             if str(self.node.id) in BrowserState.get_selected_elements():
-                display_list.append(DrawRect(self.x, self.y, x2, y2, transform_color(""), ))
+                display_list.append(DrawRect(x, y, x2, y2, transform_color(""), ))
                 border = Border()
                 for side in ["top", "right", "bottom", "left"]:
                     border.set_border(side, BorderProperties(width=10, color=transform_color("red")))
-                display_list.append(DrawBorder(self.x, self.y, x2, y2, border))
+                display_list.append(DrawBorder(x, y, x2, y2, border))
             else:
-                display_list.append(DrawBorder(self.x, self.y, x2, y2, self.border))
+                display_list.append(DrawBorder(x, y, x2, y2, self.border))
 
         for child in self.children:
             child.paint(display_list)
