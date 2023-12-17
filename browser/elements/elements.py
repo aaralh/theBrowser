@@ -64,38 +64,32 @@ class BorderProperties:
 class Border:
 
     def __init__(self):
-        self.borders: Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]] = {
-            "top": None,
-            "left": None,
-            "bottom": None,
-            "right": None
+        self.borders: Dict[Literal["top", "left", "bottom", "right"], BorderProperties] = {
+            "top": BorderProperties(color=transform_color(""), width=0),
+            "left": BorderProperties(color=transform_color(""), width=0),
+            "bottom": BorderProperties(color=transform_color(""), width=0),
+            "right": BorderProperties(color=transform_color(""), width=0)
         }
 
     def set_border(self, side: Literal["top", "left", "bottom", "right"], border: BorderProperties) -> None:
         self.borders.update({side: border})
 
-    def get_border(self, side: Literal["top", "left", "bottom", "right"]) -> Optional[BorderProperties]:
+    def get_border(self, side: Literal["top", "left", "bottom", "right"]) -> BorderProperties:
         return self.borders[side]
 
-    def get_borders(self) -> Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]]:
+    def get_borders(self) -> Dict[Literal["top", "left", "bottom", "right"], BorderProperties]:
         return self.borders
-
-    def __get_border_width(self, side: Literal["top", "left", "bottom", "right"]) -> int:
-        border = self.borders[side]
-        if border:
-            return border.width
-        return 0
 
     @property
     def width(self) -> int:
-        width = self.__get_border_width("left")
-        width += self.__get_border_width("right")
+        width = self.borders["left"].width
+        width += self.borders["right"].width
         return width
 
     @property
     def height(self) -> int:
-        height = self.__get_border_width("top")
-        height += self.__get_border_width("bottom")
+        height = self.borders["top"].width
+        height += self.borders["bottom"].width
         return height
 
 
@@ -173,7 +167,7 @@ class DrawBorder:
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
 
         for side, border in self.border.get_borders().items():
-            if border:
+            if border.width > 0:
                 outline = border.color.color
                 if border.color.type == "rgba_color":
                     outline = "#" + rgba_to_hex(outline)[:-2]

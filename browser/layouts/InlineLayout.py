@@ -38,16 +38,13 @@ class InlineLayout(Layout):
     def layout(self):
         super().layout()
         self.children = []
-        self.width = self.parent.width - self.parent.margin.width
-        self.x = self.parent.x + self.internal_padding + self.parent.margin.get_margin("left")
+        self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
+        self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.border.get_border("left").width + self.parent.padding.get_padding("left")
 
         if self.previous:
             self.y = self.previous.y + self.previous.calculated_height
         else:
-            self.y = int(self.parent.y + self.internal_padding + self.parent.margin.get_margin("top"))
-
-        if not self.previous and self.parent.border:
-            self.y += self.parent.border.width
+            self.y = int(self.parent.y + self.parent.margin.get_margin("top") + self.parent.border.get_border("top").width) + self.parent.padding.get_padding("top")
 
         self.new_line()
         self.recurse(self.node)
@@ -55,16 +52,12 @@ class InlineLayout(Layout):
         for line in self.children:
             line.layout()
 
-
         self.calculate_size()
 
-        if self.parent.border:
-            self.width -= self.parent.border.width * 2
-
         if self.float == "right":
-            self.x = self.parent.x + self.parent.width - (self.width - self.margin.width)
+            self.x = (self.parent.x + self.parent.width) - self.width
             if self.previous and self.previous.float == "left":
-                if (self.width - self.margin.width) < (self.parent.width - (self.previous.x + self.previous.width)):
+                if self.width < (self.parent.width - (self.previous.x + self.previous.width)):
                     self.y = self.previous.y
                 else:
                     self.y = self.previous.y + self.previous.height
@@ -72,13 +65,13 @@ class InlineLayout(Layout):
                 line.layout()
         elif self.float == "left":
             if self.previous and self.previous.float == "left":
-                if (self.width + self.margin.width) < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
+                if self.width < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
                     self.y = self.previous.y
                     self.x = self.previous.x + self.previous.width
                 else:
                     self.y = self.previous.y + self.previous.height
             else:
-                self.x = self.parent.x + self.parent.margin.get_margin("left")
+                self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.padding.get_padding("left")
             for line in self.children:
                 line.layout()
 
@@ -112,7 +105,7 @@ class InlineLayout(Layout):
 
     def new_line(self):
         self.previous_word = None
-        self.cursor_x = self.x + self.margin.get_margin("left")
+        self.cursor_x = self.x + self.margin.get_margin("left") + self.padding.get_padding("left")
         last_line = self.children[-1] if self.children else None
         new_line = LineLayout(self.node, self, last_line)
         self.children.append(new_line)
@@ -143,7 +136,7 @@ class InlineLayout(Layout):
             w = 10
         else:
             w = INPUT_WIDTH_PX
-        if self.cursor_x + w > (self.x + self.margin.get_margin("left")) + (self.width - self.margin.width):
+        if self.cursor_x + w > (self.x + self.margin.get_margin("left")) + (self.width - (self.margin.width + self.padding.width)):
             self.new_line()
         line = self.children[-1]
         input = InputLayout(element, line, self.previous_word)
@@ -161,7 +154,7 @@ class InlineLayout(Layout):
         for word in data.split():
             w = font.measure(word)
             if self.parent.float == "none":
-                if self.cursor_x + w > (self.width - self.margin.width) - globals.HSTEP:
+                if self.cursor_x + w > (self.width - (self.margin.width + self.padding.width)) - globals.HSTEP:
                     self.new_line()
             line = self.children[-1]
             text = TextLayout(element, word, line, self.previous_word)

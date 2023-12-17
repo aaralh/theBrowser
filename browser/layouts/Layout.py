@@ -16,7 +16,7 @@ BLOCK_ELEMENTS = [
     "legend", "details", "summary"
 ]
 
-MarginSide = Literal["top", "right", "bottom", "left"]
+Side = Literal["top", "right", "bottom", "left"]
 
 class Margin:
 
@@ -28,10 +28,10 @@ class Margin:
             "left": 0
         }
 
-    def set_margin(self, side: MarginSide, value: int) -> None:
+    def set_margin(self, side: Side, value: int) -> None:
         self.margins[side] = value
 
-    def get_margin(self, side: MarginSide) -> int:
+    def get_margin(self, side: Side) -> int:
         return self.margins[side]
 
     def get_margins(self) -> dict:
@@ -45,6 +45,32 @@ class Margin:
     def height(self) -> int:
         return self.margins["top"] + self.margins["bottom"]
 
+class Padding:
+
+        def __init__(self):
+            self.paddings = {
+                "top": 0,
+                "right": 0,
+                "bottom": 0,
+                "left": 0
+            }
+
+        def set_padding(self, side: Side, value: int) -> None:
+            self.paddings[side] = value
+
+        def get_padding(self, side: Side) -> int:
+            return self.paddings[side]
+
+        def get_paddings(self) -> dict:
+            return self.paddings
+
+        @property
+        def width(self) -> int:
+            return self.paddings["left"] + self.paddings["right"]
+
+        @property
+        def height(self) -> int:
+            return self.paddings["top"] + self.paddings["bottom"]
 
 class Layout:
 
@@ -68,6 +94,7 @@ class Layout:
         self.should_recalculate_size = False
         self.margin = Margin()
         self.border = Border()
+        self.padding = Padding()
         self.font_size = self.calculate_font_size()
         self.float: Literal["none", "left", "right"] = self.node.style.get("float", "none")
         # Holds "real" height of the element. This is used  to calculate body height when elements children are floated.
@@ -96,6 +123,7 @@ class Layout:
         if isinstance(self.node, Element):
             self.create_border()
             self.create_margin()
+            self.create_padding()
 
     def calculate_calculated_height(self) -> int:
         # Here child y and caculated_height might be None in initial layout cycle. With trycatch we can skip the first layout cycle and calculate the height in the second one.
@@ -139,9 +167,7 @@ class Layout:
                     else:
                         self.width = 0
                 else:
-                    self.width = self.parent.width
-                    if self.parent.border:
-                        self.width -= self.parent.border.width * 2
+                    self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
                 """
                 if self.float != "none":
                     if len(self.children) > 0:
@@ -149,8 +175,6 @@ class Layout:
                     else:
                         self.width = 0
                 """
-                if self.border:
-                    self.width = self.width - self.border.width*2
             else:
                 if attr_width.endswith("px"):
                     self.width = int(float(attr_width.replace("px", "")))
@@ -192,18 +216,16 @@ class Layout:
                 else:
                     self.width = int(attr_width)
         else:
-            self.width = self.parent.width
-            if self.parent.border:
-                self.width -= self.parent.border.width * 2
+            self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
             if self.float != "none":
                 self.height = sum([line.height for line in self.children])
             else:
                 self.height = sum([line.height for line in self.children if line.float == "none"])
             self.calculated_height = self.calculate_calculated_height()
-        self.width = int(self.width + self.border.width + self.margin.width)
-        self.height = int(self.height + self.border.height + self.margin.height)
+        self.width = int(int(self.width) + self.border.width + self.margin.width + self.padding.width)
+        self.height = int(self.height + self.border.height + self.margin.height + self.padding.height)
         if self.calculated_height is not None:
-            self.calculated_height = int(self.calculated_height + self.border.height + self.margin.height)
+            self.calculated_height = int(self.calculated_height + self.border.height + self.margin.height + self.padding.height)
 
     def recalculate_size(self) -> None:
         if self.should_recalculate_size:
@@ -313,6 +335,33 @@ class Layout:
                     margin_width = calculate_margin_width(width)
                     self.margin.set_margin(side, margin_width)
 
+    def create_padding(self) -> None:
+        def calculate_padding_width(width: str) -> int:
+            if width.endswith("em"):
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                return int(float(width.replace("em", "")) * font_size)
+            elif width.endswith("%"):
+                return int(self.parent.width * (int(width.replace("%", "")) / 100))
+            elif width.endswith("px"):
+                return int(width[:-2])
+            else:
+                return 0
+
+        style = self.node.style
+        padding = style.get("padding", None)
+        if padding:
+            styles = padding.split(" ")
+            for side in ["top", "right", "bottom", "left"]:
+                #TODO: Handle individual margin widths
+                width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
+                padding_width = calculate_padding_width(width)
+                self.padding.set_padding(side, padding_width)
+        else:
+            for side in ["top", "right", "bottom", "left"]:
+                width = style.get(f"padding-{side}", None)
+                if width:
+                    padding_width = calculate_padding_width(width)
+                    self.padding.set_padding(side, padding_width)
 
     def get_background_color(self):
         bgcolor = ""
@@ -330,10 +379,10 @@ class Layout:
 
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
-            x = self.x + self.margin.get_margin("left")
-            y = self.y + self.margin.get_margin("top")
-            width = self.width - self.margin.width
-            height = self.height - self.margin.height
+            x = self.x + self.margin.get_margin("left") + self.padding.get_padding("left")
+            y = self.y + self.margin.get_margin("top") + self.padding.get_padding("top")
+            width = (self.width - self.margin.width) - self.padding.width
+            height = (self.height - self.margin.height) - self.padding.height
 
             bgcolor = self.get_background_color()
             if bgcolor == "unset":

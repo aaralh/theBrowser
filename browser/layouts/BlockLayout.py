@@ -36,16 +36,12 @@ class BlockLayout(Layout):
 
         self.calculate_size()
 
-        self.x = self.parent.x + self.parent.margin.get_margin("left")
-        if self.parent.border:
-            self.x += self.parent.border.width
+        self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.border.get_border("left").width + self.parent.padding.get_padding("left")
 
         if self.previous:
             self.y = self.previous.y + self.previous.calculated_height
         else:
-            self.y = self.parent.y
-            if self.parent.border:
-                self.y += self.parent.border.width
+            self.y = self.parent.y + self.parent.margin.get_margin("top") + self.parent.border.get_border("top").width + self.parent.padding.get_padding("top")
 
         for child in self.children:
             child.layout()
@@ -58,9 +54,9 @@ class BlockLayout(Layout):
                 child.layout()
 
         if self.float == "right":
-            self.x = self.parent.x + self.parent.width - (self.width + self.margin.width)
+            self.x = self.parent.x + self.parent.width - self.width
             if self.previous and self.previous.float == "left":
-                if (self.width - self.margin.width) < (self.parent.width - (self.previous.x + self.previous.width)):
+                if self.width  < (self.parent.width - (self.previous.x + self.previous.width)):
                     self.y = self.previous.y
                 else:
                     self.y = self.previous.y + self.previous.height
@@ -68,7 +64,7 @@ class BlockLayout(Layout):
                 line.layout()
         elif self.float == "left":
             if self.previous and self.previous.float == "left":
-                if (self.width - self.margin.width) < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
+                if self.width < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
                     self.y = self.previous.y
                     self.x = self.previous.x + self.previous.width
                 else:
@@ -76,12 +72,12 @@ class BlockLayout(Layout):
             elif self.parent and self.previous and self.parent.float != "none" and self.previous.float == "none":
                 self.x = self.previous.children[-1].x + self.previous.children[-1].width
 
-                if (self.width - self.margin.width) < (self.parent.width - ((self.previous.children[-1].x + self.previous.children[-1].width) - self.parent.x)):
+                if self.width < (self.parent.width - ((self.previous.children[-1].x + self.previous.children[-1].width) - self.parent.x)):
                     self.y = self.previous.children[-1].y
                 else:
                     self.y = self.previous.children[-1].y + self.previous.children[-1].height
             else:
-                self.x = self.parent.x + self.parent.margin.get_margin("left")
+                self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.padding.get_padding("left")
             for line in self.children:
                 line.layout()
 
