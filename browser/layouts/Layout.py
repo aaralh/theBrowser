@@ -129,12 +129,14 @@ class Layout:
         # Here child y and caculated_height might be None in initial layout cycle. With trycatch we can skip the first layout cycle and calculate the height in the second one.
         try:
             lowest_child_corner = max([child.y + child.calculated_height for child in self.children if child.y and child.calculated_height])
-            return lowest_child_corner - self.y
+            return lowest_child_corner - (self.y + self.margin.get_margin("top") + self.padding.get_padding("top"))
         except:
             return 0
 
 
     def calculate_size(self) -> None:
+        self.height = 0
+        self.width = 0
         if not isinstance(self.node, Text):
             attr_height = self.node.style.get("height", "auto")
             if attr_height == "auto":
@@ -167,7 +169,7 @@ class Layout:
                     else:
                         self.width = 0
                 else:
-                    self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
+                    self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width) - (self.margin.width + self.padding.width + self.border.width)
                 """
                 if self.float != "none":
                     if len(self.children) > 0:
@@ -216,7 +218,7 @@ class Layout:
                 else:
                     self.width = int(attr_width)
         else:
-            self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
+            self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width) - (self.margin.width + self.padding.width + self.border.width)
             if self.float != "none":
                 self.height = sum([line.height for line in self.children])
             else:
@@ -237,13 +239,11 @@ class Layout:
     def update_layout(self, relayout_children: bool = False) -> None:
         #import pdb; pdb.set_trace()
         if self.relayout or relayout_children:
-            print("Relayout", self)
             self.layout()
             for child in self.children:
                 child.parent = self
                 child.update_layout(True)
         else:
-            print("not relayout", self)
             for child in self.children:
                 child.update_layout()
 
@@ -294,10 +294,30 @@ class Layout:
                 widths: List[str] = list(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), border_widths.split(" ")))
                 #TODO: Handle multiple colors.
                 color = colors.split(" ")[0]
-                for width, side in zip(widths, ["top", "right", "bottom", "left"]):
-                    border_width = calclulate_border_width(width)
-                    self.internal_padding = border_width
-                    self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+                if len(widths) == 4:
+                    for index, side in enumerate(["top", "right", "bottom", "left"]):
+                        width = widths[index]
+                        border_width = calclulate_border_width(width)
+                        self.internal_padding = border_width
+                        self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+                elif len(widths) == 2:
+                    for side in ["top", "bottom"]:
+                        width = widths[0]
+                        border_width = calclulate_border_width(width)
+                        self.internal_padding = border_width
+                        self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+                    for side in ["right", "left"]:
+                        width = widths[1]
+                        border_width = calclulate_border_width(width)
+                        self.internal_padding = border_width
+                        self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+                elif len(widths) == 1:
+                    for side in ["top", "right", "bottom", "left"]:
+                        width = widths[0]
+                        border_width = calclulate_border_width(width)
+                        self.internal_padding = border_width
+                        self.border.set_border(side, BorderProperties(width=border_width, color=transform_color(color)))
+
         else:
             for side in ["top", "right", "bottom", "left"]:
                 width = style.get(f"border-{side}-width", None)
@@ -323,11 +343,27 @@ class Layout:
         margin = style.get("margin", None)
         if margin:
             styles = margin.split(" ")
-            for side in ["top", "right", "bottom", "left"]:
-                #TODO: Handle individual margin widths
-                width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
-                margin_width = calculate_margin_width(width)
-                self.margin.set_margin(side, margin_width)
+            widths = list(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em") or item.isnumeric(), styles))
+            if len(widths) == 4:
+                for index, side in enumerate(["top", "right", "bottom", "left"]):
+                    width = widths[index]
+                    margin_width = calculate_margin_width(width)
+                    self.margin.set_margin(side, margin_width)
+
+            elif len(widths) == 2:
+                for side in ["top", "bottom"]:
+                    width = widths[0]
+                    margin_width = calculate_margin_width(width)
+                    self.margin.set_margin(side, margin_width)
+                for side in ["right", "left"]:
+                    width = widths[1]
+                    margin_width = calculate_margin_width(width)
+                    self.margin.set_margin(side, margin_width)
+            elif len(widths) == 1:
+                for side in ["top", "right", "bottom", "left"]:
+                    width = widths[0]
+                    margin_width = calculate_margin_width(width)
+                    self.margin.set_margin(side, margin_width)
         else:
             for side in ["top", "right", "bottom", "left"]:
                 width = style.get(f"margin-{side}", None)
@@ -348,14 +384,30 @@ class Layout:
                 return 0
 
         style = self.node.style
-        padding = style.get("padding", None)
+        padding: Optional[str] = style.get("padding", None)
         if padding:
             styles = padding.split(" ")
-            for side in ["top", "right", "bottom", "left"]:
-                #TODO: Handle individual margin widths
-                width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
-                padding_width = calculate_padding_width(width)
-                self.padding.set_padding(side, padding_width)
+            widths = list(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em") or item.isnumeric(), styles))
+            if len(widths) == 4:
+                for index, side in enumerate(["top", "right", "bottom", "left"]):
+                    #TODO: Handle individual margin widths
+                    width = widths[index]
+                    padding_width = calculate_padding_width(width)
+                    self.padding.set_padding(side, padding_width)
+            elif len(widths) == 2:
+                for side in ["top", "bottom"]:
+                    width = widths[0]
+                    padding_width = calculate_padding_width(width)
+                    self.padding.set_padding(side, padding_width)
+                for side in ["right", "left"]:
+                    width = widths[1]
+                    padding_width = calculate_padding_width(width)
+                    self.padding.set_padding(side, padding_width)
+            elif len(widths) == 1:
+                for side in ["top", "right", "bottom", "left"]:
+                    width = widths[0]
+                    padding_width = calculate_padding_width(width)
+                    self.padding.set_padding(side, padding_width)
         else:
             for side in ["top", "right", "bottom", "left"]:
                 width = style.get(f"padding-{side}", None)
@@ -379,10 +431,10 @@ class Layout:
 
     def paint(self, display_list: list) -> None:
         if isinstance(self.node, Element):
-            x = self.x + self.margin.get_margin("left") + self.padding.get_padding("left")
-            y = self.y + self.margin.get_margin("top") + self.padding.get_padding("top")
-            width = (self.width - self.margin.width) - self.padding.width
-            height = (self.height - self.margin.height) - self.padding.height
+            x = self.x + self.margin.get_margin("left")
+            y = self.y + self.margin.get_margin("top")
+            width = (self.width - self.margin.width)
+            height = (self.height - self.margin.height)
 
             bgcolor = self.get_background_color()
             if bgcolor == "unset":
