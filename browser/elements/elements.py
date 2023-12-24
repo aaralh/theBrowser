@@ -64,38 +64,32 @@ class BorderProperties:
 class Border:
 
     def __init__(self):
-        self.borders: Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]] = {
-            "top": None,
-            "left": None,
-            "bottom": None,
-            "right": None
+        self.borders: Dict[Literal["top", "left", "bottom", "right"], BorderProperties] = {
+            "top": BorderProperties(color=transform_color(""), width=0),
+            "left": BorderProperties(color=transform_color(""), width=0),
+            "bottom": BorderProperties(color=transform_color(""), width=0),
+            "right": BorderProperties(color=transform_color(""), width=0)
         }
 
     def set_border(self, side: Literal["top", "left", "bottom", "right"], border: BorderProperties) -> None:
         self.borders.update({side: border})
 
-    def get_border(self, side: Literal["top", "left", "bottom", "right"]) -> Optional[BorderProperties]:
+    def get_border(self, side: Literal["top", "left", "bottom", "right"]) -> BorderProperties:
         return self.borders[side]
 
-    def get_borders(self) -> Dict[Literal["top", "left", "bottom", "right"], Optional[BorderProperties]]:
+    def get_borders(self) -> Dict[Literal["top", "left", "bottom", "right"], BorderProperties]:
         return self.borders
-
-    def __get_border_width(self, side: Literal["top", "left", "bottom", "right"]) -> int:
-        border = self.borders[side]
-        if border:
-            return border.width
-        return 0
 
     @property
     def width(self) -> int:
-        width = self.__get_border_width("left")
-        width += self.__get_border_width("right")
+        width = self.borders["left"].width
+        width += self.borders["right"].width
         return width
 
     @property
     def height(self) -> int:
-        height = self.__get_border_width("top")
-        height += self.__get_border_width("bottom")
+        height = self.borders["top"].width
+        height += self.borders["bottom"].width
         return height
 
 
@@ -147,6 +141,7 @@ class DrawBorder:
 
     def calculate_offset(self, side: Literal["top", "left", "bottom", "right"]) -> Tuple[int, int]:
         offset: Tuple[int, int] = (0, 0)
+        """
         if side == "top":
             if self.border.get_border("left"):
                 offset = (int(self.border.get_border("left").width/2), offset[1])
@@ -168,12 +163,13 @@ class DrawBorder:
             if self.border.get_border("bottom"):
                 offset = (int(self.border.get_border("bottom").width/2), offset[1])
 
+"""
         return offset
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
 
         for side, border in self.border.get_borders().items():
-            if border:
+            if border.width > 0:
                 outline = border.color.color
                 if border.color.type == "rgba_color":
                     outline = "#" + rgba_to_hex(outline)[:-2]
@@ -181,29 +177,29 @@ class DrawBorder:
                 off1, off2 = self.calculate_offset(side)
                 if side == "top":
                     canvas.create_line(
-                        self.left - off1, self.top - scroll,
-                        self.right + off2, self.top - scroll,
+                        self.left - off1, (self.top - scroll) + border.width/2,
+                        self.right + off2, (self.top - scroll) + border.width/2,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "left":
                     canvas.create_line(
-                        self.left, self.top - scroll + off2,
-                        self.left, self.bottom - scroll - off1,
+                        (self.left + border.width/2), self.top - scroll + off2,
+                        (self.left + border.width/2), self.bottom - scroll - off1,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "bottom":
                     canvas.create_line(
-                        self.left - off1, self.bottom - scroll,
-                        self.right + off2, self.bottom - scroll,
+                        self.left - off1, (self.bottom - scroll) - border.width/2,
+                        self.right + off2, (self.bottom - scroll) - border.width/2,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "right":
                     canvas.create_line(
-                        self.right, self.top - scroll + off2,
-                        self.right, self.bottom - scroll - off1,
+                        (self.right - border.width/2), self.top - scroll + off2,
+                        (self.right - border.width/2), self.bottom - scroll - off1,
                         width=border.width,
                         fill=outline
                     )

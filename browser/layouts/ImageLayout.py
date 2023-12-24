@@ -10,8 +10,12 @@ from web.dom.Node import Node
 from PIL import Image, ImageTk, UnidentifiedImageError
 from io import BytesIO
 from browser.utils.networking import request
-from cairosvg import svg2png
 from browser.utils.logging import log
+
+# Workaround for apple m chip macs to be able to laod cairosvg.
+from ctypes.macholib import dyld
+dyld.DEFAULT_LIBRARY_FALLBACK.append("/opt/homebrew/lib")
+from cairosvg import svg2png
 
 class ImageLayout(Layout):
     def __init__(self, node: Node, parent: Layout, previous: Layout):

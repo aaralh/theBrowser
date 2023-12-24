@@ -40,7 +40,7 @@ def request(url: str, payload: Optional[dict]=None) -> Response:
         if REQUEST_CACHE.get(url) and not payload:
             return REQUEST_CACHE.get(url)
         headers = {
-                "User-Agent": "theBrowser/0.03-alpha"
+                "User-Agent": "theBrowser/0.4-alpha"
             }
         if payload:
             response = requests.post(url, json=json.dumps(payload), headers=headers)

@@ -16,14 +16,13 @@ class LineLayout(Layout):
 
     def layout(self):
         super().layout()
-        self.width = self.parent.width
-        self.x = self.parent.x
+        self.width = self.parent.width - self.parent.margin.width
+        self.x = self.parent.x + self.parent.border.get_border("left").width + self.parent.margin.get_margin("left") + self.parent.padding.get_padding("left")
 
         if self.previous:
             self.y = self.previous.y + self.previous.height
         else:
-            self.y = self.parent.y
-            self.x = self.x + self.parent.internal_padding
+            self.y = self.parent.y + self.parent.margin.get_margin("top") + self.parent.padding.get_padding("top")
 
         for word in self.children:
             word.layout()

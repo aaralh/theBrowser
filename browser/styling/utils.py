@@ -53,6 +53,8 @@ def style(node: Element, rules: List[Rule]):
     if isinstance(node, Element) and "style" in node.attributes:
         pairs = CSSParser(node.attributes["style"]).body()
         for property, value in pairs.items():
-            node.style[property] = value
+            computed_value = computed_style(node, property, value)
+            if not computed_value: continue
+            node.style[property] = computed_value
     for child in node.children:
         style(child, rules)

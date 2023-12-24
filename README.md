@@ -44,8 +44,7 @@ Bolded items with :construction: are currently in WIP. Items marked with :shipit
 
 ### Acid1 test
 theBrowser:
-
-![image](https://github.com/aaralh/theBrowser/assets/28383203/1e88a418-817e-4260-aec8-f972a0928a40)
+![image](https://github.com/aaralh/theBrowser/assets/28383203/e7e4f59f-adef-4d4c-ba8d-952f4966b9d4)
 
 
 Reference (MS Edge):
