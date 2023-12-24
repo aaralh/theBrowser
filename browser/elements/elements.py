@@ -141,6 +141,7 @@ class DrawBorder:
 
     def calculate_offset(self, side: Literal["top", "left", "bottom", "right"]) -> Tuple[int, int]:
         offset: Tuple[int, int] = (0, 0)
+        """
         if side == "top":
             if self.border.get_border("left"):
                 offset = (int(self.border.get_border("left").width/2), offset[1])
@@ -162,6 +163,7 @@ class DrawBorder:
             if self.border.get_border("bottom"):
                 offset = (int(self.border.get_border("bottom").width/2), offset[1])
 
+"""
         return offset
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
@@ -175,29 +177,29 @@ class DrawBorder:
                 off1, off2 = self.calculate_offset(side)
                 if side == "top":
                     canvas.create_line(
-                        self.left - off1, self.top - scroll,
-                        self.right + off2, self.top - scroll,
+                        self.left - off1, (self.top - scroll) + border.width/2,
+                        self.right + off2, (self.top - scroll) + border.width/2,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "left":
                     canvas.create_line(
-                        self.left, self.top - scroll + off2,
-                        self.left, self.bottom - scroll - off1,
+                        (self.left + border.width/2), self.top - scroll + off2,
+                        (self.left + border.width/2), self.bottom - scroll - off1,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "bottom":
                     canvas.create_line(
-                        self.left - off1, self.bottom - scroll,
-                        self.right + off2, self.bottom - scroll,
+                        self.left - off1, (self.bottom - scroll) - border.width/2,
+                        self.right + off2, (self.bottom - scroll) - border.width/2,
                         width=border.width,
                         fill=outline
                     )
                 elif side == "right":
                     canvas.create_line(
-                        self.right, self.top - scroll + off2,
-                        self.right, self.bottom - scroll - off1,
+                        (self.right - border.width/2), self.top - scroll + off2,
+                        (self.right - border.width/2), self.bottom - scroll - off1,
                         width=border.width,
                         fill=outline
                     )
