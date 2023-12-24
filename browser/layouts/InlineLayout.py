@@ -5,7 +5,7 @@ from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from dataclasses import dataclass
 from tkinter.font import Font
-from typing import List, Tuple, Union
+from typing import Union
 from web.dom.elements.Element import Element
 from web.dom.elements import Text
 import browser.globals as globals
@@ -57,7 +57,7 @@ class InlineLayout(Layout):
         if self.float == "right":
             self.x = (self.parent.x + self.parent.width) - self.width
             if self.previous and self.previous.float == "left":
-                if self.width < (self.parent.width - (self.previous.x + self.previous.width)):
+                if self.width < (self.parent.x + self.parent.width) - (self.previous.x + self.previous.width):
                     self.y = self.previous.y
                 else:
                     self.y = self.previous.y + self.previous.height
@@ -65,7 +65,7 @@ class InlineLayout(Layout):
                 line.layout()
         elif self.float == "left":
             if self.previous and self.previous.float == "left":
-                if self.width < (self.parent.width - ((self.previous.x + self.previous.width) - self.parent.x)):
+                if self.width < (self.parent.x + self.parent.width) - (self.previous.x + self.previous.width):
                     self.y = self.previous.y
                     self.x = self.previous.x + self.previous.width
                 else:
@@ -82,7 +82,6 @@ class InlineLayout(Layout):
         if isinstance(node, Text):
             self.text(node)
         elif isinstance(node, HTMLImgElement):
-            print("image")
             if "src" in node.attributes:
                 self.image(node)
                 self.new_line()
