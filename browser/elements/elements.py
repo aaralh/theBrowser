@@ -167,42 +167,58 @@ class DrawBorder:
         return offset
 
     def execute(self, scroll: int, canvas: Canvas, supported_emojis: List[str]):
-
-        for side, border in self.border.get_borders().items():
+        widths = [border.width for border in self.border.get_borders().values()]
+        all_same_width = len(list(set(widths))) == 1
+        if all_same_width:
+            border = self.border.get_border("top")
             if border.width > 0:
                 outline = border.color.color
                 if border.color.type == "rgba_color":
                     outline = "#" + rgba_to_hex(outline)[:-2]
+                offset = border.width//2
+                canvas.create_rectangle(
+                    self.left + offset, (self.top - scroll) + offset,
+                    self.right - offset, (self.bottom - scroll) - offset,
+                    width=border.width,
+                    outline=outline
+                )
+        else:
+            for side, border in self.border.get_borders().items():
+                if border.width > 0:
+                    outline = border.color.color
+                    if border.color.type == "rgba_color":
+                        outline = "#" + rgba_to_hex(outline)[:-2]
 
-                off1, off2 = self.calculate_offset(side)
-                if side == "top":
-                    canvas.create_line(
-                        self.left - off1, (self.top - scroll) + border.width/2,
-                        self.right + off2, (self.top - scroll) + border.width/2,
-                        width=border.width,
-                        fill=outline
-                    )
-                elif side == "left":
-                    canvas.create_line(
-                        (self.left + border.width/2), self.top - scroll + off2,
-                        (self.left + border.width/2), self.bottom - scroll - off1,
-                        width=border.width,
-                        fill=outline
-                    )
-                elif side == "bottom":
-                    canvas.create_line(
-                        self.left - off1, (self.bottom - scroll) - border.width/2,
-                        self.right + off2, (self.bottom - scroll) - border.width/2,
-                        width=border.width,
-                        fill=outline
-                    )
-                elif side == "right":
-                    canvas.create_line(
-                        (self.right - border.width/2), self.top - scroll + off2,
-                        (self.right - border.width/2), self.bottom - scroll - off1,
-                        width=border.width,
-                        fill=outline
-                    )
+                    off1, off2 = self.calculate_offset(side)
+                    width = border.width//2 if border.width % 2 == 0 else border.width//2 - 1
+                    if side == "top":
+                        canvas.create_line(
+                            self.left - off1, (self.top - scroll) + width,
+                            self.right + off2, (self.top - scroll) + width,
+                            width=border.width,
+                            fill=outline
+                        )
+                    elif side == "left":
+                        canvas.create_line(
+                            (self.left + width), (self.top - scroll) - 0,
+                            (self.left + width), (self.bottom - scroll) - 1,
+                            width=border.width,
+                            fill=outline
+                        )
+                    elif side == "bottom":
+                        canvas.create_line(
+                            self.left - off1, (self.bottom - scroll) - width,
+                            self.right + off2, (self.bottom - scroll) - width,
+                            width=border.width,
+                            fill=outline
+                        )
+                    elif side == "right":
+                        canvas.create_line(
+                            (self.right - width), (self.top - scroll) - 0,
+                            (self.right - width), (self.bottom - scroll) - 1,
+                            width=border.width,
+                            fill=outline
+                        )
 
 class DrawRect:
     def __init__(self, x1, y1, x2, y2, color: ValidColor):

@@ -329,7 +329,11 @@ class Layout:
 
     def create_margin(self) -> None:
         def calculate_margin_width(width: str) -> int:
-            if width.endswith("em"):
+            if width.endswith("rem"):
+                #TODO: Fix rem and em calculations.
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                return int(float(width.replace("rem", "")) * font_size)
+            elif width.endswith("em"):
                 font_size = int(self.node.style["font-size"].replace("px", ""))
                 return int(float(width.replace("em", "")) * font_size)
             elif width.endswith("%"):
@@ -373,11 +377,15 @@ class Layout:
 
     def create_padding(self) -> None:
         def calculate_padding_width(width: str) -> int:
-            if width.endswith("em"):
+            if width.endswith("rem"):
+                #TODO: Fix rem and em calculations.
+                font_size = int(self.node.style["font-size"].replace("px", ""))
+                return int(float(width.replace("rem", "")) * font_size)
+            elif width.endswith("em"):
                 font_size = int(self.node.style["font-size"].replace("px", ""))
                 return int(float(width.replace("em", "")) * font_size)
             elif width.endswith("%"):
-                return int(self.parent.width * (int(width.replace("%", "")) / 100))
+                return int(self.parent.width * (int(float(width.replace("%", ""))) / 100))
             elif width.endswith("px"):
                 return int(width[:-2])
             else:
