@@ -70,17 +70,33 @@ class CSSParser:
 
     def body(self) -> Dict:
         pairs = {}
+        in_comment = False
         while self.index < len(self.style_string) and self.style_string[self.index] != "}":
             try:
+                if self.style_string[self.index] == "/" and self.style_string[self.index + 1] == "*":
+                    in_comment = True
+                    self.literal("/")
+                    self.literal("*")
+                    self.whitespace()
+                    self.ignore_until(["*"])
+                elif self.style_string[self.index] == "*" and in_comment:
+                    in_comment = False
+                    self.literal("*")
+                    self.literal("/")
+                    self.whitespace()
                 prop, val, important  = self.pair([";", "}"])
                 pairs[prop.lower()] = val
                 self.whitespace()
                 self.literal(";")
                 self.whitespace()
             except AssertionError as e:
-                why = self.ignore_until([";", "}"])
+                why = self.ignore_until(["*", ";", "}"])
                 if why == ";":
                     self.literal(";")
+                    self.whitespace()
+                elif why == "*":
+                    self.literal("*")
+                    self.literal("/")
                     self.whitespace()
                 else:
                     break
@@ -99,6 +115,7 @@ class CSSParser:
     def parse(self) -> List[Rule]:
         rules = []
         media = None
+        in_comment = False
         self.whitespace()
         while self.index < len(self.style_string):
             try:
@@ -117,6 +134,17 @@ class CSSParser:
                     self.literal("}")
                     media = None
                     self.whitespace()
+                elif self.style_string[self.index] == "/" and self.style_string[self.index + 1] == "*":
+                    in_comment = True
+                    self.literal("/")
+                    self.literal("*")
+                    self.whitespace()
+                    self.ignore_until(["*"])
+                elif self.style_string[self.index] == "*" and in_comment:
+                    in_comment = False
+                    self.literal("*")
+                    self.literal("/")
+                    self.whitespace()
                 else:
                     selector = self.selector()
                     self.literal("{")
@@ -124,7 +152,7 @@ class CSSParser:
                     body = self.body()
                     self.literal("}")
                     self.whitespace()
-                    if not media:
+                    if not media and not in_comment:
                         rules.append(Rule(selector, body))
             except AssertionError:
                 why = self.ignore_until(["}"])
