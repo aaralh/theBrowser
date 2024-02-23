@@ -512,7 +512,11 @@ class HTMLDocumentParser:
                 raise NotImplementedError  # Handle case
             elif token.name == "template":
                 # Handle case, Process the token using the rules for the "in head" insertion mode.
-                raise NotImplementedError
+                element = self.__create_element(token)
+                self.__open_elements.push(element)
+                self.__formatting_elements.addMarker()
+                self.__frameset_ok = False
+                self.__switchModeTo(self.__Mode.InTemplate)
             elif token.name in ["noframes", "style"]:
                 element = self.__create_element(token)
                 self.__open_elements.push(element)
@@ -856,7 +860,36 @@ class HTMLDocumentParser:
         return
 
     def handle_in_template(self) -> None:
-        return
+        if token.type in [HTMLToken.TokenType.Character, HTMLToken.TokenType.Comment, HTMLToken.TokenType.DOCTYPE]:
+            self.__reconsumeIn(self.__Mode.InBody, token)
+        elif token.type == HTMLToken.TokenType.StartTag:
+            token = cast(HTMLTag, token)
+            if token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style", "template",
+                              "title"]:
+                self.__reconsumeIn(self.__Mode.InHead, token)
+            elif token.name in ["caption", "colgroup", "tbody", "tfoot", "thead"]:
+                self.__open_elements.pop()
+                self.__open_elements.push(cast(Element, self.__current_element.parentNode))
+                self.__reconsumeIn(self.__Mode.InTable, token)
+            elif token.name == "col":
+                self.__open_elements.pop()
+                self.__reconsumeIn(self.__Mode.InColumnGroup, token)
+            elif token.name == "tr":
+                self.__open_elements.pop()
+                self.__open_elements.push(cast(Element, self.__current_element.parentNode))
+                self.__reconsumeIn(self.__Mode.InTableBody, token)
+            elif token.name in ["td", "th"]:
+                self.__open_elements.pop()
+                self.__open_elements.push(cast(Element, self.__current_element.parentNode))
+                self.__reconsumeIn(self.__Mode.InRow, token)
+            else:
+                self.__reconsumeIn(self.__Mode.InBody, token)
+        elif token.type == HTMLToken.TokenType.EndTag:
+            if token.name == "template":
+                if self.__open_elements.contains("template") is False:
+                    pass
+            else:
+                self.__reconsumeIn(self.__Mode.InBody, token)
 
     def handle_after_body(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         if token.type == HTMLToken.TokenType.EOF:
