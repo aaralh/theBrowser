@@ -234,6 +234,39 @@ class HTMLDocumentParser:
             pass
         self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("p")
 
+    def __reset_insertion_mode_appropriately(self) -> None:
+        last = self.__open_elements.last()
+
+        if not last:
+            return
+
+        if last.name == "select":
+            self.__switchModeTo(self.__Mode.InSelect)
+        elif last.name in ["td", "th"]:
+            self.__switchModeTo(self.__Mode.InCell)
+        elif last.name == "tr":
+            self.__switchModeTo(self.__Mode.InRow)
+        elif last.name in ["tbody", "thead", "tfoot"]:
+            self.__switchModeTo(self.__Mode.InTableBody)
+        elif last.name == "caption":
+            self.__switchModeTo(self.__Mode.InCaption)
+        elif last.name == "colgroup":
+            self.__switchModeTo(self.__Mode.InColumnGroup)
+        elif last.name == "table":
+            self.__switchModeTo(self.__Mode.InTable)
+        elif last.name == "template":
+            self.__switchModeTo(self.__Mode.InTemplate)
+        elif last.name == "head":
+            self.__switchModeTo(self.__Mode.InHead)
+        elif last.name == "body":
+            self.__switchModeTo(self.__Mode.InBody)
+        elif last.name == "frameset":
+            self.__switchModeTo(self.__Mode.InFrameset)
+        elif last.name == "html":
+            self.__switchModeTo(self.__Mode.AfterAfterBody)
+        else:
+            self.__switchModeTo(self.__Mode.InBody)
+
     def __find_appropriate_place_for_inserting_node(self) -> AdjustedInsertionLocation:
         target = self.__current_element
         adjusted_location = self.AdjustedInsertionLocation()
@@ -401,6 +434,7 @@ class HTMLDocumentParser:
                 else:
                     self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("template")
                     self.__formatting_elements.clearUpToTheLastMarker()
+                    self.__reset_insertion_mode_appropriately()
                 # TODO: Handle rest of the case.
         else:
             self.__open_elements.pop()
@@ -467,8 +501,7 @@ class HTMLDocumentParser:
                 self.__switchModeTo(self.__Mode.InBody)
             elif token.name == "frameset":
                 raise NotImplementedError  # TODO: Handle case.
-            elif (token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style",
-                                 "template", "title"]):
+            elif (token.name in ["base", "basefont", "bgsound", "link", "meta", "noframes", "script", "style","template", "title"]):
                 raise NotImplementedError  # TODO: Handle case.
             elif token.name == "head":
                 pass  # Ignroe token.
@@ -678,7 +711,13 @@ class HTMLDocumentParser:
         elif token.type == HTMLToken.TokenType.EndTag:
             if token.name == "template":
                 # Handle case, Process the token using the rules for the "in head" insertion mode.
-                raise NotImplementedError
+                if not self.__open_elements.contains("template"):
+                    pass
+                else:
+                    self.__open_elements.popUntilElementWithAtagNameHasBeenPopped("template")
+                    self.__formatting_elements.clearUpToTheLastMarker()
+                    self.__reset_insertion_mode_appropriately()
+                # TODO: Handle rest of the case.
             elif token.name == "body":
                 log("Closing body element")
                 open_body_element = self.__open_elements.lastElementWithTagName(token.name)
@@ -859,7 +898,7 @@ class HTMLDocumentParser:
     def handle_in_select_in_table(self) -> None:
         return
 
-    def handle_in_template(self) -> None:
+    def handle_in_template(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
         if token.type in [HTMLToken.TokenType.Character, HTMLToken.TokenType.Comment, HTMLToken.TokenType.DOCTYPE]:
             self.__reconsumeIn(self.__Mode.InBody, token)
         elif token.type == HTMLToken.TokenType.StartTag:

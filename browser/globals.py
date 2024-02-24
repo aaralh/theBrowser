@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Tuple
 from uuid import UUID
 from browser.utils import logging
 
@@ -13,6 +13,7 @@ class BrowserState():
     __current_url: str = ""
     __inspectors: List[Inspector] = []
     __selected_elements: List[UUID] = []
+    __window_size: Tuple[int, int] = (800, 600)
 
     @staticmethod
     def set_selected_elements(element_ids: List[UUID]) -> None:
@@ -47,3 +48,10 @@ class BrowserState():
     def remove_inspector(inspector: Inspector) -> None:
         BrowserState.__inspectors.remove(inspector)
 
+    @staticmethod
+    def set_window_size(width: int, height: int) -> None:
+        BrowserState.__window_size = (width, height)
+
+    @staticmethod
+    def get_window_size() -> Tuple[int, int]:
+        return BrowserState.__window_size

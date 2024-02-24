@@ -215,6 +215,12 @@ class Layout:
                     parent_width = self.parent.width
                     self.width = int(parent_width * \
                         (float(attr_width.replace("%", "")) / 100))
+                elif attr_width.endswith("vw"):
+                    self.width = int(BrowserState.get_window_size()[1] * \
+                        (float(attr_width.replace("vw", "")) / 100))
+                elif attr_width == "max-content":
+                    #TODO: Handle max-content as it should be handled https://developer.mozilla.org/en-US/docs/Web/CSS/max-content.
+                    self.width = self.parent.width
                 else:
                     self.width = int(attr_width)
         else:
@@ -276,6 +282,7 @@ class Layout:
 
         if style.get("border", None):
             border_style = style.get("border", None)
+            border_style = border_style.replace(", ", ",")
             styles = border_style.split(" ")
             color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, styles), None)
             width = next(filter(lambda item: item.endswith("%") or item.endswith("px") or item.endswith("em"), styles), "")
@@ -430,6 +437,7 @@ class Layout:
             return transform_color(attr_color).color
         background_style = self.node.style.get("background", None)
         if background_style:
+            background_style = background_style.replace(", ", ",")
             background_style = background_style.split(" ")
             color = next(filter(lambda item: item.startswith("#") or item.startswith("rgb") or item in CSS_COLORS, background_style), None)
             if color:

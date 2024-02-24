@@ -26,8 +26,6 @@ import urllib
 
 SCROLL_STEP = 10
 SCROLLBAR_WIDTH = 15
-WIDTH = 800
-HEIGHT = 600
 
 @dataclass
 class FocusObject:
@@ -48,8 +46,8 @@ class Browser:
         self.search_button.grid(column=1, row=0, sticky="news")
         self.content_frame = tkinter.Frame(
             self.window,
-            width=WIDTH,
-            height=HEIGHT)
+            width=BrowserState.get_window_size()[0],
+            height=BrowserState.get_window_size()[1])
         self.content_frame.grid(column=0, row=1, columnspan=2, sticky="news")
         self.canvas = tkinter.Canvas(
             self.content_frame,
@@ -121,16 +119,15 @@ class Browser:
             return
         if not self.document:
             return
-        global WIDTH, HEIGHT
-        if WIDTH == event.width and HEIGHT == event.height:
+        width, height = BrowserState.get_window_size()
+        if width == event.width and height == event.height:
             # If height and width has not changed then ignore.
             return
         if self.re_draw_timeout != None:
             self.window.after_cancel(self.re_draw_timeout)
             self.re_draw_timeout = None
-        WIDTH = event.width
-        HEIGHT = event.height
-        self.document.height = HEIGHT
+        BrowserState.set_window_size(event.width, event.height)
+        self.document.height = event.height
         self.re_draw_timeout = self.window.after(10, self.redraw)
 
     def handle_key(self, e):
@@ -219,7 +216,7 @@ class Browser:
     def redraw(self) -> None:
         self.re_draw_timeout = None
         if self.document:
-            self.document.layout(WIDTH - SCROLLBAR_WIDTH)
+            self.document.layout(BrowserState.get_window_size()[1] - SCROLLBAR_WIDTH)
             self.display_list = []
             self.document.paint(self.display_list)
         self.used_resources = []
@@ -270,9 +267,9 @@ class Browser:
             f.write(str(dom))
         self.document = DocumentLayout(dom)
         [inspector.update_dom(dom) for inspector in BrowserState.get_inspectors()]
-        self.document.height = HEIGHT
-        self.document.layout(WIDTH - SCROLLBAR_WIDTH)
-        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.document.height = BrowserState.get_window_size()[1]
+        self.document.layout(BrowserState.get_window_size()[0] - SCROLLBAR_WIDTH)
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + BrowserState.get_window_size()[1])/self.document.content_height))
         self.display_list = []
         self.document.paint(self.display_list)
 
@@ -294,13 +291,13 @@ class Browser:
 
     def scroll_down(self, delta: int):
         delta = delta * -1
-        max_y = (self.document.content_height - HEIGHT) + 15
+        max_y = (self.document.content_height - BrowserState.get_window_size()[0]) + 15
         scroll = min(self.scroll + (delta * SCROLL_STEP), max_y)
         if scroll <= 0:
             self.scroll = 0
         else:
             self.scroll = scroll
-        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + BrowserState.get_window_size()[0])/self.document.content_height))
         self.draw()
 
     def scroll_up(self, delta):
@@ -313,17 +310,17 @@ class Browser:
             self.scroll = 0
         else:
             self.scroll -= (delta * SCROLL_STEP)
-        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + BrowserState.get_window_size()[0])/self.document.content_height))
         self.draw()
 
     def scrollbar_scroll(self, action: Literal["moveto"], position: str):
         if not self.document: return
         position_float = float(position)
-        max_position = 1 - ((HEIGHT - 15) / self.document.content_height)
+        max_position = 1 - ((BrowserState.get_window_size()[0] - 15) / self.document.content_height)
         if not 0 <= position_float <= max_position:
             return
         self.scroll = self.document.content_height * position_float
-        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + HEIGHT)/self.document.content_height))
+        self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + BrowserState.get_window_size()[0])/self.document.content_height))
         self.draw()
 
     def is_emoji(self, unicode) -> bool:
@@ -332,7 +329,7 @@ class Browser:
     def draw(self) -> None:
         self.canvas.delete("all")
         for cmd in self.display_list:
-            if cmd.top > self.scroll + HEIGHT: continue
+            if cmd.top > self.scroll + BrowserState.get_window_size()[0]: continue
             if cmd.bottom < self.scroll: continue
             cmd.execute(self.scroll, self.canvas, self.supported_emojis)
         """ for x, y, word, font in self.display_list:

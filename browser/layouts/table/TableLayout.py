@@ -50,6 +50,9 @@ class TableLayout(Layout):
             width = int(width.replace("pt", "")) * 1.33
         elif width == "auto":
             width = self.parent.width
+        elif width == "max-content":
+            #TODO: Handle max-content as it should be handled https://developer.mozilla.org/en-US/docs/Web/CSS/max-content.
+            width = self.parent.width
         self.width = int(float(width))
         self.x = self.parent.x
 

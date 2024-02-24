@@ -184,6 +184,10 @@ def transform_color(color: str) -> ValidColor:
         print("Error?: Color is already a tuple")
         return ValidColor("rgba_color", color)
 
+    if color == "initial":
+        #TODO: Add support for initial color.
+        return ValidColor("color", "black")
+
     if color == "inherit" or color == "none" or color.startswith("var") or color.startswith("hsl") or color.startswith("hsla") or not is_valid_color(color):
         log("Color", color)
         return ValidColor("color", "pink")
