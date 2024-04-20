@@ -2,11 +2,12 @@ from typing import List
 from web.dom.elements.Element import Element
 
 class TagSelector:
-    def __init__(self, tag: str, classes: List[str], ids: list[str]):
+    def __init__(self, tag: str, classes: List[str], ids: list[str], pseudo_classes: list[str]):
         self.tag = tag
         self.priority = 1
         self.classes = classes
         self.ids = ids
+        self.pseudo_classes = pseudo_classes
 
     def check_match_for_tag_plus_class(self, node_name: str, classes: List[str]) -> bool:
         for cls in classes:
@@ -21,6 +22,7 @@ class TagSelector:
 
     def matches(self, node: Element) -> bool:
         if not isinstance(node, Element): return False
+        if "root" in self.pseudo_classes: return True
         classes = [cls.lower() for cls in node.attributes.get("class", "").split(" ")]
         id = node.attributes.get("id", None)
         """ if node.name == "body":
@@ -33,4 +35,4 @@ class TagSelector:
          (id and self.check_match_for_tag_plus_id(node.name, id)))
 
     def __str__(self) -> str:
-        return f"Tag: {self.tag}, class: {self.classes}, ids: {self.ids}"
+        return f"Tag: {self.tag}, class: {self.classes}, ids: {self.ids}, pseudo classes: {self.pseudo_classes}"

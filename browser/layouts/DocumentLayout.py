@@ -27,6 +27,7 @@ class DocumentLayout(Layout):
         self.body = self.__get_element(node, HTMLBodyElement)
         self.html = self.__get_element(node, HTMLElement)
         self.content_height = 0
+        self.font_size = 16 # TODO: Font size is missing since super is not called.
 
     def layout(self, screen_width):
         super().layout()
@@ -38,7 +39,9 @@ class DocumentLayout(Layout):
         child = BlockLayout(self.body, self, None)
         self.children.append(child)
         self.width = int(float(screen_width))
+        print("child layout")
         child.layout()
+        print("child recalculate")
         child.recalculate_size()
         self.content_height = child.calculated_height + 2*globals.VSTEP
         self.x = 0

@@ -141,8 +141,11 @@ class ImageLayout(Layout):
             self.width = 1
         if self.height == 0:
             self.height = 1
+        print("before image resize")
         image = image.resize((self.width, self.height))
+        print("before image creation")
         self.image = ImageTk.PhotoImage(image)
+        print("after image creation")
 
         if self.previous:
             space = 10

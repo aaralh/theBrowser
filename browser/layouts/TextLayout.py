@@ -22,6 +22,7 @@ class TextLayout(Layout):
         self.font = None
 
     def layout(self) -> None:
+        print("text layout")
         super().layout()
         weight = self.node.style["font-weight"]
         style = self.node.style["font-style"]
@@ -45,6 +46,7 @@ class TextLayout(Layout):
             self.x = self.parent.x + self.internal_padding
 
         self.height = self.font.metrics("linespace")
+        print("text layout end")
 
     def paint(self, display_list: list) -> None:
         color = self.node.style["color"]

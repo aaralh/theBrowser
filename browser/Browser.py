@@ -268,7 +268,9 @@ class Browser:
         self.document = DocumentLayout(dom)
         [inspector.update_dom(dom) for inspector in BrowserState.get_inspectors()]
         self.document.height = BrowserState.get_window_size()[1]
+        print("document layout")
         self.document.layout(BrowserState.get_window_size()[0] - SCROLLBAR_WIDTH)
+        print("document layout done")
         self.scrollbar.set((self.scroll/self.document.content_height), ((self.scroll + BrowserState.get_window_size()[1])/self.document.content_height))
         self.display_list = []
         self.document.paint(self.display_list)

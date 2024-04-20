@@ -17,8 +17,12 @@ def font_weight_to_string(weight: Union[Literal['normal', 'bold'], str]) -> Lite
 
 
 def get_font(size: int, weight: Literal['normal', 'bold'], slant: Literal['roman', 'italic']) -> Font:
+    """
     key = (size, weight, slant)
+    print("Key: ", key, len(FONTS.keys()))
     if key not in FONTS:
         font = Font(size=size, weight=weight, slant=slant)
         FONTS[key] = font
     return FONTS[key]
+    """
+    return Font(size=size, weight=weight, slant=slant)

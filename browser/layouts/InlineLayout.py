@@ -19,7 +19,6 @@ from web.dom.elements.HTMLInputElement import HTMLInputElement
 from web.dom.elements.HTMLButtonElement import HTMLButtonElement
 from web.dom.elements.HTMLTableElement import HTMLTableElement
 
-
 @dataclass
 class DOMElement():
     element: Element
@@ -36,7 +35,9 @@ class InlineLayout(Layout):
         self.height = 10
 
     def layout(self):
+        print("inline layout")
         super().layout()
+        print("inline layout after super")
         self.children = []
         self.width = self.parent.width - (self.parent.margin.width + self.parent.padding.width + self.parent.border.width)
         self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.border.get_border("left").width + self.parent.padding.get_padding("left")
@@ -47,8 +48,10 @@ class InlineLayout(Layout):
             self.y = int(self.parent.y + self.parent.margin.get_margin("top") + self.parent.border.get_border("top").width) + self.parent.padding.get_padding("top")
 
         self.new_line()
+        print("inline layout before recurse")
         self.recurse(self.node)
 
+        print("inline layout before loop")
         for line in self.children:
             line.layout()
 
@@ -74,9 +77,11 @@ class InlineLayout(Layout):
                 self.x = self.parent.x + self.parent.margin.get_margin("left") + self.parent.padding.get_padding("left")
             for line in self.children:
                 line.layout()
+        print("inline layout end")
 
 
     def recurse(self, node: Node) -> None:
+        print("node: ", type(node))
         display = node.style.get("display")
         if display == "none": return
         if isinstance(node, Text):
@@ -144,14 +149,22 @@ class InlineLayout(Layout):
         self.cursor_x += w + font.measure(" ")
 
     def text(self, element: Text) -> None:
+        print("text start")
         weight = element.style["font-weight"]
         style = element.style["font-style"]
         if style == "normal": style = "roman"
-        size = int(float(element.style["font-size"][:-2]) * .75)
+        font_size = element.style["font-size"].replace("px", "").replace("rem", "").replace("em", "")
+        print("font_size: ", font_size)
+        size = int(float(font_size) * .75)
+        print("before font")
         font = get_font(size, font_weight_to_string(weight), style)
+        print(font.__dict__)
+        print("after font")
         data = element.data.strip()
         for word in data.split():
+            print("word: ", word)
             w = font.measure(word)
+            print("w: ", w)
             if self.parent.float == "none":
                 if self.cursor_x + w > (self.width - (self.margin.width + self.padding.width)) - globals.HSTEP:
                     self.new_line()
@@ -159,4 +172,9 @@ class InlineLayout(Layout):
             text = TextLayout(element, word, line, self.previous_word)
             line.children.append(text)
             self.previous_word = text
+            print("after update previous")
+            print(self.cursor_x, w)
+            print(font.__dict__)
             self.cursor_x += w + font.measure(" ")
+            print("loop end")
+        print("text end")

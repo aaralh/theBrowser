@@ -110,6 +110,10 @@ class Layout:
             font_size = str(int(font_size.replace("pt", "")) * 1.2)
         elif font_size in CSS_FONTS_SIZE:
             font_size = str(convert_absolute_size_to_pixels(font_size))
+        elif font_size.endswith("rem"):
+            # TODO: Fix rem and em calculations.
+            parent_font_size = self.parent.font_size
+            font_size = str(parent_font_size * float(font_size.replace("rem", "")))
         elif font_size.endswith("em"):
             parent_font_size = self.parent.font_size
             font_size = str(parent_font_size * float(font_size.replace("em", "")))
@@ -338,10 +342,10 @@ class Layout:
         def calculate_margin_width(width: str) -> int:
             if width.endswith("rem"):
                 #TODO: Fix rem and em calculations.
-                font_size = int(self.node.style["font-size"].replace("px", ""))
+                font_size = int(float(self.node.style["font-size"].replace("px", "").replace("rem", "").replace("em", "")))
                 return int(float(width.replace("rem", "")) * font_size)
             elif width.endswith("em"):
-                font_size = int(self.node.style["font-size"].replace("px", ""))
+                font_size = int(float(self.node.style["font-size"].replace("px", "").replace("rem", "").replace("em", "")))
                 return int(float(width.replace("em", "")) * font_size)
             elif width.endswith("%"):
                 return int(self.parent.width * (int(width.replace("%", "")) / 100))
@@ -386,10 +390,10 @@ class Layout:
         def calculate_padding_width(width: str) -> int:
             if width.endswith("rem"):
                 #TODO: Fix rem and em calculations.
-                font_size = int(self.node.style["font-size"].replace("px", ""))
+                font_size = int(float(self.node.style["font-size"].replace("px", "").replace("rem", "").replace("em", "")))
                 return int(float(width.replace("rem", "")) * font_size)
             elif width.endswith("em"):
-                font_size = int(self.node.style["font-size"].replace("px", ""))
+                font_size = int(float(self.node.style["font-size"].replace("px", "").replace("rem", "").replace("em", "")))
                 return int(float(width.replace("em", "")) * font_size)
             elif width.endswith("%"):
                 return int(self.parent.width * (int(float(width.replace("%", ""))) / 100))
