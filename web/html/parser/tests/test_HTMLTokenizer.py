@@ -89,13 +89,13 @@ class TestHTMLTokenizer(TestCase):
         token = tokenizer.next_token()
         self.assertEqual(token, None)
 
-    def test_date_state_null_char(self):
+    def test_data_state_null_char(self):
         tokenizer = HTMLTokenizer("H\0I")
         self.assertEqual(tokenizer.state, HTMLTokenizer.State.Data)
 
         token = tokenizer.next_token()
         self.assertEqual(token.type, HTMLToken.TokenType.Character)
-        self.assertEqual(token.data, "\uFFFD")
+        self.assertEqual(token.data, "H")
 
         token = tokenizer.next_token()
         self.assertEqual(token.type, HTMLToken.TokenType.Character)
@@ -318,7 +318,7 @@ class TestHTMLTokenizer(TestCase):
         self.assertEqual(token.type, HTMLToken.TokenType.Comment)
         self.assertEqual(token.data, " <!-- nested ")
 
-        for code_point in "bye":
+        for code_point in " -->":
             token = tokenizer.next_token()
             self.assertEqual(token.type, HTMLToken.TokenType.Character)
             self.assertEqual(token.data, code_point)
@@ -337,6 +337,39 @@ class TestHTMLTokenizer(TestCase):
         token = tokenizer.next_token()
         self.assertEqual(token.type, HTMLToken.TokenType.Comment)
         self.assertEqual(token.data, " <script>var x = 1;</script> ")
+
+        token = tokenizer.next_token()
+        self.assertEqual(token.type, HTMLToken.TokenType.EOF)
+        self.assertEqual(tokenizer.state, HTMLTokenizer.State.Data)
+
+        token = tokenizer.next_token()
+        self.assertEqual(token, None)
+
+    def test_head_tag_with_script_tag(self):
+        tokenizer = HTMLTokenizer("<head><script>var x = 1;</script></head>")
+        self.assertEqual(tokenizer.state, HTMLTokenizer.State.Data)
+
+        token = tokenizer.next_token()
+        self.assertEqual(token.type, HTMLToken.TokenType.StartTag)
+        self.assertEqual(token.name, "head")
+
+        token = tokenizer.next_token()
+        self.assertEqual(token.type, HTMLToken.TokenType.StartTag)
+        self.assertEqual(token.name, "script")
+        self.assertEqual(token.attributes, {})
+
+        for code_point in "var x = 1;":
+            token = tokenizer.next_token()
+            self.assertEqual(token.type, HTMLToken.TokenType.Character)
+            self.assertEqual(token.data, code_point)
+
+        token = tokenizer.next_token()
+        self.assertEqual(token.type, HTMLToken.TokenType.EndTag)
+        self.assertEqual(token.name, "script")
+
+        token = tokenizer.next_token()
+        self.assertEqual(token.type, HTMLToken.TokenType.EndTag)
+        self.assertEqual(token.name, "head")
 
         token = tokenizer.next_token()
         self.assertEqual(token.type, HTMLToken.TokenType.EOF)
