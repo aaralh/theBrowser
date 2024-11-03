@@ -1,27 +1,26 @@
 import re
 
 
-def charIsWhitespace(char: str) -> bool:
+def char_is_whitespace(char: str) -> bool:
     return char.isspace()
 
-
-def charIsUppercaseAlpha(char: str) -> bool:
+def char_is_uppercase_alpha(char: str) -> bool:
     return "A" <= char <= "Z"
 
 
-def charIsLowercaseAlpha(char: str) -> bool:
+def char_is_lowercase_alpha(char: str) -> bool:
     return "a" <= char <= "z"
 
 
-def charIsAlpha(char: str) -> bool:
-    return charIsLowercaseAlpha(char) or charIsUppercaseAlpha(char)
+def char_is_alpha(char: str) -> bool:
+    return char_is_lowercase_alpha(char) or char_is_uppercase_alpha(char)
 
 
-def charIsSurrogate(char: int) -> bool:
+def char_is_surrogate(char: int) -> bool:
     return re.search(r'[\uD800-\uDFFF]', str(char)) is not None
 
 
-def charIsNoncharacter(char: int) -> bool:
+def char_is_noncharacter(char: int) -> bool:
     """
     Try to cast string number to character to determine if it is a character.
     """
@@ -32,15 +31,15 @@ def charIsNoncharacter(char: int) -> bool:
         return False
 
 
-def charIsC0Control(char: int) -> bool:
+def char_is_c0_control(char: int) -> bool:
     return char <= 0x1F
 
 
-def charIsControl(char: int) -> bool:
-    return charIsC0Control(char) or (0x7F <= char <= 0x9F)
+def char_is_control(char: int) -> bool:
+    return char_is_c0_control(char) or (0x7F <= char <= 0x9F)
 
 
-def tagIsSpecial(tagName: str, nameSpace: str = "html") -> bool:
+def tag_is_special(tagName: str, nameSpace: str = "html") -> bool:
     # Namespace support is still missing so fixed to html.
     if nameSpace == "html":
         return tagName in [
