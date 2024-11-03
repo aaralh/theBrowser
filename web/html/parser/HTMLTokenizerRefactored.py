@@ -26,7 +26,11 @@ class ReConsume:
 class ReprocessQueue:
     pass
 
-TokenizerState = Union[Emit, SwitchTo, ReConsume, ReprocessQueue]
+@dataclass
+class Continue:
+    pass
+
+TokenizerState = Union[Emit, SwitchTo, ReConsume, ReprocessQueue, Continue]
 
 class HTMLTokenizer:
 
@@ -233,12 +237,12 @@ class HTMLTokenizer:
             self._current_token.data = self._current_input_char
             return self._emit_current_token()
 
-    def handle_RCDATA(self) -> None:
+    def handle_RCDATA(self) -> TokenizerState:
         if self._current_input_char == "&":
             self._return_state = self.State.RCDATA
-            self.switch_state_to(self.State.CharacterReference)
+            return self.switch_state_to(self.State.CharacterReference)
         elif self._current_input_char == "<":
-            self.switch_state_to(self.State.RCDATALessThanSign)
+            return self.switch_state_to(self.State.RCDATALessThanSign)
         elif self._current_input_char is None:
             self._current_token = self._create_new_token(HTMLToken.TokenType.EOF)
             return self._emit_current_token()
@@ -247,9 +251,9 @@ class HTMLTokenizer:
             self._current_token.data = self._current_input_char
             return self._emit_current_token()
 
-    def handle_RAWTEXT(self) -> None:
+    def handle_RAWTEXT(self) -> TokenizerState:
         if self._current_input_char == "<":
-            self.switch_state_to(self.State.RAWTEXTLessThanSign)
+            return self.switch_state_to(self.State.RAWTEXTLessThanSign)
         elif self._current_input_char is None:
             self._current_token = self._create_new_token(HTMLToken.TokenType.EOF)
             return self._emit_current_token()
@@ -258,9 +262,9 @@ class HTMLTokenizer:
             self._current_token.data = self._current_input_char
             return self._emit_current_token()
 
-    def handle_script_data(self) -> None:
+    def handle_script_data(self) -> TokenizerState:
         if self._current_input_char == "<":
-            self.switch_state_to(self.State.ScriptDataLessThanSign)
+            return self.switch_state_to(self.State.ScriptDataLessThanSign)
         elif self._current_input_char is None:
             self._current_token = self._create_new_token(HTMLToken.TokenType.EOF)
             return self._emit_current_token()
@@ -274,7 +278,6 @@ class HTMLTokenizer:
 
     # 13.2.5.6 https://html.spec.whatwg.org/multipage/parsing.html#tag-open-state
     def handle_tag_open(self) -> TokenizerState:
-
         if self._current_input_char is None:
             self._current_token = self._create_new_token(HTMLToken.TokenType.EOF)
             self._append_token_to_queue()
@@ -283,12 +286,15 @@ class HTMLTokenizer:
             return self._emit_current_token()
 
         if self._current_input_char == "!":
-            self._reconsume_in(self.State.MarkupDeclarationOpen)
+            return self._reconsume_in(self.State.MarkupDeclarationOpen)
         elif self._current_input_char == "/":
             return self.switch_state_to(self.State.EndTagOpen)
         elif self._current_input_char.isalpha():
             self._current_token = cast(HTMLTag, self._create_new_token(HTMLToken.TokenType.StartTag))
             return self._reconsume_in(self.State.TagName)
+        elif self._current_input_char == "?":
+            self._current_token = cast(HTMLTag, self._create_new_token(HTMLToken.TokenType.Comment))
+            return self._reconsume_in(self.State.BogusComment)
         else:
             self._current_token = cast(HTMLCommentOrCharacter, self._create_new_token(HTMLToken.TokenType.Character))
             self._current_token.data = "<"
@@ -321,7 +327,7 @@ class HTMLTokenizer:
     def handle_RCDATA_less_than_sign(self) -> TokenizerState:
         if self._current_input_char == "/":
             self._temporary_buffer = []
-            self.switch_state_to(self.State.RCDATAEndTagOpen)
+            return self.switch_state_to(self.State.RCDATAEndTagOpen)
         else:
             self._current_token = cast(HTMLCommentOrCharacter, self._create_new_token(HTMLToken.TokenType.Character))
             self._current_token.data = "<"
@@ -363,12 +369,12 @@ class HTMLTokenizer:
 
         if char_is_whitespace(self._current_input_char):
             if self._current_token.name == self._last_emitted_start_tag_name:
-                self.switch_state_to(self.State.BeforeAttributeName)
+                return self.switch_state_to(self.State.BeforeAttributeName)
             else:
                 return else_case()
         elif self._current_input_char == "/":
             if self._current_token.name == self._last_emitted_start_tag_name:
-                self.switch_state_to(self.State.SelfClosingStartTag)
+                return self.switch_state_to(self.State.SelfClosingStartTag)
             else:
                 return else_case()
         elif self._current_input_char == ">":
@@ -380,16 +386,18 @@ class HTMLTokenizer:
         elif char_is_uppercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char.lower())
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         elif char_is_lowercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char)
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         else:
             return else_case()
 
     def handle_RAWTEXT_less_than_sign(self) -> TokenizerState:
         if self._current_input_char == "/":
             self._temporary_buffer = []
-            self.switch_state_to(self.State.RAWTEXTEndTagOpen)
+            return self.switch_state_to(self.State.RAWTEXTEndTagOpen)
         else:
             self._current_token = cast(HTMLCommentOrCharacter, self._create_new_token(HTMLToken.TokenType.Character))
             self._current_token.data = "<"
@@ -431,12 +439,12 @@ class HTMLTokenizer:
 
         if char_is_whitespace(self._current_input_char):
             if self._current_token.name == self._last_emitted_start_tag_name:
-                self.switch_state_to(self.State.BeforeAttributeName)
+                return self.switch_state_to(self.State.BeforeAttributeName)
             else:
                 return else_case()
         elif self._current_input_char == "/":
             if self._current_token.name == self._last_emitted_start_tag_name:
-                self.switch_state_to(self.State.SelfClosingStartTag)
+                return self.switch_state_to(self.State.SelfClosingStartTag)
             else:
                 return else_case()
         elif self._current_input_char == ">":
@@ -448,9 +456,11 @@ class HTMLTokenizer:
         elif char_is_uppercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char.lower())
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         elif char_is_lowercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char)
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         else:
             return else_case()
 
@@ -522,9 +532,11 @@ class HTMLTokenizer:
         elif char_is_uppercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char.lower())
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         elif char_is_lowercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char)
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         else:
             return else_case()
 
@@ -671,9 +683,11 @@ class HTMLTokenizer:
         elif char_is_uppercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char.lower())
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         elif char_is_lowercase_alpha(self._current_input_char):
             self._current_token.append_char_to_token_name(self._current_input_char)
             self._temporary_buffer.append(self._current_input_char)
+            return Continue()
         else:
             return else_case()
 
@@ -741,6 +755,7 @@ class HTMLTokenizer:
             return self.switch_state_to(self.State.BeforeAttributeValue)
         elif self._current_input_char.isupper() and self._current_input_char.isalpha():
             self._current_token.add_char_to_attribute_name(self._current_input_char.lower())
+            return Continue()
         else:
             self._current_token.add_char_to_attribute_name(self._current_input_char)
             return self._continue_in(self.State.AttributeName)
@@ -749,7 +764,7 @@ class HTMLTokenizer:
         self._current_token = cast(HTMLTag, self._current_token)
 
         if char_is_whitespace(self._current_input_char):
-            pass
+            return Continue()
         elif self._current_input_char == "/":
             return self.switch_state_to(self.State.SelfClosingStartTag)
         elif self._current_input_char == "=":
@@ -847,8 +862,25 @@ class HTMLTokenizer:
         else:
             return self._reconsume_in(self.State.BeforeAttributeName)
 
-    def handle_bogus_comment(self) -> None:
-        raise NotImplementedError
+    def handle_bogus_comment(self) -> TokenizerState:
+        if self._current_input_char == ">":
+            self.switch_state_to(self.State.Data)
+            return self._emit_current_token()
+        elif self._current_input_char is None:
+            return self._emit_current_token()
+        elif ord(self._current_input_char) == 0:
+            if self._current_token.data is None:
+                self._current_token.data = "\uFFFD"
+            else:
+                self._current_token.data += "\uFFFD"
+            return Continue()
+        else:
+            if self._current_token.data is None:
+                self._current_token.data = self._current_input_char
+            else:
+                self._current_token.data += self._current_input_char
+            return Continue()
+
 
     def handle_markup_declaration_open(self) -> TokenizerState:
         if self._next_characters_are("--"):
@@ -860,7 +892,6 @@ class HTMLTokenizer:
             return self.switch_state_to(self.State.DOCTYPE)
 
     def handle_comment_start(self) -> TokenizerState:
-
         if self._current_input_char == "-":
             return self.switch_state_to(self.State.CommentStartDash)
         elif self._current_input_char == ">":
@@ -915,6 +946,7 @@ class HTMLTokenizer:
             return self.switch_state_to(self.State.CommentLessThanSignBang)
         elif self._current_input_char == "<":
             self._current_token.data += self._current_input_char
+            return Continue()
         else:
             return self._reconsume_in(self.State.Comment)
 
@@ -935,7 +967,7 @@ class HTMLTokenizer:
     def handle_comment_less_than_sign_bang_dash_dash(self) -> TokenizerState:
         self._current_token = cast(HTMLCommentOrCharacter, self._current_token)
         if self._current_input_char == ">" or self._current_input_char is None:
-            return self.switch_state_to(self.State.CommentEnd)
+            return self._reconsume_in(self.State.CommentEnd)
         else:
             return self._reconsume_in(self.State.CommentEnd)
 
@@ -957,8 +989,8 @@ class HTMLTokenizer:
     def handle_comment_end(self) -> TokenizerState:
         self._current_token = cast(HTMLCommentOrCharacter, self._current_token)
         if self._current_input_char == ">":
-            self._append_token_to_queue()
-            return self.switch_state_to(self.State.Data)
+            self.switch_state_to(self.State.Data)
+            return self._emit_current_token()
         elif self._current_input_char == "-":
             if self._current_token.data is not None:
                 self._current_token.data += "-"
@@ -971,9 +1003,9 @@ class HTMLTokenizer:
             return self._emit_current_token()
         else:
             if self._current_token.data is not None:
-                self._current_token.data += "-"
+                self._current_token.data += "--"
             else:
-                self._current_token.data = "-"
+                self._current_token.data = "--"
             return self._reconsume_in(self.State.Comment)
 
     def handle_comment_end_bang(self) -> None:
@@ -1110,6 +1142,7 @@ class HTMLTokenizer:
         if self._current_input_char.isalnum():
             self._temporary_buffer.append(self._current_input_char)
             self._flush_temporary_buffer()
+            return Continue()
         elif self._current_input_char == ";":
             return self._reconsume_in_return_state()
         else:
@@ -1152,11 +1185,13 @@ class HTMLTokenizer:
         else:
             # TODO: Handle parse error.
             return self._reconsume_in(self.State.NumericCharacterReferenceEnd)
+        return Continue()
 
     def handle_decimal_character_reference(self) -> TokenizerState:
         if self._current_input_char.isdigit():
             self._character_reference_code *= 10
             self._character_reference_code += ord(self._current_input_char) - 0x0030
+            return Continue()
         elif self._current_input_char == ";":
             return self.switch_state_to(self.State.NumericCharacterReferenceEnd)
         else:
@@ -1218,6 +1253,7 @@ class HTMLTokenizer:
         self._flush_temporary_buffer()
         if self._return_state is not None:
             return self._reconsume_in_return_state()
+        return Continue()
 
     def _get_state_switcher(self) -> Callable[[], Union[TokenizerState]]:
 
@@ -1336,12 +1372,6 @@ class HTMLTokenizer:
         if self._current_input_char is None:
             return None
 
-        """
-        if token_point is None:
-            self._current_token = self._create_new_token(HTMLToken.TokenType.EOF)
-            return self._emit_current_token().token
-        """
-
         token_point = self._next_code_point()
         self._current_input_char = cast(str, token_point)
 
@@ -1355,6 +1385,10 @@ class HTMLTokenizer:
                 self._current_input_char = cast(str, token_point)
                 continue
             elif type(result) == ReConsume:
+                continue
+            elif type(result) == Continue:
+                token_point = self._next_code_point()
+                self._current_input_char = cast(str, token_point)
                 continue
             elif type(result) == ReprocessQueue:
                 maybe_token = self.process_queue()
