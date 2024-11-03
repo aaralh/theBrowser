@@ -13,10 +13,9 @@ from web.dom.Node import Node
 from web.dom.elements.Text import Text
 from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLToken import HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter
-from web.html.parser.HTMLTokenizer import HTMLTokenizer, DEBUG
+from web.html.parser.HTMLTokenizerRefactored import HTMLTokenizer, DEBUG
 from web.dom.ElementFactory import ElementFactory
 from dataclasses import dataclass
-from copy import deepcopy
 from browser.utils.logging import log
 
 class HTMLDocumentParser:
@@ -54,7 +53,7 @@ class HTMLDocumentParser:
         self._current_insertion_mode = self._Mode.Initial
         self._original_insertion_mode: Union[HTMLDocumentParser._Mode, None] = None
         self._open_elements = StackOfOpenElements()
-        self._tokenizer = HTMLTokenizer(html, self._token_handler)
+        self._tokenizer = HTMLTokenizer(html)
         self._document = Document()
         self._document_node = None
         self._scripting: bool = False
@@ -75,7 +74,10 @@ class HTMLDocumentParser:
 
     def run(self, cb: Callable) -> None:
         self._notify_cb = cb
-        self._tokenizer.run()
+        token = self._tokenizer.next_token()
+        while token:
+            self._token_handler(token)
+            token = self._tokenizer.next_token()
 
     def _token_handler(self, token: Union[HTMLToken, HTMLDoctype, HTMLTag, HTMLCommentOrCharacter]) -> None:
 
@@ -118,7 +120,6 @@ class HTMLDocumentParser:
         Creates element based on given token and sets parent for it.
         """
         parent = self._current_element
-        log("Token:", token)
         element = ElementFactory.create_element(token, parent, self._document)
         element.parentNode.appendChild(element)
 
