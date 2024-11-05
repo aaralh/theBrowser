@@ -216,7 +216,7 @@ class Layout:
                     self.width = int(parent_width * \
                         (float(attr_width.replace("%", "")) / 100))
                 elif attr_width.endswith("vw"):
-                    self.width = int(BrowserState.get_window_size()[1] * \
+                    self.width = int(BrowserState.get_window_size()[0] * \
                         (float(attr_width.replace("vw", "")) / 100))
                 elif attr_width == "max-content":
                     #TODO: Handle max-content as it should be handled https://developer.mozilla.org/en-US/docs/Web/CSS/max-content.

@@ -216,7 +216,7 @@ class Browser:
     def redraw(self) -> None:
         self.re_draw_timeout = None
         if self.document:
-            self.document.layout(BrowserState.get_window_size()[1] - SCROLLBAR_WIDTH)
+            self.document.layout(BrowserState.get_window_size()[0] - SCROLLBAR_WIDTH)
             self.display_list = []
             self.document.paint(self.display_list)
         self.used_resources = []
@@ -316,7 +316,7 @@ class Browser:
     def scrollbar_scroll(self, action: Literal["moveto"], position: str):
         if not self.document: return
         position_float = float(position)
-        max_position = 1 - ((BrowserState.get_window_size()[0] - 15) / self.document.content_height)
+        max_position = 1 - ((BrowserState.get_window_size()[1] - 15) / self.document.content_height)
         if not 0 <= position_float <= max_position:
             return
         self.scroll = self.document.content_height * position_float
@@ -329,7 +329,7 @@ class Browser:
     def draw(self) -> None:
         self.canvas.delete("all")
         for cmd in self.display_list:
-            if cmd.top > self.scroll + BrowserState.get_window_size()[0]: continue
+            if cmd.top > self.scroll + BrowserState.get_window_size()[1]: continue
             if cmd.bottom < self.scroll: continue
             cmd.execute(self.scroll, self.canvas, self.supported_emojis)
         """ for x, y, word, font in self.display_list:
