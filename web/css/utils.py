@@ -1,7 +1,7 @@
-from browser.styling.CSSParser import CSSParser
+from web.css.CSSParser import CSSParser
 from web.dom.elements.Element import Element
 from typing import List, Optional
-from browser.styling.CSSParser import Rule
+from web.css.CSSParser import Rule
 
 
 INHERITED_PROPERTIES = {

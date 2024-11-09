@@ -1,5 +1,5 @@
 from browser.globals import BrowserState
-from browser.styling.color.utils import transform_color
+from browser.styling.color import transform_color
 from web.dom.Node import Node
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font

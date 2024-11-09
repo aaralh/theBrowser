@@ -53,6 +53,8 @@ class TableLayout(Layout):
         elif width == "max-content":
             #TODO: Handle max-content as it should be handled https://developer.mozilla.org/en-US/docs/Web/CSS/max-content.
             width = self.parent.width
+        elif width.endswith("px"):
+            width = width.replace("px", "")
         self.width = int(float(width))
         self.x = self.parent.x
 

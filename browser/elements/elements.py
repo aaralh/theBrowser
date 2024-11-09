@@ -1,11 +1,10 @@
 from dataclasses import dataclass
 from tkinter import Canvas
-from typing import Dict, List, Literal, Optional, Tuple, cast
+from typing import Dict, List, Literal, Tuple
 from PIL import ImageTk, Image
 from tkinter.font import Font
-from typing import NewType
 
-from browser.styling.color.utils import ValidColor, rgba_to_hex, transform_color
+from browser.styling.color import ValidColor, rgba_to_hex, transform_color
 
 class DrawImage:
     def __init__(self, x1, y1, height, image: ImageTk):

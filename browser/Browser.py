@@ -18,8 +18,8 @@ from web.dom.DocumentType import DocumentType
 from web.html.parser.HTMLDocumentParser import HTMLDocumentParser
 from web.dom.elements import HTMLBodyElement, HTMLStyleElement
 from browser.globals import EMOJIS_PATH, BrowserState
-from browser.styling.CSSParser import CSSParser
-from browser.styling.utils import style, cascade_priority
+from web.css.CSSParser import CSSParser
+from web.css.utils import style, cascade_priority
 from web.dom.elements import Text
 import urllib
 

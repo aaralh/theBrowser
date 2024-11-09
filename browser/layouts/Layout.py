@@ -1,7 +1,7 @@
-from typing import List, Literal, Optional, Union
+from typing import List, Literal, Optional
 from browser.elements.elements import Border, BorderProperties, DrawBorder, DrawRect
 from browser.globals import BrowserState
-from browser.styling.color.utils import CSS_COLORS, transform_color
+from browser.styling.color import CSS_COLORS, transform_color
 from browser.styling.font.utils import CSS_FONTS_SIZE, convert_absolute_size_to_pixels
 from web.dom.Node import Node
 from web.dom.elements.Text import Text
