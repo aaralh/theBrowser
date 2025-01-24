@@ -1,9 +1,8 @@
-from tkinter import W
 from typing import List, Literal
 from browser.elements.elements import DrawBorder, DrawOval, DrawRect, DrawText
 from browser.layouts.Layout import Layout
 from browser.layouts.utils import font_weight_to_string, get_font
-from browser.styling.color.utils import transform_color
+from browser.styling.color import transform_color
 from web.dom.Node import Node
 from web.dom.elements.Element import Element
 from web.dom.elements.Text import Text

@@ -48,6 +48,9 @@ class HTMLCommentOrCharacter(HTMLToken):
     def __str__(self) -> str:
         return f"type: {self.type}, name: {self.data}"
 
+    def is_parser_white_space(self):
+        return self.data.isspace()
+
 
 class HTMLTag(HTMLToken):
 
@@ -61,24 +64,24 @@ class HTMLTag(HTMLToken):
     def __str__(self) -> str:
         return f"type: {self.type}, name: {self.name}, attributes: {self.attributes}"
 
-    def createNewAttribute(self) -> None:
+    def create_new_attribute(self) -> None:
         self.attributes[""] = ""
         self.activeAttributeName = ""
 
-    def addCharToAttributeName(self, char: str) -> None:
+    def add_char_to_attribute_name(self, char: str) -> None:
         if self.activeAttributeName is None:
             return
         self.attributes[self.activeAttributeName + char] = self.attributes[self.activeAttributeName]
         del self.attributes[self.activeAttributeName]
         self.activeAttributeName += char
 
-    def addCharToAttributeValue(self, char: str) -> None:
+    def add_char_to_attribute_value(self, char: str) -> None:
         if self.activeAttributeName is None:
             return
 
         self.attributes[self.activeAttributeName] = self.attributes[self.activeAttributeName] + char
 
-    def appendCharToTokenName(self, char: str) -> None:
+    def append_char_to_token_name(self, char: str) -> None:
         if self.name is None:
             self.name = char
         else:

@@ -1,6 +1,6 @@
 from web.dom.Document import Document
 from web.dom.Node import Node
-from web.html.parser.utils import charIsWhitespace
+from web.html.parser.utils import char_is_whitespace
 
 
 class CharacterData(Node):

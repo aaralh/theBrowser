@@ -1,5 +1,5 @@
-from browser.styling.DescendantSelector import DescendantSelector
-from browser.styling.TagSelector import TagSelector
+from web.css.DescendantSelector import DescendantSelector
+from web.css.TagSelector import TagSelector
 from dataclasses import dataclass
 from typing import Dict, List, Optional
 

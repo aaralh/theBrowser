@@ -1,6 +1,6 @@
 from typing import TypeVar, cast
 from browser.elements.elements import Border, DrawRect
-from browser.styling.color.utils import transform_color
+from browser.styling.color import transform_color
 from web.dom.elements import HTMLBodyElement
 from web.dom.DocumentType import DocumentType
 from browser.layouts.Layout import Layout, Margin, Padding

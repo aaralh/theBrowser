@@ -1,13 +1,7 @@
-from tkinter import W
-from browser.elements.elements import DrawRect
-from browser.globals import BrowserState
 from browser.layouts.InlineLayout import InlineLayout
-from typing import List
 from browser.layouts.Layout import Layout
-from browser.utils.logging import log
 from web.dom.elements.Element import Element
-from browser.styling.utils import style
-from web.dom.elements.Text import Text
+
 
 class BlockLayout(Layout):
     def __init__(self, node: Element, parent: Layout, previous: Layout):
