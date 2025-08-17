@@ -23,14 +23,20 @@ class TagSelector:
         if not isinstance(node, Element): return False
         classes = [cls.lower() for cls in node.attributes.get("class", "").split(" ")]
         id = node.attributes.get("id", None)
-        """ if node.name == "body":
-            log("Matches:", self.tag, self.classes, node.name, node.attributes, (self.tag == node.name or (any(cls in self.classes for cls in classes))))
-            log(self.classes, classes) """
-        return  (
-            self.tag == node.name or
-            (any(cls in self.classes for cls in classes)) or
-            ((self.tag and not self.tag.startswith(".") and self.tag.count(".") == 1) and self.check_match_for_tag_plus_class(node.name, classes)) or
-         (id and self.check_match_for_tag_plus_id(node.name, id)))
+        matches = []
+
+        
+        if len(self.tag) > 0 and "." in self.tag:
+            matches.append(self.check_match_for_tag_plus_class(node.name, classes))
+        elif len(self.tag) > 0:
+            matches.append(self.tag == node.name)
+
+        if len(self.classes) > 0:
+            matches.append(any(cls in self.classes for cls in classes))
+        if len(self.ids) > 0:
+            matches.append(id and self.check_match_for_tag_plus_id(node.name, id))
+
+        return all(matches)
 
     def __str__(self) -> str:
         return f"Tag: {self.tag}, class: {self.classes}, ids: {self.ids}"
