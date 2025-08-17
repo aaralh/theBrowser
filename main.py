@@ -2,7 +2,8 @@ from browser.Browser import Browser
 import tkinter
 from tkinter.constants import END
 
-if __name__ == "__main__":
+def main():
+    print("Starting the browser...")
     import sys
     browser = Browser()
     if len(sys.argv) > 1:
@@ -12,4 +13,5 @@ if __name__ == "__main__":
         browser.search_bar.insert(END, url)
     tkinter.mainloop()
 
-
+if __name__ == "__main__":
+    main()
